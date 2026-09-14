@@ -103,11 +103,21 @@ class TradingTerminalPage extends StatelessWidget {
 
 ---
 
-## 🧩 Modular & Headless Usage
+## 🧩 Modular & Headless Usage (Clean Chart Without Top Header)
 
-You can also use the standalone [`TradingChart`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/chart_widget.dart) canvas widget inside your own custom dashboards, cards, or dialogs:
+`im_charts` can be used either as a turnkey terminal or in a clean / headless configuration without the top header or toolbar:
 
 ```dart
+// Option A: Turnkey terminal with custom header/toolbar toggles
+TradingScreen(
+  initialSymbol: 'NIFTY 50',
+  showToolbar: false, // Omit top toolbar
+  showHeader: false,  // Omit top telemetry header (pure clean canvas)
+)
+```
+
+```dart
+// Option B: Direct standalone canvas embedding in cards or dialogs
 import 'package:flutter/material.dart';
 import 'package:im_charts/im_charts.dart';
 
@@ -174,18 +184,23 @@ controller.setTheme(customTheme);
 
 ---
 
-## 🧪 Running the Runnable Example & Tests
+## 🧪 Interactive Showcase Hub & Runnable Example
 
-A complete runnable example application is provided in the [`example/`](example/) directory:
+A complete multi-mode showcase application is provided in the [`example/`](example/) directory:
 
 ```bash
-# Run the example app on macOS, Web, iOS, or Android
+# Run the example showcase on macOS, Web, iOS, or Android
 cd example
 flutter run
-
-# Run the test suite
-flutter test
 ```
+
+### Showcase Modes Included in `example/`:
+1. **💡 Dashboard Hub**: Interactive catalog overview explaining every possibility with quick-launch triggers.
+2. **🚀 Full Institutional Terminal**: Turnkey TradingView-grade setup with 2-row toolbars, technical indicators, and symbol search.
+3. **🎯 Clean / Headless Chart**: Clean chart version with **no top header or toolbar**, maximizing canvas space.
+4. **📊 Dual Multi-Chart Grid**: Synchronized side-by-side live charting engines (NIFTY 50 5m vs BANKNIFTY 15m).
+5. **🎨 Custom Themes & Styles Lab**: Live dynamic switching between Cyberpunk, Bloomberg Amber, Dark, and Light themes + 6 candle styles.
+6. **📱 Embedded Analytics Card**: Wealth-tech KPI card embedding a 320px area chart with quick timeframe filters.
 
 ---
 
