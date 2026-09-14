@@ -16,12 +16,27 @@ class PriceRange {
 
   double get span => max - min;
 
+  double get mid => (min + max) / 2.0;
+
   /// Returns a new [PriceRange] with proportional top and bottom padding.
   PriceRange withPadding({double topPaddingPercent = 0.08, double bottomPaddingPercent = 0.08}) {
     final s = span == 0 ? 1.0 : span;
     final topPad = s * topPaddingPercent;
     final bottomPad = s * bottomPaddingPercent;
     return PriceRange(min - bottomPad, max + topPad);
+  }
+
+  /// Applies vertical scaling factor (scale > 1 expands span / zooms out, scale < 1 contracts span / zooms in)
+  /// and vertical pan offset.
+  PriceRange applyVerticalScaleAndPan({double scale = 1.0, double pan = 0.0}) {
+    if (scale == 1.0 && pan == 0.0) return this;
+    final originalSpan = span <= 0 ? 1.0 : span;
+    final newSpan = (originalSpan * scale).clamp(0.001, double.infinity);
+    final shiftedCenter = mid + (originalSpan * pan);
+    return PriceRange(
+      shiftedCenter - (newSpan / 2.0),
+      shiftedCenter + (newSpan / 2.0),
+    );
   }
 
   /// Calculates the price range spanning a list of [candles] within optional [start] and [end] indices.

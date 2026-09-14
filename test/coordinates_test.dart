@@ -63,5 +63,30 @@ void main() {
       expect(visible.start, lessThan(visible.end));
       expect(visible.count, greaterThan(0));
     });
+
+    test('PriceRange applyVerticalScaleAndPan zooms and pans correctly', () {
+      const original = PriceRange(100.0, 200.0);
+      expect(original.mid, equals(150.0));
+      expect(original.span, equals(100.0));
+
+      // Scaling by 2.0 (zoom out / expands span)
+      final zoomedOut = original.applyVerticalScaleAndPan(scale: 2.0);
+      expect(zoomedOut.span, equals(200.0));
+      expect(zoomedOut.mid, equals(150.0));
+      expect(zoomedOut.min, equals(50.0));
+      expect(zoomedOut.max, equals(250.0));
+
+      // Scaling by 0.5 (zoom in / contracts span)
+      final zoomedIn = original.applyVerticalScaleAndPan(scale: 0.5);
+      expect(zoomedIn.span, equals(50.0));
+      expect(zoomedIn.mid, equals(150.0));
+      expect(zoomedIn.min, equals(125.0));
+      expect(zoomedIn.max, equals(175.0));
+
+      // Vertical pan shift
+      final panned = original.applyVerticalScaleAndPan(pan: 0.1);
+      expect(panned.span, equals(100.0));
+      expect(panned.mid, equals(160.0));
+    });
   });
 }

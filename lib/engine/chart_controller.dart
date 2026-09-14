@@ -37,6 +37,10 @@ class TradingChartController extends ChangeNotifier {
   bool _showCrosshair = true;
   bool _isLoading = true;
 
+  // Vertical Price Scale (TradingView manual scale & pan)
+  double _verticalScale = 1.0;
+  double _verticalPan = 0.0;
+
   TradingChartController({
     required String symbol,
     required this.dataSource,
@@ -71,6 +75,10 @@ class TradingChartController extends ChangeNotifier {
   bool get showCrosshair => _showCrosshair;
   bool get isLoading => _isLoading;
   bool get isDarkTheme => theme.backgroundColor == const Color(0xFF131722);
+
+  double get verticalScale => _verticalScale;
+  double get verticalPan => _verticalPan;
+  bool get isManualPriceScale => (_verticalScale - 1.0).abs() > 0.001 || _verticalPan.abs() > 0.001;
 
   /// Loads initial historical data and establishes real-time tick ingestion.
   Future<void> initialize() async {
@@ -116,6 +124,8 @@ class TradingChartController extends ChangeNotifier {
     }
     _crosshairPosition = null;
     _hoveredCandle = null;
+    _verticalScale = 1.0;
+    _verticalPan = 0.0;
     _candleBuilder = CandleBuilder(timeframe: _timeframe);
     await initialize();
   }
@@ -222,36 +232,120 @@ class TradingChartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Pinch zoom gesture handler.
+  /// Focal-point aware horizontal zoom (pinch zoom or mouse wheel).
   void onZoom(double scaleFactor, Offset focalPoint) {
     const minWidth = 2.0;
-    const maxWidth = 45.0;
-    final newWidth = (_viewport.candleWidth * scaleFactor).clamp(minWidth, maxWidth);
+    const maxWidth = 50.0;
+    final oldCandleWidth = _viewport.candleWidth;
+    final newWidth = (oldCandleWidth * scaleFactor).clamp(minWidth, maxWidth);
+    if (newWidth == oldCandleWidth) return;
 
-    _viewport = _viewport.copyWith(candleWidth: newWidth);
+    final oldTotal = _viewport.candleTotalWidth;
+    final newTotal = newWidth + _viewport.candleSpacing;
+    final ratio = newTotal / oldTotal;
+
+    // Anchor calculation to keep candle under focalPoint.dx stationary
+    final focalX = focalPoint.dx;
+    final distFromRight = _viewport.viewportWidth - _viewport.rightMargin - focalX + _viewport.scrollOffset;
+    final newScrollOffset = (_viewport.scrollOffset + distFromRight * (ratio - 1.0)).clamp(
+      -120.0,
+      math.max(0.0, candles.length * newTotal).toDouble(),
+    );
+
+    _viewport = _viewport.copyWith(
+      candleWidth: newWidth,
+      scrollOffset: newScrollOffset,
+    );
     notifyListeners();
   }
 
-  /// Zooms in by 20%.
+  /// Vertical scale drag on price scale (Y-axis zoom).
+  void onVerticalScale(double deltaY) {
+    // deltaY > 0 -> dragged down -> zoom out (expand span)
+    // deltaY < 0 -> dragged up -> zoom in (compress span)
+    final factor = 1.0 + (deltaY / 120.0);
+    _verticalScale = (_verticalScale * factor).clamp(0.05, 30.0);
+    notifyListeners();
+  }
+
+  /// Vertical pan when manual price scaling is active.
+  void onVerticalPan(double deltaY, double paneHeight) {
+    if (paneHeight <= 0) return;
+    final normalizedDelta = deltaY / paneHeight;
+    _verticalPan += normalizedDelta * _verticalScale;
+    notifyListeners();
+  }
+
+  /// Horizontal scale drag on time scale (X-axis zoom).
+  void onTimeScale(double deltaX) {
+    // deltaX > 0 -> dragged right -> zoom in (widen candle width)
+    // deltaX < 0 -> dragged left -> zoom out (narrow candle width)
+    final scaleRatio = 1.0 + (deltaX / 120.0);
+    final newWidth = (_viewport.candleWidth * scaleRatio).clamp(2.0, 50.0);
+    if (newWidth == _viewport.candleWidth) return;
+
+    final oldTotal = _viewport.candleTotalWidth;
+    final newTotal = newWidth + _viewport.candleSpacing;
+    final ratio = newTotal / oldTotal;
+
+    final newOffset = (_viewport.scrollOffset * ratio).clamp(-120.0, double.infinity);
+    _viewport = _viewport.copyWith(
+      candleWidth: newWidth,
+      scrollOffset: newOffset,
+    );
+    notifyListeners();
+  }
+
+  /// Zoom in horizontally by 25%.
   void zoomIn() {
-    final newWidth = (_viewport.candleWidth * 1.25).clamp(2.0, 45.0);
+    final newWidth = (_viewport.candleWidth * 1.25).clamp(2.0, 50.0);
     _viewport = _viewport.copyWith(candleWidth: newWidth);
     notifyListeners();
   }
 
-  /// Zooms out by 20%.
+  /// Zoom out horizontally by 20%.
   void zoomOut() {
-    final newWidth = (_viewport.candleWidth * 0.8).clamp(2.0, 45.0);
+    final newWidth = (_viewport.candleWidth * 0.8).clamp(2.0, 50.0);
     _viewport = _viewport.copyWith(candleWidth: newWidth);
     notifyListeners();
   }
 
-  /// Resets scroll and zoom to default view.
+  /// Zoom in price scale vertically.
+  void zoomInPrice() {
+    _verticalScale = (_verticalScale * 0.85).clamp(0.05, 30.0);
+    notifyListeners();
+  }
+
+  /// Zoom out price scale vertically.
+  void zoomOutPrice() {
+    _verticalScale = (_verticalScale * 1.15).clamp(0.05, 30.0);
+    notifyListeners();
+  }
+
+  /// Resets vertical price scale back to auto-scale.
+  void resetPriceScale() {
+    _verticalScale = 1.0;
+    _verticalPan = 0.0;
+    notifyListeners();
+  }
+
+  /// Resets horizontal time scale back to default.
+  void resetTimeScale() {
+    _viewport = _viewport.copyWith(
+      candleWidth: 8.0,
+      scrollOffset: 0.0,
+    );
+    notifyListeners();
+  }
+
+  /// Resets both time and price scale to default view.
   void resetView() {
     _viewport = _viewport.copyWith(
       candleWidth: 8.0,
       scrollOffset: 0.0,
     );
+    _verticalScale = 1.0;
+    _verticalPan = 0.0;
     _crosshairPosition = null;
     _hoveredCandle = null;
     notifyListeners();

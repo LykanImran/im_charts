@@ -28,6 +28,8 @@ class ChartPainter extends CustomPainter {
   final Offset? crosshairPosition;
   final bool showVolume;
   final bool showGrid;
+  final double verticalScale;
+  final double verticalPan;
 
   final GridRenderer _gridRenderer;
   final CandleRenderer _candleRenderer;
@@ -48,6 +50,8 @@ class ChartPainter extends CustomPainter {
     this.crosshairPosition,
     this.showVolume = true,
     this.showGrid = true,
+    this.verticalScale = 1.0,
+    this.verticalPan = 0.0,
   })  : _gridRenderer = GridRenderer(theme),
         _candleRenderer = CandleRenderer(theme),
         _volumeRenderer = VolumeRenderer(theme),
@@ -81,12 +85,17 @@ class ChartPainter extends CustomPainter {
       totalCandles: candles.length,
     );
 
-    // 4. Calculate auto-scaled price range for visible candles
-    final priceRange = PriceRange.fromCandles(
+    // 4. Calculate auto-scaled price range with manual vertical scale & pan
+    final basePriceRange = PriceRange.fromCandles(
       candles,
       start: visible.start,
       end: visible.end,
     ).withPadding(topPaddingPercent: 0.08, bottomPaddingPercent: 0.08);
+
+    final priceRange = basePriceRange.applyVerticalScaleAndPan(
+      scale: verticalScale,
+      pan: verticalPan,
+    );
 
     // 5. Draw Background Grid (if enabled)
     if (showGrid) {
@@ -230,6 +239,8 @@ class ChartPainter extends CustomPainter {
         oldDelegate.subPaneIndicator != subPaneIndicator ||
         oldDelegate.showVolume != showVolume ||
         oldDelegate.showGrid != showGrid ||
+        oldDelegate.verticalScale != verticalScale ||
+        oldDelegate.verticalPan != verticalPan ||
         oldDelegate.theme != theme;
   }
 }

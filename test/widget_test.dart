@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:im_charts/main.dart';
 
@@ -115,4 +116,52 @@ void main() {
     // Verify symbol in header changed to RELIANCE
     expect(find.text('RELIANCE'), findsOneWidget);
   });
+
+  testWidgets('Dragging price scale engages manual scale and shows AUTO pill', (WidgetTester tester) async {
+    await tester.pumpWidget(const TradingApp());
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Initially AUTO pill is not visible because auto-scale is active
+    expect(find.byKey(const Key('auto_scale_pill')), findsNothing);
+
+    // Find the chart widget size
+    final chartFinder = find.byType(TradingChart);
+    expect(chartFinder, findsOneWidget);
+    final chartRect = tester.getRect(chartFinder);
+
+    // Drag vertically on the right price scale (width 65px)
+    final priceAxisPoint = Offset(chartRect.right - 30, chartRect.top + 100);
+    await tester.dragFrom(priceAxisPoint, const Offset(0, 80));
+    await tester.pumpAndSettle();
+
+    // Now AUTO pill should be visible
+    expect(find.byKey(const Key('auto_scale_pill')), findsOneWidget);
+
+    // Tapping AUTO should reset manual price scale
+    await tester.tap(find.byKey(const Key('auto_scale_pill')));
+    await tester.pumpAndSettle();
+
+    // AUTO pill is hidden after reset
+    expect(find.byKey(const Key('auto_scale_pill')), findsNothing);
+  });
+
+  testWidgets('Dragging time scale horizontally zooms candle width', (WidgetTester tester) async {
+    await tester.pumpWidget(const TradingApp());
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final chartFinder = find.byType(TradingChart);
+    final chartRect = tester.getRect(chartFinder);
+
+    // Drag horizontally on the bottom time scale (height 24px)
+    final timeAxisPoint = Offset(chartRect.center.dx, chartRect.bottom - 12);
+    await tester.dragFrom(timeAxisPoint, const Offset(60, 0));
+    await tester.pumpAndSettle();
+
+    // Drag left to zoom out
+    await tester.dragFrom(timeAxisPoint, const Offset(-100, 0));
+    await tester.pumpAndSettle();
+  });
 }
+
