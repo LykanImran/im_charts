@@ -5,6 +5,7 @@ import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
@@ -27,6 +28,7 @@ class TradingChartController extends ChangeNotifier {
   ChartViewport _viewport;
   late CandleBuilder _candleBuilder;
   StreamSubscription<Tick>? _tickSubscription;
+  Timer? _countdownTicker;
 
   final List<Indicator> _activeIndicators = [];
   List<IndicatorResult> _overlayResults = [];
@@ -38,6 +40,8 @@ class TradingChartController extends ChangeNotifier {
   bool _showGrid = true;
   bool _showCrosshair = true;
   bool _isLoading = true;
+  bool _showCountdownTimer = true;
+  bool _showWatermark = true;
 
   // Vertical Price Scale (TradingView manual scale & pan)
   double _verticalScale = 1.0;
@@ -48,6 +52,13 @@ class TradingChartController extends ChangeNotifier {
   void Function(ChartOrder order)? onOrderPlaced;
   void Function(ChartOrder order)? onOrderModified;
   void Function(String orderId)? onOrderCancelled;
+
+  // Interactive Drawings
+  final List<ChartDrawing> _drawings = [];
+  ChartDrawing? _previewDrawing;
+  DrawingTool _activeDrawingTool = DrawingTool.pointer;
+  void Function(ChartDrawing drawing)? onDrawingAdded;
+  void Function(String drawingId)? onDrawingRemoved;
 
   TradingChartController({
     required String symbol,
@@ -63,6 +74,16 @@ class TradingChartController extends ChangeNotifier {
         theme = theme ?? ChartTheme.dark(),
         _viewport = const ChartViewport() {
     _candleBuilder = CandleBuilder(timeframe: _timeframe);
+    _startCountdownTicker();
+  }
+
+  void _startCountdownTicker() {
+    _countdownTicker?.cancel();
+    _countdownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_showCountdownTimer && _candleBuilder.currentCandle != null) {
+        notifyListeners();
+      }
+    });
   }
 
   // Getters
@@ -78,6 +99,51 @@ class TradingChartController extends ChangeNotifier {
   IndicatorResult? get subPaneResult => _subPaneResult;
   List<Indicator> get activeIndicators => List.unmodifiable(_activeIndicators);
   List<ChartOrder> get orders => List.unmodifiable(_orders);
+  List<ChartDrawing> get drawings => List.unmodifiable(_drawings);
+  ChartDrawing? get previewDrawing => _previewDrawing;
+  DrawingTool get activeDrawingTool => _activeDrawingTool;
+  set activeDrawingTool(DrawingTool tool) {
+    if (_activeDrawingTool != tool) {
+      _activeDrawingTool = tool;
+      _previewDrawing = null;
+      notifyListeners();
+    }
+  }
+
+  bool get showCountdownTimer => _showCountdownTimer;
+  set showCountdownTimer(bool val) {
+    if (_showCountdownTimer != val) {
+      _showCountdownTimer = val;
+      notifyListeners();
+    }
+  }
+
+  bool get showWatermark => _showWatermark;
+  set showWatermark(bool val) {
+    if (_showWatermark != val) {
+      _showWatermark = val;
+      notifyListeners();
+    }
+  }
+
+  /// Formatted countdown to current candle close (e.g. '04:12' or '00:23').
+  String get candleCountdownText {
+    final candle = currentCandle;
+    if (candle == null) return '';
+    final closeTime = candle.timestamp.add(_timeframe.duration);
+    final remaining = closeTime.difference(DateTime.now());
+    if (remaining.isNegative) return '00:00';
+
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds % 60;
+    if (remaining.inHours > 0) {
+      final hours = remaining.inHours;
+      final m = minutes % 60;
+      return '${hours.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   Offset? get crosshairPosition => _showCrosshair ? _crosshairPosition : null;
   bool get showVolume => _showVolume;
   bool get showGrid => _showGrid;
@@ -192,6 +258,59 @@ class TradingChartController extends ChangeNotifier {
   void clearOrders() {
     _orders.clear();
     notifyListeners();
+  }
+
+  /// Adds a new user drawing to the chart canvas.
+  void addDrawing(ChartDrawing drawing) {
+    _drawings.add(drawing);
+    _previewDrawing = null;
+    onDrawingAdded?.call(drawing);
+    notifyListeners();
+  }
+
+  /// Updates an existing drawing (e.g. dragging an anchor point).
+  void updateDrawing(ChartDrawing drawing) {
+    final index = _drawings.indexWhere((d) => d.id == drawing.id);
+    if (index >= 0) {
+      _drawings[index] = drawing;
+      notifyListeners();
+    }
+  }
+
+  /// Removes a drawing from the chart canvas.
+  void removeDrawing(String id) {
+    final removed = _drawings.where((d) => d.id == id).toList();
+    _drawings.removeWhere((d) => d.id == id);
+    if (removed.isNotEmpty) {
+      onDrawingRemoved?.call(id);
+      notifyListeners();
+    }
+  }
+
+  /// Clears all drawings from the chart canvas.
+  void clearDrawings() {
+    _drawings.clear();
+    _previewDrawing = null;
+    notifyListeners();
+  }
+
+  /// Updates the live drawing preview while the user is actively drawing.
+  void setPreviewDrawing(ChartDrawing? preview) {
+    _previewDrawing = preview;
+    notifyListeners();
+  }
+
+  /// Selects a drawing by ID or deselects all if null.
+  void selectDrawing(String? id) {
+    bool changed = false;
+    for (int i = 0; i < _drawings.length; i++) {
+      final isSel = _drawings[i].id == id;
+      if (_drawings[i].isSelected != isSel) {
+        _drawings[i] = _drawings[i].copyWith(isSelected: isSel);
+        changed = true;
+      }
+    }
+    if (changed) notifyListeners();
   }
 
   /// Loads initial historical data and establishes real-time tick ingestion.
@@ -513,6 +632,7 @@ class TradingChartController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _countdownTicker?.cancel();
     _tickSubscription?.cancel();
     super.dispose();
   }

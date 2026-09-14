@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../core/coordinates/coordinate_converter.dart';
+import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
@@ -13,6 +15,8 @@ enum _ChartDragMode { none, priceAxis, timeAxis, mainChart }
 class TradingChart extends StatefulWidget {
   final TradingChartController controller;
   final bool enableChartTrading;
+  final bool showWatermark;
+  final bool showCountdownTimer;
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(String orderId)? onOrderCancelled;
@@ -21,6 +25,8 @@ class TradingChart extends StatefulWidget {
     super.key,
     required this.controller,
     this.enableChartTrading = true,
+    this.showWatermark = true,
+    this.showCountdownTimer = true,
     this.orderMenuBuilder,
     this.onOrderPlaced,
     this.onOrderCancelled,
@@ -38,6 +44,7 @@ class _TradingChartState extends State<TradingChart> {
   Offset _lastTapDownPosition = Offset.zero;
   _ChartDragMode _dragMode = _ChartDragMode.none;
   Offset? _hoverPosition;
+  DrawingPoint? _drawingAnchorPoint;
 
   static const double _priceAxisWidth = 65.0;
   static const double _timeAxisHeight = 24.0;
@@ -101,6 +108,27 @@ class _TradingChartState extends State<TradingChart> {
                 // Only send crosshair updates when cursor is inside main chart area
                 if (pos.dx < priceAxisLeft && pos.dy < timeAxisTop) {
                   controller.setCrosshairPosition(pos);
+
+                  // If actively drawing a multi-point tool, update preview
+                  if (controller.activeDrawingTool != DrawingTool.pointer &&
+                      _drawingAnchorPoint != null &&
+                      controller.candles.isNotEmpty) {
+                    final converter = CoordinateConverter(
+                      viewport: controller.viewport,
+                      totalCandles: controller.candles.length,
+                    );
+                    final hoverIndex = converter.xToIndex(pos.dx);
+                    final hoverPrice = double.parse(controller.priceAtY(pos.dy).toStringAsFixed(2));
+                    controller.setPreviewDrawing(ChartDrawing(
+                      id: 'preview',
+                      tool: controller.activeDrawingTool,
+                      points: [
+                        _drawingAnchorPoint!,
+                        DrawingPoint(candleIndex: hoverIndex, price: hoverPrice),
+                      ],
+                      color: const Color(0xFF2962FF).withValues(alpha: 0.8),
+                    ));
+                  }
                 } else {
                   controller.setCrosshairPosition(null);
                 }
@@ -187,8 +215,69 @@ class _TradingChartState extends State<TradingChart> {
                         behavior: HitTestBehavior.opaque,
                         onTapDown: (details) {
                           _lastTapDownPosition = details.localPosition;
+                          final pos = details.localPosition;
+
+                          // Handle drawing tool interaction
+                          if (controller.activeDrawingTool != DrawingTool.pointer &&
+                              pos.dx < priceAxisLeft &&
+                              pos.dy < timeAxisTop &&
+                              controller.candles.isNotEmpty) {
+                            final converter = CoordinateConverter(
+                              viewport: controller.viewport,
+                              totalCandles: controller.candles.length,
+                            );
+                            final clickedIndex = converter.xToIndex(pos.dx);
+                            final clickedPrice = double.parse(controller.priceAtY(pos.dy).toStringAsFixed(2));
+                            final tool = controller.activeDrawingTool;
+
+                            if (tool == DrawingTool.horizontalLine) {
+                              controller.addDrawing(ChartDrawing(
+                                id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                tool: DrawingTool.horizontalLine,
+                                points: [DrawingPoint(candleIndex: clickedIndex, price: clickedPrice)],
+                                color: const Color(0xFF00E5FF),
+                              ));
+                              controller.activeDrawingTool = DrawingTool.pointer;
+                            } else if (tool == DrawingTool.longPosition || tool == DrawingTool.shortPosition) {
+                              final isLong = tool == DrawingTool.longPosition;
+                              controller.addDrawing(ChartDrawing(
+                                id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                tool: tool,
+                                points: [DrawingPoint(candleIndex: clickedIndex, price: clickedPrice)],
+                                properties: {
+                                  'targetPrice': double.parse((isLong ? clickedPrice * 1.015 : clickedPrice * 0.985).toStringAsFixed(2)),
+                                  'stopPrice': double.parse((isLong ? clickedPrice * 0.9925 : clickedPrice * 1.0075).toStringAsFixed(2)),
+                                },
+                              ));
+                              controller.activeDrawingTool = DrawingTool.pointer;
+                            } else {
+                              // Multi-point tools (trendline, fibonacci, ruler)
+                              if (_drawingAnchorPoint == null) {
+                                setState(() {
+                                  _drawingAnchorPoint = DrawingPoint(candleIndex: clickedIndex, price: clickedPrice);
+                                });
+                              } else {
+                                controller.addDrawing(ChartDrawing(
+                                  id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                  tool: tool,
+                                  points: [
+                                    _drawingAnchorPoint!,
+                                    DrawingPoint(candleIndex: clickedIndex, price: clickedPrice),
+                                  ],
+                                ));
+                                setState(() => _drawingAnchorPoint = null);
+                                controller.setPreviewDrawing(null);
+                                controller.activeDrawingTool = DrawingTool.pointer;
+                              }
+                            }
+                            return;
+                          }
                         },
                         onScaleStart: (details) {
+                          if (controller.activeDrawingTool != DrawingTool.pointer) {
+                            _dragMode = _ChartDragMode.none;
+                            return;
+                          }
                           _isPinching = false;
                           _lastScale = 1.0;
                           _lastFocalPoint = details.localFocalPoint;
@@ -298,9 +387,16 @@ class _TradingChartState extends State<TradingChart> {
                               overlayIndicators: controller.overlayResults,
                               subPaneIndicator: controller.subPaneResult,
                               orders: controller.orders,
+                              drawings: controller.drawings,
+                              previewDrawing: controller.previewDrawing,
                               crosshairPosition: controller.crosshairPosition,
                               showVolume: controller.showVolume,
                               showGrid: controller.showGrid,
+                              showWatermark: widget.showWatermark && controller.showWatermark,
+                              showCountdownTimer: widget.showCountdownTimer && controller.showCountdownTimer,
+                              countdownText: controller.candleCountdownText,
+                              symbol: controller.symbol,
+                              exchange: controller.exchange,
                               verticalScale: controller.verticalScale,
                               verticalPan: controller.verticalPan,
                             ),

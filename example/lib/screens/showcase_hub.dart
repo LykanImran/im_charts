@@ -188,6 +188,25 @@ class ShowcaseHubScreen extends StatelessWidget {
                         ],
                         onTap: () => onSelectMode(6),
                       ),
+                      _buildModeCard(
+                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        title: '7. Drawing Tools & Real-Time Telemetry',
+                        tag: 'NEW • TECHNICAL ANALYSIS',
+                        tagColor: const Color(0xFFFFD600),
+                        description:
+                            'Institutional TradingView-style analysis: Left-docked drawing tools (Trendlines, Horizontal Rays, Fibonacci retracement, Long & Short Risk:Reward boxes, Measure ruler), live ticking candle countdown timer, and background watermark.',
+                        icon: Icons.brush_outlined,
+                        bullets: [
+                          'Left drawing toolbar with 7 tools',
+                          'Trendlines & Horizontal support/resistance',
+                          'Fibonacci retracement with golden ratio bands',
+                          'Long/Short Risk:Reward box with target/stop zones',
+                          'Measure ruler (ΔPrice, Δ%, bar count)',
+                          'Live ticking candle countdown timer badge',
+                          'Background typography watermark (NIFTY 50 • 5m)',
+                        ],
+                        onTap: () => onSelectMode(7),
+                      ),
                     ],
                   );
                 },

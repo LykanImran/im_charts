@@ -55,6 +55,13 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
   - **Connected TP & SL Brackets**: Dedicated Take Profit (Cyan) and Stop Loss (Orange) dashed lines with vertical elbow connector arms.
   - **Drag-to-Modify**: Drag badges directly on the chart canvas to dynamically update order and bracket prices in real time.
   - **Instant Cancellation & Callbacks**: Direct `✖` cancel buttons with `onOrderPlaced`, `onOrderModified`, and `onOrderCancelled` lifecycle hooks.
+- **📐 Left Drawing Tools Bar**:
+  - Left-docked professional toolbar with 7 analysis instruments: **Trendline** (2 anchor clicks), **Horizontal Ray** (support/resistance with price badge), **Fibonacci Retracement** (golden ratio bands: 0.0, 0.236, 0.382, 0.500, 0.618, 0.786, 1.0), **Long Position** (Risk:Reward box with green target and red stop zones), **Short Position** (Risk:Reward box), and **Measure Ruler** (ΔPrice, Δ%, bar count).
+  - Financial coordinate anchoring `(candleIndex, price)` ensures drawings remain locked across horizontal zoom, pan, and real-time tick streaming.
+- **⏱️ Live Candle Close Countdown Timer & Watermark**:
+  - **Countdown Timer Badge**: Live ticking badge on the vertical price axis showing exact time remaining before the active bar closes (e.g. `04:18`).
+  - **Background Canvas Watermark**: Bold institutional typography (`NIFTY 50 • 5m • NSE`) rendered in the background pane at 4.5% opacity.
+  - **Price Beacon Pulse Dot**: Radiant pulsing beacon tracking the active candle close price on canvas.
 - **🚀 Skia & Impeller Direct Canvas Rendering**:
   - Zero widget overhead: Entire chart renders via a single, isolated `CustomPainter` with boundary clipping.
 

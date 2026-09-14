@@ -21,6 +21,10 @@ const TradingScreen({
   TradingChartController? controller,
   bool showToolbar = true,
   bool showHeader = true,
+  bool showDrawingToolbar = false,
+  bool showWatermark = true,
+  bool showCountdownTimer = true,
+  bool enableChartTrading = true,
 });
 ```
 
@@ -33,6 +37,23 @@ const TradingScreen({
 - `controller`: Optional caller-owned `TradingChartController`. If provided, lifecycle is managed externally.
 - `showToolbar`: Whether to render Row 1 primary toolbar. Default is `true`.
 - `showHeader`: Whether to render Row 2 telemetry overlay header. Default is `true`.
+- `showDrawingToolbar`: Whether to dock the left drawing tools bar. Default is `false`.
+- `showWatermark`: Whether to render bold symbol & timeframe background typography. Default is `true`.
+- `showCountdownTimer`: Whether to display the live candle close countdown badge on the price axis. Default is `true`.
+- `enableChartTrading`: Whether to enable interactive order lines, hover `+` button, and brackets. Default is `true`.
+
+---
+
+### `ChartDrawingToolbar`
+Left-docked vertical toolbar providing 1-click access to technical analysis instruments.
+
+```dart
+const ChartDrawingToolbar({
+  super.key,
+  required TradingChartController controller,
+  bool isCollapsible = true,
+});
+```
 
 ---
 
@@ -43,6 +64,10 @@ Standalone high-performance canvas presentation widget.
 const TradingChart({
   super.key,
   required TradingChartController controller,
+  bool showWatermark = true,
+  bool showCountdownTimer = true,
+  bool enableChartTrading = true,
+  OrderMenuBuilder? orderMenuBuilder,
 });
 ```
 
@@ -217,3 +242,47 @@ Design tokens and styling parameters.
 - `factory ChartTheme.dark()`
 - `factory ChartTheme.light()`
 - `ChartTheme copyWith({...})`
+
+---
+
+### `ChartDrawing`
+Interactive technical analysis chart drawing model.
+
+```dart
+class ChartDrawing {
+  final String id;
+  final DrawingTool tool;
+  final List<DrawingPoint> points;
+  final Color color;
+  final double strokeWidth;
+  final bool isSelected;
+  final Map<String, dynamic> properties;
+}
+```
+
+---
+
+### `DrawingPoint`
+Geometric anchor point stored in financial coordinates `(candleIndex, price)`.
+
+```dart
+class DrawingPoint {
+  final int candleIndex;
+  final double price;
+  final DateTime? timestamp;
+}
+```
+
+---
+
+### `DrawingTool`
+Supported drawing instruments.
+
+- `DrawingTool.pointer` (Standard cursor)
+- `DrawingTool.trendline` (2-point angled trendline)
+- `DrawingTool.horizontalLine` (1-point horizontal support/resistance ray)
+- `DrawingTool.fibonacci` (2-point Fibonacci retracement with golden ratio bands)
+- `DrawingTool.longPosition` (1-point Risk:Reward box with target/stop zones)
+- `DrawingTool.shortPosition` (1-point short Risk:Reward box)
+- `DrawingTool.ruler` (2-point measurement ruler calculating ΔPrice, Δ%, and bar count)
+

@@ -4,6 +4,7 @@ import 'package:im_charts/im_charts.dart';
 
 import 'screens/chart_trading_demo.dart';
 import 'screens/clean_chart_demo.dart';
+import 'screens/drawing_tools_demo.dart';
 import 'screens/dual_chart_demo.dart';
 import 'screens/portfolio_card_demo.dart';
 import 'screens/showcase_hub.dart';
@@ -29,6 +30,8 @@ void main() {
 /// 3: Dual Multi-Chart Grid (Side-by-side independent engines)
 /// 4: Custom Themes & Styles Lab (Theme live-swapping & candle styles)
 /// 5: Embedded Analytics Card (Wealth-tech component integration)
+/// 6: Direct Chart Trading & Brackets (Limit & bracket orders, drag SL/TP)
+/// 7: Drawing Tools & Real-Time Telemetry (Left toolbar, Fib, R:R Box, countdown timer, watermark)
 class ExampleApp extends StatefulWidget {
   final int initialModeIndex;
 
@@ -53,6 +56,7 @@ class _ExampleAppState extends State<ExampleApp> {
     (title: 'Themes Lab', icon: Icons.palette_outlined, color: Color(0xFFE91E63)),
     (title: 'Portfolio Card', icon: Icons.account_balance_wallet_outlined, color: Color(0xFFAB47BC)),
     (title: 'Chart Trading', icon: Icons.add_chart, color: Color(0xFF00E5FF)),
+    (title: 'Drawing Tools', icon: Icons.brush_outlined, color: Color(0xFFFFD600)),
   ];
 
   @override
@@ -276,6 +280,8 @@ class _ExampleAppState extends State<ExampleApp> {
         return const PortfolioCardDemoScreen(key: ValueKey('portfolio_card'));
       case 6:
         return const ChartTradingDemoScreen(key: ValueKey('chart_trading'));
+      case 7:
+        return const DrawingToolsDemoScreen(key: ValueKey('drawing_tools'));
       default:
         return ShowcaseHubScreen(onSelectMode: _selectMode);
     }

@@ -4,6 +4,7 @@ library;
 // Core Models
 export 'core/models/candle.dart';
 export 'core/models/candle_style.dart';
+export 'core/models/chart_drawing.dart';
 export 'core/models/chart_order.dart';
 export 'core/models/chart_theme.dart';
 export 'core/models/price_range.dart';
@@ -32,6 +33,7 @@ export 'renderer/chart_painter.dart';
 export 'renderer/pane.dart';
 
 // UI Components
+export 'ui/chart_drawing_toolbar.dart';
 export 'ui/chart_header.dart';
 export 'ui/chart_settings_modal.dart';
 export 'ui/chart_toolbar.dart';

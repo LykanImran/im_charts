@@ -8,6 +8,7 @@ import '../datasource/mock_data_source.dart';
 import '../engine/chart_controller.dart';
 import '../engine/indicators/ema.dart';
 import '../engine/indicators/rsi.dart';
+import 'chart_drawing_toolbar.dart';
 import 'chart_header.dart';
 import 'chart_toolbar.dart';
 import 'chart_widget.dart';
@@ -23,6 +24,9 @@ class TradingScreen extends StatefulWidget {
   final TradingChartController? controller;
   final bool showToolbar;
   final bool showHeader;
+  final bool showDrawingToolbar;
+  final bool showWatermark;
+  final bool showCountdownTimer;
   final bool enableChartTrading;
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
@@ -39,6 +43,9 @@ class TradingScreen extends StatefulWidget {
     this.controller,
     this.showToolbar = true,
     this.showHeader = true,
+    this.showDrawingToolbar = true,
+    this.showWatermark = true,
+    this.showCountdownTimer = true,
     this.enableChartTrading = true,
     this.orderMenuBuilder,
     this.onOrderPlaced,
@@ -132,32 +139,45 @@ class _TradingScreenState extends State<TradingScreen> {
                   if (widget.showToolbar)
                     ChartToolbar(controller: _controller),
 
-                  // Main Chart Canvas with Overlay Header in a Stack (TradingView architecture)
+                  // Main Chart Canvas with Left Drawing Toolbar and Overlay Header (TradingView architecture)
                   Expanded(
-                    child: ClipRect(
-                      child: Stack(
-                        children: [
-                          // The High-Performance Canvas Chart spans 100% of the available area
-                          Positioned.fill(
-                            child: TradingChart(
-                              controller: _controller,
-                              enableChartTrading: widget.enableChartTrading,
-                              orderMenuBuilder: widget.orderMenuBuilder,
-                              onOrderPlaced: widget.onOrderPlaced,
-                              onOrderCancelled: widget.onOrderCancelled,
+                    child: Row(
+                      children: [
+                        // Left-docked interactive Drawing Toolbar
+                        if (widget.showDrawingToolbar)
+                          ChartDrawingToolbar(controller: _controller),
+
+                        // Main High-Performance Canvas & Floating Telemetry Header
+                        Expanded(
+                          child: ClipRect(
+                            child: Stack(
+                              children: [
+                                // The High-Performance Canvas Chart spans 100% of the available area
+                                Positioned.fill(
+                                  child: TradingChart(
+                                    controller: _controller,
+                                    enableChartTrading: widget.enableChartTrading,
+                                    showWatermark: widget.showWatermark,
+                                    showCountdownTimer: widget.showCountdownTimer,
+                                    orderMenuBuilder: widget.orderMenuBuilder,
+                                    onOrderPlaced: widget.onOrderPlaced,
+                                    onOrderCancelled: widget.onOrderCancelled,
+                                  ),
+                                ),
+
+                                // Overlay Symbol & Telemetry Header floating at top-left
+                                if (widget.showHeader)
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    right: 65, // Leaves the price axis unobscured
+                                    child: ChartHeader(controller: _controller),
+                                  ),
+                              ],
                             ),
                           ),
-
-                          // Overlay Symbol & Telemetry Header floating at top-left
-                          if (widget.showHeader)
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              right: 65, // Leaves the price axis unobscured
-                              child: ChartHeader(controller: _controller),
-                            ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_drawing.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
 import '../core/models/timeframe.dart';
@@ -13,6 +15,7 @@ import 'renderers/axis_renderer.dart';
 import 'renderers/candle_renderer.dart';
 import 'renderers/crosshair_renderer.dart';
 import 'renderers/current_price_renderer.dart';
+import 'renderers/drawing_renderer.dart';
 import 'renderers/grid_renderer.dart';
 import 'renderers/indicator_renderer.dart';
 import 'renderers/order_renderer.dart';
@@ -28,9 +31,16 @@ class ChartPainter extends CustomPainter {
   final List<IndicatorResult> overlayIndicators;
   final IndicatorResult? subPaneIndicator;
   final List<ChartOrder> orders;
+  final List<ChartDrawing> drawings;
+  final ChartDrawing? previewDrawing;
   final Offset? crosshairPosition;
   final bool showVolume;
   final bool showGrid;
+  final bool showWatermark;
+  final bool showCountdownTimer;
+  final String? countdownText;
+  final String symbol;
+  final String exchange;
   final double verticalScale;
   final double verticalPan;
 
@@ -42,6 +52,7 @@ class ChartPainter extends CustomPainter {
   final AxisRenderer _axisRenderer;
   final CrosshairRenderer _crosshairRenderer;
   final OrderRenderer _orderRenderer;
+  final DrawingRenderer _drawingRenderer;
 
   ChartPainter({
     required this.candles,
@@ -52,9 +63,16 @@ class ChartPainter extends CustomPainter {
     this.overlayIndicators = const [],
     this.subPaneIndicator,
     this.orders = const [],
+    this.drawings = const [],
+    this.previewDrawing,
     this.crosshairPosition,
     this.showVolume = true,
     this.showGrid = true,
+    this.showWatermark = true,
+    this.showCountdownTimer = true,
+    this.countdownText,
+    this.symbol = 'NIFTY 50',
+    this.exchange = 'NSE',
     this.verticalScale = 1.0,
     this.verticalPan = 0.0,
   })  : _gridRenderer = GridRenderer(theme),
@@ -64,7 +82,8 @@ class ChartPainter extends CustomPainter {
         _currentPriceRenderer = CurrentPriceRenderer(theme),
         _axisRenderer = AxisRenderer(theme),
         _crosshairRenderer = CrosshairRenderer(theme),
-        _orderRenderer = OrderRenderer(theme);
+        _orderRenderer = OrderRenderer(theme),
+        _drawingRenderer = DrawingRenderer(theme);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -138,7 +157,12 @@ class ChartPainter extends CustomPainter {
       }
     }
 
-    // Clip to main pane bounds for candles, volume, and overlay indicators
+    // 5.5 Draw Background Watermark (behind candles)
+    if (showWatermark && candles.isNotEmpty) {
+      _drawWatermark(canvas, layout.mainPaneBounds);
+    }
+
+    // Clip to main pane bounds for candles, volume, overlay indicators, and drawings
     // Prevents drawing above the top boundary or over axes
     canvas.save();
     canvas.clipRect(layout.mainPaneBounds);
@@ -179,9 +203,24 @@ class ChartPainter extends CustomPainter {
       candleStyle: candleStyle,
     );
 
+    // 8b. Draw Interactive Chart Drawings (Trendlines, Fib, Position Boxes, Ruler)
+    final allDrawings = [
+      ...drawings,
+      ?previewDrawing,
+    ];
+    if (allDrawings.isNotEmpty) {
+      _drawingRenderer.drawDrawings(
+        canvas: canvas,
+        bounds: layout.mainPaneBounds,
+        drawings: allDrawings,
+        priceRange: priceRange,
+        converter: converter,
+      );
+    }
+
     canvas.restore();
 
-    // 8b. Draw Active Orders, Stop Loss & Take Profit brackets
+    // 8c. Draw Active Orders, Stop Loss & Take Profit brackets
     if (orders.isNotEmpty) {
       _orderRenderer.drawOrders(
         canvas: canvas,
@@ -191,14 +230,18 @@ class ChartPainter extends CustomPainter {
       );
     }
 
-    // 9. Draw Current Price Line & Badge
+    // 9. Draw Current Price Line, Pulse Beacon & Countdown Badge
     if (candles.isNotEmpty) {
+      final lastCandleX = converter.indexToX(candles.length - 1);
       _currentPriceRenderer.drawCurrentPrice(
         canvas: canvas,
         mainBounds: layout.mainPaneBounds,
         axisBounds: layout.priceAxisBounds,
         latestCandle: candles.last,
         priceRange: priceRange,
+        latestCandleX: lastCandleX,
+        countdownText: countdownText,
+        showCountdownTimer: showCountdownTimer,
       );
     }
 
@@ -261,12 +304,58 @@ class ChartPainter extends CustomPainter {
     canvas.restore();
   }
 
+  void _drawWatermark(Canvas canvas, Rect bounds) {
+    final watermarkColor = theme.axisTextColor.withValues(alpha: 0.045);
+    final textSpan = TextSpan(
+      children: [
+        TextSpan(
+          text: '$symbol\n',
+          style: TextStyle(
+            color: watermarkColor,
+            fontSize: math.min(bounds.width * 0.08, 48.0),
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.0,
+            height: 1.1,
+          ),
+        ),
+        TextSpan(
+          text: '${timeframe.shortLabel} • $exchange',
+          style: TextStyle(
+            color: watermarkColor,
+            fontSize: math.min(bounds.width * 0.035, 20.0),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ],
+    );
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final center = bounds.center;
+    textPainter.paint(
+      canvas,
+      Offset(center.dx - (textPainter.width / 2), center.dy - (textPainter.height / 2)),
+    );
+  }
+
   @override
   bool shouldRepaint(covariant ChartPainter oldDelegate) {
     return oldDelegate.candles != candles ||
         oldDelegate.viewport != viewport ||
         oldDelegate.crosshairPosition != crosshairPosition ||
         oldDelegate.orders != orders ||
+        oldDelegate.drawings != drawings ||
+        oldDelegate.previewDrawing != previewDrawing ||
+        oldDelegate.showWatermark != showWatermark ||
+        oldDelegate.showCountdownTimer != showCountdownTimer ||
+        oldDelegate.countdownText != countdownText ||
+        oldDelegate.symbol != symbol ||
+        oldDelegate.exchange != exchange ||
         oldDelegate.timeframe != timeframe ||
         oldDelegate.candleStyle != candleStyle ||
         oldDelegate.overlayIndicators != overlayIndicators ||
