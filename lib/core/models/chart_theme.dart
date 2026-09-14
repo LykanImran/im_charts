@@ -109,4 +109,43 @@ class ChartTheme {
       ),
     );
   }
+
+  /// Creates a copy of this theme with the given fields replaced with new values.
+  ChartTheme copyWith({
+    Color? backgroundColor,
+    Color? bullishColor,
+    Color? bearishColor,
+    Color? bullishTransparent,
+    Color? bearishTransparent,
+    Color? gridColor,
+    Color? axisTextColor,
+    Color? axisLineColor,
+    Color? crosshairColor,
+    Color? crosshairBadgeBackground,
+    Color? crosshairBadgeTextColor,
+    Color? currentPriceLineColor,
+    Color? currentPriceBadgeBackground,
+    Color? currentPriceBadgeTextColor,
+    TextStyle? axisTextStyle,
+    TextStyle? tooltipTextStyle,
+  }) {
+    return ChartTheme(
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      bullishColor: bullishColor ?? this.bullishColor,
+      bearishColor: bearishColor ?? this.bearishColor,
+      bullishTransparent: bullishTransparent ?? this.bullishTransparent,
+      bearishTransparent: bearishTransparent ?? this.bearishTransparent,
+      gridColor: gridColor ?? this.gridColor,
+      axisTextColor: axisTextColor ?? this.axisTextColor,
+      axisLineColor: axisLineColor ?? this.axisLineColor,
+      crosshairColor: crosshairColor ?? this.crosshairColor,
+      crosshairBadgeBackground: crosshairBadgeBackground ?? this.crosshairBadgeBackground,
+      crosshairBadgeTextColor: crosshairBadgeTextColor ?? this.crosshairBadgeTextColor,
+      currentPriceLineColor: currentPriceLineColor ?? this.currentPriceLineColor,
+      currentPriceBadgeBackground: currentPriceBadgeBackground ?? this.currentPriceBadgeBackground,
+      currentPriceBadgeTextColor: currentPriceBadgeTextColor ?? this.currentPriceBadgeTextColor,
+      axisTextStyle: axisTextStyle ?? this.axisTextStyle,
+      tooltipTextStyle: tooltipTextStyle ?? this.tooltipTextStyle,
+    );
+  }
 }

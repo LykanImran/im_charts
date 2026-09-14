@@ -19,6 +19,9 @@ class TradingScreen extends StatefulWidget {
   final Timeframe initialTimeframe;
   final CandleStyle initialCandleStyle;
   final ChartTheme? initialTheme;
+  final TradingChartController? controller;
+  final bool showToolbar;
+  final bool showHeader;
 
   const TradingScreen({
     super.key,
@@ -28,6 +31,9 @@ class TradingScreen extends StatefulWidget {
     this.initialTimeframe = Timeframe.fiveMinutes,
     this.initialCandleStyle = CandleStyle.candles,
     this.initialTheme,
+    this.controller,
+    this.showToolbar = true,
+    this.showHeader = true,
   });
 
   @override
@@ -35,43 +41,52 @@ class TradingScreen extends StatefulWidget {
 }
 
 class _TradingScreenState extends State<TradingScreen> {
-  late final ChartDataSource _dataSource;
+  ChartDataSource? _dataSource;
   late final TradingChartController _controller;
+  bool _internalController = false;
   bool _internalDataSource = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.dataSource != null) {
-      _dataSource = widget.dataSource!;
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+      _internalController = false;
     } else {
-      _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
-      _internalDataSource = true;
-    }
-
-    _controller = TradingChartController(
-      symbol: widget.initialSymbol,
-      exchange: widget.initialExchange,
-      dataSource: _dataSource,
-      initialTimeframe: widget.initialTimeframe,
-      initialCandleStyle: widget.initialCandleStyle,
-      theme: widget.initialTheme ?? ChartTheme.dark(),
-    );
-
-    // Initialize data & activate starter indicators
-    _controller.initialize().then((_) {
-      if (mounted) {
-        _controller.toggleIndicator(EMAIndicator(period: 20, color: const Color(0xFF2962FF)));
-        _controller.toggleIndicator(RSIIndicator(period: 14));
+      _internalController = true;
+      if (widget.dataSource != null) {
+        _dataSource = widget.dataSource!;
+      } else {
+        _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
+        _internalDataSource = true;
       }
-    });
+
+      _controller = TradingChartController(
+        symbol: widget.initialSymbol,
+        exchange: widget.initialExchange,
+        dataSource: _dataSource!,
+        initialTimeframe: widget.initialTimeframe,
+        initialCandleStyle: widget.initialCandleStyle,
+        theme: widget.initialTheme ?? ChartTheme.dark(),
+      );
+
+      // Initialize data & activate starter indicators
+      _controller.initialize().then((_) {
+        if (mounted) {
+          _controller.toggleIndicator(EMAIndicator(period: 20, color: const Color(0xFF2962FF)));
+          _controller.toggleIndicator(RSIIndicator(period: 14));
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    if (_internalDataSource) {
-      _dataSource.dispose();
+    if (_internalController) {
+      _controller.dispose();
+    }
+    if (_internalDataSource && _dataSource != null) {
+      _dataSource!.dispose();
     }
     super.dispose();
   }
@@ -105,7 +120,8 @@ class _TradingScreenState extends State<TradingScreen> {
               child: Column(
                 children: [
                   // Row 1: Primary Toolbar (Search, Interval dropdown, Candles dropdown, Indicators dropdown, Refresh, Theme, Settings)
-                  ChartToolbar(controller: _controller),
+                  if (widget.showToolbar)
+                    ChartToolbar(controller: _controller),
 
                   // Main Chart Canvas with Overlay Header in a Stack (TradingView architecture)
                   Expanded(
@@ -118,12 +134,13 @@ class _TradingScreenState extends State<TradingScreen> {
                           ),
 
                           // Overlay Symbol & Telemetry Header floating at top-left
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 65, // Leaves the price axis unobscured
-                            child: ChartHeader(controller: _controller),
-                          ),
+                          if (widget.showHeader)
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 65, // Leaves the price axis unobscured
+                              child: ChartHeader(controller: _controller),
+                            ),
                         ],
                       ),
                     ),
