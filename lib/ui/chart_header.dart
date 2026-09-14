@@ -3,7 +3,7 @@ import '../core/models/chart_theme.dart';
 import '../engine/chart_controller.dart';
 
 /// Row 2: Symbol & Telemetry Bar showing:
-/// Selected symbol name, NSE/BSE exchange toggle, LTP (Last Traded Price), net change, and live OHLCV stats.
+/// Selected symbol name, exchange badge, LTP (Last Traded Price), net change, and live OHLCV stats.
 class ChartHeader extends StatelessWidget {
   final TradingChartController controller;
 
@@ -103,12 +103,13 @@ class ChartHeader extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
 
-                  // 2. NSE / BSE Exchange Toggle
-                  _buildExchangeSelector(controller, theme, isDark),
-
-                  _buildDivider(theme),
+                  // 2. Exchange Badge (Displays whatever exchange is passed)
+                  if (controller.exchange.isNotEmpty) ...[
+                    _buildExchangeBadge(controller, theme, isDark),
+                    _buildDivider(theme),
+                  ],
 
                   // 3. LTP (Last Traded Price) & Dynamic Change
                   if (latest != null) ...[
@@ -202,42 +203,25 @@ class ChartHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildExchangeSelector(TradingChartController controller, ChartTheme theme, bool isDark) {
-    final exchanges = ['NSE', 'BSE'];
-
+  Widget _buildExchangeBadge(TradingChartController controller, ChartTheme theme, bool isDark) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E222D) : const Color(0xFFF0F3FA),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: theme.gridColor, width: 1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: theme.gridColor.withValues(alpha: 0.8),
+          width: 1,
+        ),
       ),
-      padding: const EdgeInsets.all(2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: exchanges.map((ex) {
-          final isSelected = controller.exchange == ex;
-          return InkWell(
-            onTap: () => controller.setExchange(ex),
-            borderRadius: BorderRadius.circular(4),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF2962FF) : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                ex,
-                style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : (isDark ? Colors.white70 : Colors.black87),
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+      child: Text(
+        controller.exchange,
+        style: TextStyle(
+          color: isDark ? Colors.white70 : Colors.black87,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }

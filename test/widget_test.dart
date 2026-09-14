@@ -28,9 +28,8 @@ void main() {
     // Row 2: Selected Symbol Name
     expect(find.text('NIFTY 50'), findsOneWidget);
 
-    // Row 2: Exchange Selector (NSE & BSE)
+    // Row 2: Exchange Badge (displays passed exchange)
     expect(find.text('NSE'), findsOneWidget);
-    expect(find.text('BSE'), findsOneWidget);
   });
 
   testWidgets('Interval dropdown opens menu with all timeframes', (WidgetTester tester) async {
@@ -81,18 +80,13 @@ void main() {
     expect(find.text('Line'), findsOneWidget);
   });
 
-  testWidgets('Exchange selector toggles between NSE and BSE', (WidgetTester tester) async {
+  testWidgets('Exchange badge displays the passed exchange', (WidgetTester tester) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Tap BSE
-    await tester.tap(find.text('BSE'));
-    await tester.pumpAndSettle();
-
-    // Tap NSE
-    await tester.tap(find.text('NSE'));
-    await tester.pumpAndSettle();
+    // Default TradingApp has initialExchange: 'NSE'
+    expect(find.text('NSE'), findsOneWidget);
   });
 
   testWidgets('Search button opens symbol search dialog and displays symbols', (WidgetTester tester) async {

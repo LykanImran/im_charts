@@ -32,7 +32,7 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
 
 - **⚡ Institutional 2-Row Terminal Layout**:
   - **Row 1 (Primary Toolbar)**: Symbol Search Dialog (`⌘K`), Interval Dropdown (`1m` to `1W`), Candle Style Dropdown, Technical Indicators Selector (`fx`), Real-time Refresh, Dark/Light Theme Toggle, and Chart Settings Modal.
-  - **Row 2 (Floating Telemetry Header)**: Glassmorphic overlay displaying Live Ticker, Segmented Exchange Switcher (`[ NSE | BSE ]`), LTP with real-time dynamic color pulse, and high-density OHLCV telemetry strip.
+  - **Row 2 (Floating Telemetry Header)**: Glassmorphic overlay displaying Live Ticker, Exchange Badge (displays whatever exchange is passed), LTP with real-time dynamic color pulse, and high-density OHLCV telemetry strip.
 - **🕯️ 6 Candlestick Presentation Styles**:
   - Standard Candlesticks, Hollow Candles, Heikin Ashi, Line Chart, Area Mountain Chart, and Western OHLC Tick Bars.
 - **📈 Integrated Technical Indicators**:
