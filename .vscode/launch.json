@@ -23,6 +23,13 @@
             "program": "lib/main.dart",
             "cwd": "${workspaceFolder}/example",
             "flutterMode": "release"
+        },
+        {
+            "name": "🚀 Deploy Example Web to GitHub Pages",
+            "request": "launch",
+            "type": "dart",
+            "program": "tool/deploy_web.dart",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
