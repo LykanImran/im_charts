@@ -4,6 +4,8 @@ Welcome to **`im_charts`** — an institutional-grade financial charting engine 
 
 `im_charts` is designed from the ground up to be **100% plug-and-play** for rapid integration, while remaining **infinitely customizable** for bespoke trading dashboards, broker terminals, and fintech apps.
 
+> 🌐 **Interactive Web Demo**: Try `im_charts` directly in your browser at **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**!
+
 ---
 
 ## 📦 Installation

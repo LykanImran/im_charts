@@ -7,6 +7,10 @@
 [![Tests](https://img.shields.io/badge/Tests-18%2F18%20Passed-brightgreen.svg)](test/)
 [![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_im__charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
+> 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
+> 
+> Explore all 6 interactive modes directly in your browser without installing anything (Turnkey Terminal, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
+
 An institutional-grade financial charting engine and professional trading terminal for **Flutter**, engineered from the ground up for high-frequency responsiveness on **Impeller** and **Skia**.
 
 Designed to be **100% plug-and-play** out-of-the-box, while remaining **deeply customizable** for brokers, fintech platforms, crypto exchanges, and algorithmic trading interfaces.
@@ -187,10 +191,12 @@ controller.setTheme(customTheme);
 
 ## 🧪 Interactive Showcase Hub & Runnable Example
 
+🌐 **Live Web Demo**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
+
 A complete multi-mode showcase application is provided in the [`example/`](example/) directory:
 
 ```bash
-# Run the example showcase on macOS, Web, iOS, or Android
+# Run the example showcase locally on macOS, Web, iOS, or Android
 cd example
 flutter run
 ```
