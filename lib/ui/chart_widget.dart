@@ -1,19 +1,29 @@
 import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../core/models/chart_order.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
 
 enum _ChartDragMode { none, priceAxis, timeAxis, mainChart }
 
 /// Top-level chart presentation widget integrating the custom rendering pipeline,
-/// multi-zone scale interactions (Price Axis drag, Time Axis drag, Pinch Zoom), and pointer tracking.
+/// multi-zone scale interactions (Price Axis drag, Time Axis drag, Pinch Zoom),
+/// chart trading (hover '+' button, order lines, SL/TP brackets), and pointer tracking.
 class TradingChart extends StatefulWidget {
   final TradingChartController controller;
+  final bool enableChartTrading;
+  final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
+  final void Function(ChartOrder order)? onOrderPlaced;
+  final void Function(String orderId)? onOrderCancelled;
 
   const TradingChart({
     super.key,
     required this.controller,
+    this.enableChartTrading = true,
+    this.orderMenuBuilder,
+    this.onOrderPlaced,
+    this.onOrderCancelled,
   });
 
   @override
@@ -287,6 +297,7 @@ class _TradingChartState extends State<TradingChart> {
                               candleStyle: controller.candleStyle,
                               overlayIndicators: controller.overlayResults,
                               subPaneIndicator: controller.subPaneResult,
+                              orders: controller.orders,
                               crosshairPosition: controller.crosshairPosition,
                               showVolume: controller.showVolume,
                               showGrid: controller.showGrid,
@@ -297,6 +308,25 @@ class _TradingChartState extends State<TradingChart> {
                         ),
                       ),
                     ),
+
+                    // Interactive Order Badges & Hitboxes (Draggable & Cancel)
+                    if (widget.enableChartTrading && controller.orders.isNotEmpty) ...[
+                      for (final order in controller.orders)
+                        ..._buildOrderInteractiveWidgets(context, controller, order, timeAxisTop),
+                    ],
+
+                    // Hover '+' button on the right side of the canvas (before vertical price axis)
+                    if (widget.enableChartTrading &&
+                        _hoverPosition != null &&
+                        _hoverPosition!.dx < priceAxisLeft &&
+                        _hoverPosition!.dy < timeAxisTop &&
+                        _hoverPosition!.dy >= 0) ...[
+                      Positioned(
+                        right: _priceAxisWidth + 2,
+                        top: (_hoverPosition!.dy - 11).clamp(2.0, timeAxisTop - 24.0),
+                        child: _buildPlusOrderButton(context, controller, _hoverPosition!.dy),
+                      ),
+                    ],
 
                     // TradingView-style "Auto" Scale Pill in the bottom right of the price axis
                     if (controller.isManualPriceScale)
@@ -376,5 +406,465 @@ class _TradingChartState extends State<TradingChart> {
         );
       },
     );
+  }
+
+  Widget _buildPlusOrderButton(BuildContext context, TradingChartController controller, double y) {
+    final price = controller.priceAtY(y);
+
+    return Material(
+      color: Colors.transparent,
+      child: Tooltip(
+        message: 'Order @ ${price.toStringAsFixed(2)}',
+        waitDuration: const Duration(milliseconds: 300),
+        child: InkWell(
+          key: const Key('chart_plus_order_button'),
+          onTap: () => _openOrderMenu(context, controller, y, price),
+          borderRadius: BorderRadius.circular(11),
+          hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.3),
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2962FF),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2962FF).withValues(alpha: 0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.add,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openOrderMenu(BuildContext context, TradingChartController controller, double y, double price) {
+    final roundedPrice = double.parse(price.toStringAsFixed(2));
+
+    if (widget.orderMenuBuilder != null) {
+      showDialog(
+        context: context,
+        builder: (ctx) => widget.orderMenuBuilder!(ctx, roundedPrice, controller, () => Navigator.of(ctx).pop()),
+      );
+      return;
+    }
+
+    // Default institutional Order Dropdown Menu
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final buttonPosition = renderBox.localToGlobal(Offset(renderBox.size.width - _priceAxisWidth - 10, y));
+
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(buttonPosition.dx, buttonPosition.dy, 1, 1),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<String>(
+      context: context,
+      position: position,
+      color: const Color(0xFF1E222D),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF2A2E39), width: 1),
+      ),
+      items: [
+        PopupMenuItem<String>(
+          value: 'buy',
+          height: 38,
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(color: Color(0xFF00E676), shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Buy 100 Limit @ $roundedPrice',
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'sell',
+          height: 38,
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(color: Color(0xFFFF3B30), shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Sell 100 Limit @ $roundedPrice',
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        PopupMenuItem<String>(
+          value: 'buy_bracket',
+          height: 38,
+          child: Row(
+            children: [
+              const Icon(Icons.shield_outlined, size: 14, color: Color(0xFF00E5FF)),
+              const SizedBox(width: 8),
+              Text(
+                'Buy + TP (+1.5%) + SL (-1.0%)',
+                style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'sell_bracket',
+          height: 38,
+          child: Row(
+            children: [
+              const Icon(Icons.shield_outlined, size: 14, color: Color(0xFFFF9100)),
+              const SizedBox(width: 8),
+              Text(
+                'Sell + TP (-1.5%) + SL (+1.0%)',
+                style: const TextStyle(color: Color(0xFFFF9100), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((choice) {
+      if (choice == null) return;
+
+      if (choice == 'buy') {
+        final order = ChartOrder(
+          id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+          symbol: controller.symbol,
+          side: OrderSide.buy,
+          type: OrderType.limit,
+          price: roundedPrice,
+          quantity: 100,
+        );
+        controller.placeOrder(order);
+        widget.onOrderPlaced?.call(order);
+      } else if (choice == 'sell') {
+        final order = ChartOrder(
+          id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+          symbol: controller.symbol,
+          side: OrderSide.sell,
+          type: OrderType.limit,
+          price: roundedPrice,
+          quantity: 100,
+        );
+        controller.placeOrder(order);
+        widget.onOrderPlaced?.call(order);
+      } else if (choice == 'buy_bracket') {
+        final tp = double.parse((roundedPrice * 1.015).toStringAsFixed(2));
+        final sl = double.parse((roundedPrice * 0.990).toStringAsFixed(2));
+        final order = ChartOrder(
+          id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+          symbol: controller.symbol,
+          side: OrderSide.buy,
+          type: OrderType.limit,
+          price: roundedPrice,
+          quantity: 100,
+          takeProfitPrice: tp,
+          stopLossPrice: sl,
+        );
+        controller.placeOrder(order);
+        widget.onOrderPlaced?.call(order);
+      } else if (choice == 'sell_bracket') {
+        final tp = double.parse((roundedPrice * 0.985).toStringAsFixed(2));
+        final sl = double.parse((roundedPrice * 1.010).toStringAsFixed(2));
+        final order = ChartOrder(
+          id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+          symbol: controller.symbol,
+          side: OrderSide.sell,
+          type: OrderType.limit,
+          price: roundedPrice,
+          quantity: 100,
+          takeProfitPrice: tp,
+          stopLossPrice: sl,
+        );
+        controller.placeOrder(order);
+        widget.onOrderPlaced?.call(order);
+      }
+    });
+  }
+
+  List<Widget> _buildOrderInteractiveWidgets(
+    BuildContext context,
+    TradingChartController controller,
+    ChartOrder order,
+    double timeAxisTop,
+  ) {
+    final orderY = controller.yAtPrice(order.price);
+    final tpY = order.hasTakeProfit ? controller.yAtPrice(order.takeProfitPrice!) : null;
+    final slY = order.hasStopLoss ? controller.yAtPrice(order.stopLossPrice!) : null;
+
+    return [
+      // 1. Order Badge Interactive Hitbox (Draggable & Cancel)
+      if (orderY >= 0 && orderY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 18,
+          top: (orderY - 11).clamp(0.0, timeAxisTop - 22.0),
+          child: SizedBox(
+            width: 175,
+            height: 22,
+            child: Row(
+              children: [
+                // Quick bracket add button if no TP or SL
+                if (!order.hasTakeProfit || !order.hasStopLoss)
+                  GestureDetector(
+                    key: Key('bracket_order_${order.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _openBracketMenu(context, controller, order),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2962FF).withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: const Text(
+                        '+Bracket',
+                        style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                // Draggable drag handle for adjusting limit price
+                Expanded(
+                  child: Tooltip(
+                    message: 'Drag up/down to adjust limit price',
+                    waitDuration: const Duration(milliseconds: 500),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeUpDown,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onVerticalDragUpdate: (details) {
+                          final currentY = controller.yAtPrice(order.price);
+                          final newY = (currentY + details.delta.dy).clamp(0.0, timeAxisTop);
+                          final newPrice = double.parse(controller.priceAtY(newY).toStringAsFixed(2));
+                          controller.updateOrderPrice(order.id, newPrice);
+                        },
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                ),
+                // Cancel order button (✖) at the right end of the badge
+                Tooltip(
+                  message: 'Cancel Order',
+                  waitDuration: const Duration(milliseconds: 300),
+                  child: GestureDetector(
+                    key: Key('cancel_order_${order.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      controller.cancelOrder(order.id);
+                      widget.onOrderCancelled?.call(order.id);
+                    },
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      color: Colors.transparent,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+      // 2. Take Profit (TP) Interactive Hitbox (Draggable & Cancel)
+      if (tpY != null && tpY >= 0 && tpY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 18,
+          top: (tpY - 11).clamp(0.0, timeAxisTop - 22.0),
+          child: SizedBox(
+            width: 145,
+            height: 22,
+            child: Row(
+              children: [
+                // Draggable zone for Take Profit price
+                Expanded(
+                  child: Tooltip(
+                    message: 'Drag up/down to adjust TP',
+                    waitDuration: const Duration(milliseconds: 500),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeUpDown,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onVerticalDragUpdate: (details) {
+                          final currentY = controller.yAtPrice(order.takeProfitPrice!);
+                          final newY = (currentY + details.delta.dy).clamp(0.0, timeAxisTop);
+                          final newPrice = double.parse(controller.priceAtY(newY).toStringAsFixed(2));
+                          controller.updateOrderBrackets(order.id, takeProfitPrice: newPrice);
+                        },
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                ),
+                // Cancel TP button
+                Tooltip(
+                  message: 'Remove Take Profit',
+                  waitDuration: const Duration(milliseconds: 300),
+                  child: GestureDetector(
+                    key: Key('cancel_tp_${order.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      controller.updateOrderBrackets(order.id, clearTakeProfit: true);
+                    },
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      color: Colors.transparent,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+      // 3. Stop Loss (SL) Interactive Hitbox (Draggable & Cancel)
+      if (slY != null && slY >= 0 && slY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 18,
+          top: (slY - 11).clamp(0.0, timeAxisTop - 22.0),
+          child: SizedBox(
+            width: 145,
+            height: 22,
+            child: Row(
+              children: [
+                // Draggable zone for Stop Loss price
+                Expanded(
+                  child: Tooltip(
+                    message: 'Drag up/down to adjust SL',
+                    waitDuration: const Duration(milliseconds: 500),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeUpDown,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onVerticalDragUpdate: (details) {
+                          final currentY = controller.yAtPrice(order.stopLossPrice!);
+                          final newY = (currentY + details.delta.dy).clamp(0.0, timeAxisTop);
+                          final newPrice = double.parse(controller.priceAtY(newY).toStringAsFixed(2));
+                          controller.updateOrderBrackets(order.id, stopLossPrice: newPrice);
+                        },
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                ),
+                // Cancel SL button
+                Tooltip(
+                  message: 'Remove Stop Loss',
+                  waitDuration: const Duration(milliseconds: 300),
+                  child: GestureDetector(
+                    key: Key('cancel_sl_${order.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      controller.updateOrderBrackets(order.id, clearStopLoss: true);
+                    },
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      color: Colors.transparent,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ];
+  }
+
+  void _openBracketMenu(BuildContext context, TradingChartController controller, ChartOrder order) {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final orderY = controller.yAtPrice(order.price);
+    final buttonPosition = renderBox.localToGlobal(Offset(renderBox.size.width - _priceAxisWidth - 60, orderY));
+
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(buttonPosition.dx, buttonPosition.dy, 1, 1),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<String>(
+      context: context,
+      position: position,
+      color: const Color(0xFF1E222D),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF2A2E39), width: 1),
+      ),
+      items: [
+        if (!order.hasTakeProfit)
+          const PopupMenuItem<String>(
+            value: 'add_tp',
+            height: 36,
+            child: Row(
+              children: [
+                Icon(Icons.trending_up, size: 14, color: Color(0xFF00E5FF)),
+                SizedBox(width: 8),
+                Text('Add Take Profit (+1.5%)', style: TextStyle(color: Colors.white, fontSize: 12)),
+              ],
+            ),
+          ),
+        if (!order.hasStopLoss)
+          const PopupMenuItem<String>(
+            value: 'add_sl',
+            height: 36,
+            child: Row(
+              children: [
+                Icon(Icons.trending_down, size: 14, color: Color(0xFFFF9100)),
+                SizedBox(width: 8),
+                Text('Add Stop Loss (-1.0%)', style: TextStyle(color: Colors.white, fontSize: 12)),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(height: 1),
+        const PopupMenuItem<String>(
+          value: 'cancel',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 14, color: Color(0xFFFF3B30)),
+              SizedBox(width: 8),
+              Text('Cancel Order', style: TextStyle(color: Color(0xFFFF3B30), fontSize: 12)),
+            ],
+          ),
+        ),
+      ],
+    ).then((choice) {
+      if (choice == 'add_tp') {
+        final mul = order.isBuy ? 1.015 : 0.985;
+        final tp = double.parse((order.price * mul).toStringAsFixed(2));
+        controller.updateOrderBrackets(order.id, takeProfitPrice: tp);
+      } else if (choice == 'add_sl') {
+        final mul = order.isBuy ? 0.990 : 1.010;
+        final sl = double.parse((order.price * mul).toStringAsFixed(2));
+        controller.updateOrderBrackets(order.id, stopLossPrice: sl);
+      } else if (choice == 'cancel') {
+        controller.cancelOrder(order.id);
+        widget.onOrderCancelled?.call(order.id);
+      }
+    });
   }
 }

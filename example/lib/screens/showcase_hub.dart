@@ -170,6 +170,24 @@ class ShowcaseHubScreen extends StatelessWidget {
                         ],
                         onTap: () => onSelectMode(5),
                       ),
+                      _buildModeCard(
+                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        title: '6. Direct Chart Trading & Brackets',
+                        tag: 'NEW • INTERACTIVE',
+                        tagColor: const Color(0xFF00E5FF),
+                        description:
+                            'Institutional trading execution straight from the chart: Hover "+" button before the price axis, 1-click Limit order & Bracket menu, Take-Profit & Stop-Loss connected lines, drag-to-modify prices, and real-time ledger.',
+                        icon: Icons.add_chart,
+                        bullets: [
+                          'Hover "+" button tracks cursor Y',
+                          '1-click popup for Limit & Bracket orders',
+                          'Horizontal dotted order lines on canvas',
+                          'Take Profit (TP) & Stop Loss (SL) connector arms',
+                          'Drag badges on canvas to adjust prices live',
+                          'Instant cancellation (✖) & working ledger',
+                        ],
+                        onTap: () => onSelectMode(6),
+                      ),
                     ],
                   );
                 },

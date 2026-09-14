@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_order.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/timeframe.dart';
 import '../datasource/chart_data_source.dart';
@@ -22,6 +23,10 @@ class TradingScreen extends StatefulWidget {
   final TradingChartController? controller;
   final bool showToolbar;
   final bool showHeader;
+  final bool enableChartTrading;
+  final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
+  final void Function(ChartOrder order)? onOrderPlaced;
+  final void Function(String orderId)? onOrderCancelled;
 
   const TradingScreen({
     super.key,
@@ -34,6 +39,10 @@ class TradingScreen extends StatefulWidget {
     this.controller,
     this.showToolbar = true,
     this.showHeader = true,
+    this.enableChartTrading = true,
+    this.orderMenuBuilder,
+    this.onOrderPlaced,
+    this.onOrderCancelled,
   });
 
   @override
@@ -130,7 +139,13 @@ class _TradingScreenState extends State<TradingScreen> {
                         children: [
                           // The High-Performance Canvas Chart spans 100% of the available area
                           Positioned.fill(
-                            child: TradingChart(controller: _controller),
+                            child: TradingChart(
+                              controller: _controller,
+                              enableChartTrading: widget.enableChartTrading,
+                              orderMenuBuilder: widget.orderMenuBuilder,
+                              onOrderPlaced: widget.onOrderPlaced,
+                              onOrderCancelled: widget.onOrderCancelled,
+                            ),
                           ),
 
                           // Overlay Symbol & Telemetry Header floating at top-left

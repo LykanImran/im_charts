@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:im_charts/im_charts.dart';
 
+import 'screens/chart_trading_demo.dart';
 import 'screens/clean_chart_demo.dart';
 import 'screens/dual_chart_demo.dart';
 import 'screens/portfolio_card_demo.dart';
@@ -51,6 +52,7 @@ class _ExampleAppState extends State<ExampleApp> {
     (title: 'Dual Grid', icon: Icons.grid_view_rounded, color: Color(0xFFFF9800)),
     (title: 'Themes Lab', icon: Icons.palette_outlined, color: Color(0xFFE91E63)),
     (title: 'Portfolio Card', icon: Icons.account_balance_wallet_outlined, color: Color(0xFFAB47BC)),
+    (title: 'Chart Trading', icon: Icons.add_chart, color: Color(0xFF00E5FF)),
   ];
 
   @override
@@ -272,6 +274,8 @@ class _ExampleAppState extends State<ExampleApp> {
         return const ThemesDemoScreen(key: ValueKey('themes_lab'));
       case 5:
         return const PortfolioCardDemoScreen(key: ValueKey('portfolio_card'));
+      case 6:
+        return const ChartTradingDemoScreen(key: ValueKey('chart_trading'));
       default:
         return ShowcaseHubScreen(onSelectMode: _selectMode);
     }

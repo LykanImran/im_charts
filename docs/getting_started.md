@@ -201,6 +201,46 @@ class _MinimalChartCardState extends State<MinimalChartCard> {
 
 ---
 
+### Level 4: Direct On-Chart Trading & Bracket Orders
+
+Enable the institutional hover `+` button, 1-click Limit order menus, Take Profit & Stop Loss brackets, and direct drag-to-modify order interactions:
+
+```dart
+TradingScreen(
+  controller: _controller,
+  enableChartTrading: true,
+  onOrderPlaced: (ChartOrder order) {
+    print('Order placed: ${order.side.name} ${order.quantity} @ ${order.price}');
+  },
+  onOrderCancelled: (String orderId) {
+    print('Order cancelled: $orderId');
+  },
+  // Optional: Provide custom order popup menu
+  orderMenuBuilder: (context, price, controller, closeMenu) {
+    return AlertDialog(
+      title: Text('Place Order @ $price'),
+      actions: [
+        TextButton(
+          onPressed: () {
+            controller.placeOrder(ChartOrder(
+              id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+              symbol: controller.symbol,
+              side: OrderSide.buy,
+              price: price,
+              quantity: 10,
+            ));
+            closeMenu();
+          },
+          child: const Text('Buy'),
+        ),
+      ],
+    );
+  },
+)
+```
+
+---
+
 ## 🎮 Interactive Gestures Cheat Sheet
 
 `im_charts` delivers a responsive, TradingView-identical desktop and mobile feel:
@@ -213,6 +253,9 @@ class _MinimalChartCardState extends State<MinimalChartCard> {
 | **Time Axis Zoom** | Click & drag on bottom time scale | Click & drag on bottom time scale | 1-finger drag on time scale |
 | **Reset Auto-Scale** | Double-tap price scale or click `AUTO` pill | Double-tap price scale or click `AUTO` pill | Tap `AUTO` badge or double-tap scale |
 | **Crosshair Inspection** | Move cursor over chart | Move cursor over chart | Long-press and drag |
+| **Hover Order '+' Button** | Move cursor near right price axis | Move cursor near right price axis | Long-press crosshair |
+| **Drag-to-Modify Price** | Drag order / TP / SL badge up/down | Drag order / TP / SL badge up/down | Drag badge up/down |
+| **Quick Order Cancel** | Click `✖` at right end of badge | Click `✖` at right end of badge | Tap `✖` on badge |
 
 ---
 

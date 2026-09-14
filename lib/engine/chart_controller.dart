@@ -5,7 +5,9 @@ import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_order.dart';
 import '../core/models/chart_theme.dart';
+import '../core/models/price_range.dart';
 import '../core/models/tick.dart';
 import '../core/models/timeframe.dart';
 import '../datasource/chart_data_source.dart';
@@ -41,6 +43,12 @@ class TradingChartController extends ChangeNotifier {
   double _verticalScale = 1.0;
   double _verticalPan = 0.0;
 
+  // Active Chart Orders & Brackets (TP & SL)
+  final List<ChartOrder> _orders = [];
+  void Function(ChartOrder order)? onOrderPlaced;
+  void Function(ChartOrder order)? onOrderModified;
+  void Function(String orderId)? onOrderCancelled;
+
   TradingChartController({
     required String symbol,
     required this.dataSource,
@@ -69,6 +77,7 @@ class TradingChartController extends ChangeNotifier {
   List<IndicatorResult> get overlayResults => _overlayResults;
   IndicatorResult? get subPaneResult => _subPaneResult;
   List<Indicator> get activeIndicators => List.unmodifiable(_activeIndicators);
+  List<ChartOrder> get orders => List.unmodifiable(_orders);
   Offset? get crosshairPosition => _showCrosshair ? _crosshairPosition : null;
   bool get showVolume => _showVolume;
   bool get showGrid => _showGrid;
@@ -79,6 +88,111 @@ class TradingChartController extends ChangeNotifier {
   double get verticalScale => _verticalScale;
   double get verticalPan => _verticalPan;
   bool get isManualPriceScale => (_verticalScale - 1.0).abs() > 0.001 || _verticalPan.abs() > 0.001;
+
+  /// Visible auto-scaled price range with vertical scale & pan applied.
+  PriceRange get currentPriceRange {
+    final candleList = _candleBuilder.candles;
+    if (candleList.isEmpty) return const PriceRange(0.0, 1.0);
+    final visible = _viewport.calculateVisibleIndices(candleList.length);
+    final base = PriceRange.fromCandles(
+      candleList,
+      start: visible.start,
+      end: visible.end,
+    ).withPadding(topPaddingPercent: 0.08, bottomPaddingPercent: 0.08);
+
+    return base.applyVerticalScaleAndPan(
+      scale: _verticalScale,
+      pan: _verticalPan,
+    );
+  }
+
+  /// Height of the main chart canvas pane (excluding sub-pane and bottom time axis).
+  double get mainPaneHeight {
+    final totalHeight = _viewport.viewportHeight;
+    final availableHeight = (totalHeight - 24.0).clamp(10.0, totalHeight);
+    if (_subPaneResult != null) {
+      return availableHeight * (1.0 - 0.25);
+    }
+    return availableHeight;
+  }
+
+  /// Converts screen Y coordinate inside main pane to financial price.
+  double priceAtY(double y) {
+    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(10.0, double.infinity);
+    final bounds = Rect.fromLTWH(0, 0, chartWidth, mainPaneHeight);
+    return CoordinateConverter.yToPrice(y, bounds, currentPriceRange);
+  }
+
+  /// Converts financial price to screen Y coordinate inside main pane.
+  double yAtPrice(double price) {
+    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(10.0, double.infinity);
+    final bounds = Rect.fromLTWH(0, 0, chartWidth, mainPaneHeight);
+    return CoordinateConverter.priceToY(price, bounds, currentPriceRange);
+  }
+
+  /// Places an active order on the chart canvas.
+  void placeOrder(ChartOrder order) {
+    _orders.removeWhere((o) => o.id == order.id);
+    _orders.add(order);
+    onOrderPlaced?.call(order);
+    notifyListeners();
+  }
+
+  /// Updates the limit price of an existing order.
+  void updateOrderPrice(String orderId, double newPrice) {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index >= 0) {
+      final updated = _orders[index].copyWith(price: newPrice);
+      _orders[index] = updated;
+      onOrderModified?.call(updated);
+      notifyListeners();
+    }
+  }
+
+  /// Updates or attaches Take Profit and/or Stop Loss brackets to an order.
+  void updateOrderBrackets(
+    String orderId, {
+    double? takeProfitPrice,
+    double? stopLossPrice,
+    bool clearTakeProfit = false,
+    bool clearStopLoss = false,
+  }) {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index >= 0) {
+      final existing = _orders[index];
+      final updated = existing.copyWith(
+        takeProfitPrice: clearTakeProfit ? () => null : (takeProfitPrice != null ? () => takeProfitPrice : null),
+        stopLossPrice: clearStopLoss ? () => null : (stopLossPrice != null ? () => stopLossPrice : null),
+      );
+      _orders[index] = updated;
+      onOrderModified?.call(updated);
+      notifyListeners();
+    }
+  }
+
+  /// Cancels an order and removes it from the chart canvas.
+  void cancelOrder(String orderId) {
+    final removed = _orders.where((o) => o.id == orderId).toList();
+    _orders.removeWhere((o) => o.id == orderId);
+    if (removed.isNotEmpty) {
+      onOrderCancelled?.call(orderId);
+      notifyListeners();
+    }
+  }
+
+  /// Replaces active orders on the chart.
+  void setOrders(List<ChartOrder> orders) {
+    _orders
+      ..clear()
+      ..addAll(orders);
+    notifyListeners();
+  }
+
+  /// Clears all active orders from the chart.
+  void clearOrders() {
+    _orders.clear();
+    notifyListeners();
+  }
 
   /// Loads initial historical data and establishes real-time tick ingestion.
   Future<void> initialize() async {

@@ -208,5 +208,56 @@ void main() {
     );
     await tester.pumpAndSettle();
   });
+
+  testWidgets('TradingChart displays active order overlays and supports cancellation', (WidgetTester tester) async {
+    final dataSource = MockTradingDataSource(initialPrice: 24500.0);
+    final controller = TradingChartController(
+      symbol: 'NIFTY 50',
+      exchange: 'NSE',
+      dataSource: dataSource,
+    );
+
+    await controller.initialize();
+
+    final currentPrice = controller.currentCandle?.close ?? 24520.0;
+    final order = ChartOrder(
+      id: 'ord_test_widget',
+      symbol: 'NIFTY 50',
+      side: OrderSide.buy,
+      type: OrderType.limit,
+      price: currentPrice,
+      quantity: 50,
+      takeProfitPrice: currentPrice + 10.0,
+      stopLossPrice: currentPrice - 10.0,
+    );
+    controller.placeOrder(order);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TradingChart(
+            controller: controller,
+            enableChartTrading: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify cancel order button key is present
+    expect(find.byKey(const Key('cancel_order_ord_test_widget')), findsOneWidget);
+    expect(find.byKey(const Key('cancel_tp_ord_test_widget')), findsOneWidget);
+    expect(find.byKey(const Key('cancel_sl_ord_test_widget')), findsOneWidget);
+
+    // Tap cancel order button
+    await tester.tap(find.byKey(const Key('cancel_order_ord_test_widget')));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // Verify order was cancelled in controller
+    expect(controller.orders.isEmpty, isTrue);
+
+    controller.dispose();
+    dataSource.dispose();
+  });
 }
 

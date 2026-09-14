@@ -7,6 +7,7 @@ import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
 import '../core/models/timeframe.dart';
 import '../engine/indicators/indicator_result.dart';
+import '../core/models/chart_order.dart';
 import 'pane.dart';
 import 'renderers/axis_renderer.dart';
 import 'renderers/candle_renderer.dart';
@@ -14,6 +15,7 @@ import 'renderers/crosshair_renderer.dart';
 import 'renderers/current_price_renderer.dart';
 import 'renderers/grid_renderer.dart';
 import 'renderers/indicator_renderer.dart';
+import 'renderers/order_renderer.dart';
 import 'renderers/volume_renderer.dart';
 
 /// Primary CustomPainter coordinating the high-performance Skia/Impeller rendering pipeline.
@@ -25,6 +27,7 @@ class ChartPainter extends CustomPainter {
   final CandleStyle candleStyle;
   final List<IndicatorResult> overlayIndicators;
   final IndicatorResult? subPaneIndicator;
+  final List<ChartOrder> orders;
   final Offset? crosshairPosition;
   final bool showVolume;
   final bool showGrid;
@@ -38,6 +41,7 @@ class ChartPainter extends CustomPainter {
   final CurrentPriceRenderer _currentPriceRenderer;
   final AxisRenderer _axisRenderer;
   final CrosshairRenderer _crosshairRenderer;
+  final OrderRenderer _orderRenderer;
 
   ChartPainter({
     required this.candles,
@@ -47,6 +51,7 @@ class ChartPainter extends CustomPainter {
     this.candleStyle = CandleStyle.candles,
     this.overlayIndicators = const [],
     this.subPaneIndicator,
+    this.orders = const [],
     this.crosshairPosition,
     this.showVolume = true,
     this.showGrid = true,
@@ -58,7 +63,8 @@ class ChartPainter extends CustomPainter {
         _indicatorRenderer = IndicatorRenderer(theme),
         _currentPriceRenderer = CurrentPriceRenderer(theme),
         _axisRenderer = AxisRenderer(theme),
-        _crosshairRenderer = CrosshairRenderer(theme);
+        _crosshairRenderer = CrosshairRenderer(theme),
+        _orderRenderer = OrderRenderer(theme);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -175,6 +181,16 @@ class ChartPainter extends CustomPainter {
 
     canvas.restore();
 
+    // 8b. Draw Active Orders, Stop Loss & Take Profit brackets
+    if (orders.isNotEmpty) {
+      _orderRenderer.drawOrders(
+        canvas: canvas,
+        bounds: layout.mainPaneBounds,
+        orders: orders,
+        priceRange: priceRange,
+      );
+    }
+
     // 9. Draw Current Price Line & Badge
     if (candles.isNotEmpty) {
       _currentPriceRenderer.drawCurrentPrice(
@@ -250,6 +266,7 @@ class ChartPainter extends CustomPainter {
     return oldDelegate.candles != candles ||
         oldDelegate.viewport != viewport ||
         oldDelegate.crosshairPosition != crosshairPosition ||
+        oldDelegate.orders != orders ||
         oldDelegate.timeframe != timeframe ||
         oldDelegate.candleStyle != candleStyle ||
         oldDelegate.overlayIndicators != overlayIndicators ||

@@ -4,12 +4,12 @@
 [![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
 [![Platform](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-18%2F18%20Passed-brightgreen.svg)](test/)
+[![Tests](https://img.shields.io/badge/Tests-28%2F28%20Passed-brightgreen.svg)](test/)
 [![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_im__charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
 > 
-> Explore all 6 interactive modes directly in your browser without installing anything (Turnkey Terminal, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
+> Explore all 7 interactive modes directly in your browser without installing anything (Full Institutional Terminal, Direct Chart Trading with Brackets, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
 
 An institutional-grade financial charting engine and professional trading terminal for **Flutter**, engineered from the ground up for high-frequency responsiveness on **Impeller** and **Skia**.
 
@@ -48,6 +48,13 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
   - **2-Finger Trackpad Pan**: Smooth horizontal time scrolling.
   - **Price Scale Drag**: Stretch and compress price vertically with interactive `AUTO` scale reset badge.
   - **Time Scale Drag**: Dynamic timeframe scaling via bottom time axis drag.
+- **🎯 Direct On-Chart Trading & Bracket Orders**:
+  - **Hover `+` Button**: Cursor-tracking `+` button rendered right before the vertical price axis.
+  - **1-Click Order Execution**: Dropdown menu for Limit Buy, Limit Sell, and Brackets with support for custom consuming UI (`orderMenuBuilder`).
+  - **Dotted Skia/Impeller Order Lines**: Green for Buy, Red for Sell, with real-time pill badges showing side, quantity, and limit price.
+  - **Connected TP & SL Brackets**: Dedicated Take Profit (Cyan) and Stop Loss (Orange) dashed lines with vertical elbow connector arms.
+  - **Drag-to-Modify**: Drag badges directly on the chart canvas to dynamically update order and bracket prices in real time.
+  - **Instant Cancellation & Callbacks**: Direct `✖` cancel buttons with `onOrderPlaced`, `onOrderModified`, and `onOrderCancelled` lifecycle hooks.
 - **🚀 Skia & Impeller Direct Canvas Rendering**:
   - Zero widget overhead: Entire chart renders via a single, isolated `CustomPainter` with boundary clipping.
 
