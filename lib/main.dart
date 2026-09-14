@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/models/candle_style.dart';
 import 'core/models/chart_theme.dart';
 import 'core/models/timeframe.dart';
 import 'datasource/mock_data_source.dart';
@@ -22,34 +23,14 @@ void main() {
   runApp(const TradingApp());
 }
 
-class TradingApp extends StatelessWidget {
+class TradingApp extends StatefulWidget {
   const TradingApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'First Demat Chart Engine',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF131722),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF2962FF),
-          surface: Color(0xFF131722),
-        ),
-      ),
-      home: const TradingScreen(),
-    );
-  }
+  State<TradingApp> createState() => _TradingAppState();
 }
 
-class TradingScreen extends StatefulWidget {
-  const TradingScreen({super.key});
-
-  @override
-  State<TradingScreen> createState() => _TradingScreenState();
-}
-
-class _TradingScreenState extends State<TradingScreen> {
+class _TradingAppState extends State<TradingApp> {
   late final MockTradingDataSource _dataSource;
   late final TradingChartController _controller;
 
@@ -59,8 +40,10 @@ class _TradingScreenState extends State<TradingScreen> {
     _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
     _controller = TradingChartController(
       symbol: 'NIFTY 50',
+      exchange: 'NSE',
       dataSource: _dataSource,
       initialTimeframe: Timeframe.fiveMinutes,
+      initialCandleStyle: CandleStyle.candles,
       theme: ChartTheme.dark(),
     );
 
@@ -82,23 +65,50 @@ class _TradingScreenState extends State<TradingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Terminal Header (Ticker, LTP, Net Change, OHLCV tooltips)
-            ChartHeader(controller: _controller),
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final isDark = _controller.isDarkTheme;
 
-            // 2. Control Toolbar (Timeframes, Indicators, Zoom, Pan controls)
-            ChartToolbar(controller: _controller),
-
-            // 3. High-Performance Canvas Chart
-            Expanded(
-              child: TradingChart(controller: _controller),
+        return MaterialApp(
+          title: 'First Demat Chart Engine',
+          debugShowCheckedModeBanner: false,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+          theme: ThemeData.light().copyWith(
+            scaffoldBackgroundColor: Colors.white,
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2962FF),
+              surface: Colors.white,
             ),
-          ],
-        ),
-      ),
+          ),
+          darkTheme: ThemeData.dark().copyWith(
+            scaffoldBackgroundColor: const Color(0xFF131722),
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF2962FF),
+              surface: Color(0xFF131722),
+            ),
+          ),
+          home: Scaffold(
+            backgroundColor: _controller.theme.backgroundColor,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Row 1: Primary Toolbar (Search, Interval dropdown, Candles dropdown, Indicators dropdown, Refresh, Theme, Settings)
+                  ChartToolbar(controller: _controller),
+
+                  // Row 2: Symbol & Telemetry Bar (Selected symbol, NSE/BSE, LTP, OHLC Data, Quick Nav)
+                  ChartHeader(controller: _controller),
+
+                  // Row 3: High-Performance Canvas Chart
+                  Expanded(
+                    child: TradingChart(controller: _controller),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
+import '../core/models/candle_style.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
 import '../core/models/timeframe.dart';
@@ -21,10 +22,12 @@ class ChartPainter extends CustomPainter {
   final ChartViewport viewport;
   final ChartTheme theme;
   final Timeframe timeframe;
+  final CandleStyle candleStyle;
   final List<IndicatorResult> overlayIndicators;
   final IndicatorResult? subPaneIndicator;
   final Offset? crosshairPosition;
   final bool showVolume;
+  final bool showGrid;
 
   final GridRenderer _gridRenderer;
   final CandleRenderer _candleRenderer;
@@ -39,10 +42,12 @@ class ChartPainter extends CustomPainter {
     required this.viewport,
     required this.theme,
     required this.timeframe,
+    this.candleStyle = CandleStyle.candles,
     this.overlayIndicators = const [],
     this.subPaneIndicator,
     this.crosshairPosition,
     this.showVolume = true,
+    this.showGrid = true,
   })  : _gridRenderer = GridRenderer(theme),
         _candleRenderer = CandleRenderer(theme),
         _volumeRenderer = VolumeRenderer(theme),
@@ -83,30 +88,32 @@ class ChartPainter extends CustomPainter {
       end: visible.end,
     ).withPadding(topPaddingPercent: 0.08, bottomPaddingPercent: 0.08);
 
-    // 5. Draw Background Grid
-    _gridRenderer.drawGrid(
-      canvas: canvas,
-      bounds: layout.mainPaneBounds,
-      priceRange: priceRange,
-      converter: converter,
-      viewport: viewport,
-      totalCandles: candles.length,
-    );
-
-    if (layout.subPaneBounds != null && subPaneIndicator != null) {
-      final subRange = PriceRange(
-        subPaneIndicator!.fixedMin ?? 0.0,
-        subPaneIndicator!.fixedMax ?? 100.0,
-      );
+    // 5. Draw Background Grid (if enabled)
+    if (showGrid) {
       _gridRenderer.drawGrid(
         canvas: canvas,
-        bounds: layout.subPaneBounds!,
-        priceRange: subRange,
+        bounds: layout.mainPaneBounds,
+        priceRange: priceRange,
         converter: converter,
         viewport: viewport,
         totalCandles: candles.length,
-        verticalDivisions: 3,
       );
+
+      if (layout.subPaneBounds != null && subPaneIndicator != null) {
+        final subRange = PriceRange(
+          subPaneIndicator!.fixedMin ?? 0.0,
+          subPaneIndicator!.fixedMax ?? 100.0,
+        );
+        _gridRenderer.drawGrid(
+          canvas: canvas,
+          bounds: layout.subPaneBounds!,
+          priceRange: subRange,
+          converter: converter,
+          viewport: viewport,
+          totalCandles: candles.length,
+          verticalDivisions: 3,
+        );
+      }
     }
 
     // 6. Draw Volume Histogram (in lower section of main pane)
@@ -133,7 +140,7 @@ class ChartPainter extends CustomPainter {
       );
     }
 
-    // 8. Draw Candlesticks
+    // 8. Draw Candlesticks with selected CandleStyle
     _candleRenderer.drawCandles(
       canvas: canvas,
       bounds: layout.mainPaneBounds,
@@ -142,6 +149,7 @@ class ChartPainter extends CustomPainter {
       priceRange: priceRange,
       converter: converter,
       candleWidth: viewport.candleWidth,
+      candleStyle: candleStyle,
     );
 
     // 9. Draw Current Price Line & Badge
@@ -217,9 +225,11 @@ class ChartPainter extends CustomPainter {
         oldDelegate.viewport != viewport ||
         oldDelegate.crosshairPosition != crosshairPosition ||
         oldDelegate.timeframe != timeframe ||
+        oldDelegate.candleStyle != candleStyle ||
         oldDelegate.overlayIndicators != overlayIndicators ||
         oldDelegate.subPaneIndicator != subPaneIndicator ||
         oldDelegate.showVolume != showVolume ||
+        oldDelegate.showGrid != showGrid ||
         oldDelegate.theme != theme;
   }
 }

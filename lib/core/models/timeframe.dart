@@ -6,6 +6,7 @@ enum Timeframe {
   fifteenMinutes(Duration(minutes: 15), '15m', '15 min'),
   thirtyMinutes(Duration(minutes: 30), '30m', '30 min'),
   oneHour(Duration(hours: 1), '1H', '1 hour'),
+  fourHours(Duration(hours: 4), '4H', '4 hours'),
   oneDay(Duration(days: 1), '1D', '1 day'),
   oneWeek(Duration(days: 7), '1W', '1 week');
 
@@ -23,6 +24,9 @@ enum Timeframe {
       final daysToSubtract = (dateTime.weekday - DateTime.monday) % 7;
       final monday = dateTime.subtract(Duration(days: daysToSubtract));
       return DateTime(monday.year, monday.month, monday.day);
+    } else if (this == fourHours) {
+      final roundedHour = (dateTime.hour ~/ 4) * 4;
+      return DateTime(dateTime.year, dateTime.month, dateTime.day, roundedHour);
     } else if (this == oneHour) {
       return DateTime(dateTime.year, dateTime.month, dateTime.day, dateTime.hour);
     } else {

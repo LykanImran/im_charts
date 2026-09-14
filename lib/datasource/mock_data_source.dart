@@ -7,9 +7,25 @@ import 'chart_data_source.dart';
 
 /// Highly realistic deterministic Geometric Brownian Motion & micro-structure market simulator.
 class MockTradingDataSource implements ChartDataSource {
-  final double initialPrice;
+  double initialPrice;
   final double volatility;
   final math.Random _random = math.Random(42);
+
+  static const Map<String, double> defaultPrices = {
+    'NIFTY 50': 24520.0,
+    'BANKNIFTY': 51420.0,
+    'FINNIFTY': 23890.0,
+    'SENSEX': 80250.0,
+    'RELIANCE': 2985.0,
+    'TCS': 4210.0,
+    'HDFCBANK': 1645.0,
+    'INFY': 1890.0,
+    'TATAMOTORS': 985.0,
+    'ICICIBANK': 1230.0,
+    'SBIN': 815.0,
+    'BTC/USD': 65400.0,
+    'ETH/USD': 3450.0,
+  };
 
   StreamController<Tick>? _tickController;
   Timer? _tickTimer;
@@ -33,8 +49,11 @@ class MockTradingDataSource implements ChartDataSource {
     final now = DateTime.now();
     final alignedNow = timeframe.alignTimestamp(now);
 
+    final symbolBasePrice = defaultPrices[symbol] ?? initialPrice;
+    initialPrice = symbolBasePrice;
+
     // Generate historical backwards from now
-    var price = initialPrice;
+    var price = symbolBasePrice;
     final tempList = <Candle>[];
 
     var currentTimestamp = alignedNow.subtract(timeframe.duration * count);
@@ -83,7 +102,8 @@ class MockTradingDataSource implements ChartDataSource {
 
   @override
   Stream<Tick> getLiveTicks(String symbol) {
-    _tickController ??= StreamController<Tick>.broadcast(
+    _stopLiveSimulation();
+    _tickController = StreamController<Tick>.broadcast(
       onListen: _startLiveSimulation,
       onCancel: _stopLiveSimulation,
     );

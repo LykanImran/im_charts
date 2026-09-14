@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
+import '../core/models/candle_style.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/tick.dart';
 import '../core/models/timeframe.dart';
@@ -14,11 +15,13 @@ import 'indicators/indicator_result.dart';
 
 /// Top-level controller managing chart state, gestures, viewport, indicators, and live data stream.
 class TradingChartController extends ChangeNotifier {
-  final String symbol;
+  String _symbol;
+  String _exchange = 'NSE';
   final ChartDataSource dataSource;
   ChartTheme theme;
 
   Timeframe _timeframe;
+  CandleStyle _candleStyle = CandleStyle.candles;
   ChartViewport _viewport;
   late CandleBuilder _candleBuilder;
   StreamSubscription<Tick>? _tickSubscription;
@@ -30,21 +33,31 @@ class TradingChartController extends ChangeNotifier {
   Offset? _crosshairPosition;
   Candle? _hoveredCandle;
   bool _showVolume = true;
+  bool _showGrid = true;
+  bool _showCrosshair = true;
   bool _isLoading = true;
 
   TradingChartController({
-    required this.symbol,
+    required String symbol,
     required this.dataSource,
+    String exchange = 'NSE',
     Timeframe initialTimeframe = Timeframe.fiveMinutes,
+    CandleStyle initialCandleStyle = CandleStyle.candles,
     ChartTheme? theme,
-  })  : _timeframe = initialTimeframe,
+  })  : _symbol = symbol,
+        _exchange = exchange,
+        _timeframe = initialTimeframe,
+        _candleStyle = initialCandleStyle,
         theme = theme ?? ChartTheme.dark(),
         _viewport = const ChartViewport() {
     _candleBuilder = CandleBuilder(timeframe: _timeframe);
   }
 
   // Getters
+  String get symbol => _symbol;
+  String get exchange => _exchange;
   Timeframe get timeframe => _timeframe;
+  CandleStyle get candleStyle => _candleStyle;
   ChartViewport get viewport => _viewport;
   List<Candle> get candles => _candleBuilder.candles;
   Candle? get currentCandle => _candleBuilder.currentCandle;
@@ -52,9 +65,12 @@ class TradingChartController extends ChangeNotifier {
   List<IndicatorResult> get overlayResults => _overlayResults;
   IndicatorResult? get subPaneResult => _subPaneResult;
   List<Indicator> get activeIndicators => List.unmodifiable(_activeIndicators);
-  Offset? get crosshairPosition => _crosshairPosition;
+  Offset? get crosshairPosition => _showCrosshair ? _crosshairPosition : null;
   bool get showVolume => _showVolume;
+  bool get showGrid => _showGrid;
+  bool get showCrosshair => _showCrosshair;
   bool get isLoading => _isLoading;
+  bool get isDarkTheme => theme.backgroundColor == const Color(0xFF131722);
 
   /// Loads initial historical data and establishes real-time tick ingestion.
   Future<void> initialize() async {
@@ -63,7 +79,7 @@ class TradingChartController extends ChangeNotifier {
 
     try {
       final historical = await dataSource.getHistoricalData(
-        symbol: symbol,
+        symbol: _symbol,
         timeframe: _timeframe,
         count: 500,
       );
@@ -72,7 +88,7 @@ class TradingChartController extends ChangeNotifier {
 
       // Listen to real-time live ticks
       _tickSubscription?.cancel();
-      _tickSubscription = dataSource.getLiveTicks(symbol).listen(_onLiveTick);
+      _tickSubscription = dataSource.getLiveTicks(_symbol).listen(_onLiveTick);
     } catch (e) {
       debugPrint('Error loading chart data: $e');
     } finally {
@@ -91,6 +107,26 @@ class TradingChartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets a new symbol and reloads chart data.
+  Future<void> setSymbol(String newSymbol, {String? exchange}) async {
+    if (_symbol == newSymbol && (exchange == null || _exchange == exchange)) return;
+    _symbol = newSymbol;
+    if (exchange != null) {
+      _exchange = exchange;
+    }
+    _crosshairPosition = null;
+    _hoveredCandle = null;
+    _candleBuilder = CandleBuilder(timeframe: _timeframe);
+    await initialize();
+  }
+
+  /// Switches exchange (NSE vs BSE).
+  void setExchange(String newExchange) {
+    if (_exchange == newExchange) return;
+    _exchange = newExchange;
+    notifyListeners();
+  }
+
   /// Changes chart timeframe and refreshes historical candles.
   Future<void> setTimeframe(Timeframe newTimeframe) async {
     if (_timeframe == newTimeframe) return;
@@ -99,6 +135,49 @@ class TradingChartController extends ChangeNotifier {
     _crosshairPosition = null;
     _hoveredCandle = null;
     await initialize();
+  }
+
+  /// Changes the candle presentation style (Candles, Hollow, Heikin Ashi, Line, Area, Bars).
+  void setCandleStyle(CandleStyle style) {
+    if (_candleStyle == style) return;
+    _candleStyle = style;
+    notifyListeners();
+  }
+
+  /// Manually refreshes historical data and restarts stream.
+  Future<void> refreshData() async {
+    await initialize();
+  }
+
+  /// Toggles dark / light theme.
+  void toggleTheme() {
+    if (isDarkTheme) {
+      theme = ChartTheme.light();
+    } else {
+      theme = ChartTheme.dark();
+    }
+    notifyListeners();
+  }
+
+  /// Sets an explicit theme.
+  void setTheme(ChartTheme newTheme) {
+    theme = newTheme;
+    notifyListeners();
+  }
+
+  /// Toggles grid lines on/off.
+  void toggleGrid() {
+    _showGrid = !_showGrid;
+    notifyListeners();
+  }
+
+  /// Toggles crosshair on/off.
+  void toggleCrosshair() {
+    _showCrosshair = !_showCrosshair;
+    if (!_showCrosshair) {
+      _crosshairPosition = null;
+    }
+    notifyListeners();
   }
 
   /// Updates viewport canvas dimensions (called by LayoutBuilder in UI).
@@ -113,6 +192,10 @@ class TradingChartController extends ChangeNotifier {
 
   /// Updates crosshair position and extracts hovered candle under pointer.
   void setCrosshairPosition(Offset? position) {
+    if (!_showCrosshair) {
+      _crosshairPosition = null;
+      return;
+    }
     _crosshairPosition = position;
     if (position != null && candles.isNotEmpty) {
       final converter = CoordinateConverter(
