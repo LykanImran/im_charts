@@ -64,6 +64,10 @@ class ChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
+    // Save canvas state and strictly clip to widget size
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+
     // 1. Clear background
     canvas.drawRect(
       Offset.zero & size,
@@ -76,7 +80,10 @@ class ChartPainter extends CustomPainter {
       hasSubPane: subPaneIndicator != null,
     );
 
-    if (candles.isEmpty) return;
+    if (candles.isEmpty) {
+      canvas.restore();
+      return;
+    }
 
     // 3. Compute visible slice and coordinate converter
     final visible = viewport.calculateVisibleIndices(candles.length);
@@ -125,6 +132,11 @@ class ChartPainter extends CustomPainter {
       }
     }
 
+    // Clip to main pane bounds for candles, volume, and overlay indicators
+    // Prevents drawing above the top boundary or over axes
+    canvas.save();
+    canvas.clipRect(layout.mainPaneBounds);
+
     // 6. Draw Volume Histogram (in lower section of main pane)
     if (showVolume) {
       _volumeRenderer.drawVolume(
@@ -160,6 +172,8 @@ class ChartPainter extends CustomPainter {
       candleWidth: viewport.candleWidth,
       candleStyle: candleStyle,
     );
+
+    canvas.restore();
 
     // 9. Draw Current Price Line & Badge
     if (candles.isNotEmpty) {
@@ -226,6 +240,9 @@ class ChartPainter extends CustomPainter {
         timeframe: timeframe,
       );
     }
+
+    // Restore root canvas clip
+    canvas.restore();
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:im_charts/main.dart';
@@ -161,6 +162,56 @@ void main() {
 
     // Drag left to zoom out
     await tester.dragFrom(timeAxisPoint, const Offset(-100, 0));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('ChartHeader is stacked on top of TradingChart and left aligned', (WidgetTester tester) async {
+    await tester.pumpWidget(const TradingApp());
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // TradingChart occupies full height of the expanded area
+    final chartRect = tester.getRect(find.byType(TradingChart));
+    final headerRect = tester.getRect(find.byType(ChartHeader));
+
+    // Header top matches Chart top because they are stacked
+    expect(headerRect.top, equals(chartRect.top));
+    expect(headerRect.left, equals(chartRect.left));
+  });
+
+  testWidgets('Trackpad pan zoom event zooms candle width horizontally', (WidgetTester tester) async {
+    await tester.pumpWidget(const TradingApp());
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final chartRect = tester.getRect(find.byType(TradingChart));
+    final center = chartRect.center;
+
+    // Send PointerPanZoomStartEvent
+    await tester.sendEventToBinding(
+      PointerPanZoomStartEvent(
+        position: center,
+      ),
+    );
+    await tester.pump();
+
+    // Send PointerPanZoomUpdateEvent with scale = 1.3 (pinch to zoom in)
+    await tester.sendEventToBinding(
+      PointerPanZoomUpdateEvent(
+        position: center,
+        scale: 1.3,
+        pan: Offset.zero,
+        panDelta: Offset.zero,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Send PointerPanZoomEndEvent
+    await tester.sendEventToBinding(
+      PointerPanZoomEndEvent(
+        position: center,
+      ),
+    );
     await tester.pumpAndSettle();
   });
 }

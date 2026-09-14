@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../engine/chart_controller.dart';
@@ -21,6 +22,8 @@ class TradingChart extends StatefulWidget {
 
 class _TradingChartState extends State<TradingChart> {
   double _lastScale = 1.0;
+  double _lastTrackpadScale = 1.0;
+  bool _isPinching = false;
   Offset _lastFocalPoint = Offset.zero;
   Offset _lastTapDownPosition = Offset.zero;
   _ChartDragMode _dragMode = _ChartDragMode.none;
@@ -97,10 +100,46 @@ class _TradingChartState extends State<TradingChart> {
                 controller.setCrosshairPosition(null);
               },
               child: Listener(
+                onPointerPanZoomStart: (event) {
+                  _lastTrackpadScale = 1.0;
+                },
+                onPointerPanZoomUpdate: (event) {
+                  final pos = event.localPosition;
+
+                  // Native Trackpad pinch-to-zoom (macOS / Desktop precision trackpads)
+                  if ((event.scale - 1.0).abs() > 0.001) {
+                    final scaleRatio = event.scale / _lastTrackpadScale;
+                    _lastTrackpadScale = event.scale;
+
+                    if (pos.dx >= priceAxisLeft) {
+                      // Pinch over price axis: scale price vertically
+                      if (scaleRatio > 1.0) {
+                        controller.zoomInPrice();
+                      } else {
+                        controller.zoomOutPrice();
+                      }
+                    } else {
+                      // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
+                      controller.onZoom(scaleRatio, pos);
+                    }
+                  } else {
+                    // Native Trackpad 2-finger pan / swipe
+                    if (event.panDelta.dx.abs() > 0.1) {
+                      controller.onPan(event.panDelta.dx);
+                    }
+                    if (controller.isManualPriceScale && event.panDelta.dy.abs() > 0.1) {
+                      controller.onVerticalPan(event.panDelta.dy, timeAxisTop);
+                    }
+                  }
+                },
+                onPointerPanZoomEnd: (event) {
+                  _lastTrackpadScale = 1.0;
+                },
                 onPointerSignal: (pointerSignal) {
-                  // Desktop / Web mouse wheel & trackpad zoom
+                  // Desktop / Web mouse wheel & trackpad scroll zoom
                   if (pointerSignal is PointerScrollEvent) {
                     final pos = pointerSignal.localPosition;
+                    final dx = pointerSignal.scrollDelta.dx;
                     final dy = pointerSignal.scrollDelta.dy;
 
                     if (pos.dx >= priceAxisLeft) {
@@ -112,15 +151,21 @@ class _TradingChartState extends State<TradingChart> {
                       }
                     } else if (pos.dy >= timeAxisTop) {
                       // Wheel over time axis -> scale timeframe horizontally
-                      if (dy < 0) {
+                      if (dy < 0 || dx < 0) {
                         controller.zoomIn();
-                      } else if (dy > 0) {
+                      } else if (dy > 0 || dx > 0) {
                         controller.zoomOut();
                       }
                     } else {
-                      // Wheel over main chart canvas -> focal-point horizontal zoom
-                      final zoomFactor = dy < 0 ? 1.15 : 0.85;
-                      controller.onZoom(zoomFactor, pos);
+                      // Over main chart canvas:
+                      // If dominant horizontal trackpad scroll (2-finger swipe)
+                      if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
+                        controller.onPan(-dx);
+                      } else if (dy.abs() > 0.0) {
+                        // Smooth exponential focal zoom based on scroll delta
+                        final zoomFactor = math.exp(-dy * 0.003).clamp(0.7, 1.3);
+                        controller.onZoom(zoomFactor, pos);
+                      }
                     }
                   }
                 },
@@ -134,6 +179,7 @@ class _TradingChartState extends State<TradingChart> {
                           _lastTapDownPosition = details.localPosition;
                         },
                         onScaleStart: (details) {
+                          _isPinching = false;
                           _lastScale = 1.0;
                           _lastFocalPoint = details.localFocalPoint;
                           final start = details.localFocalPoint;
@@ -167,8 +213,11 @@ class _TradingChartState extends State<TradingChart> {
                               break;
 
                             case _ChartDragMode.mainChart:
-                              // Pinch Zoom (2+ fingers or scaling gesture)
-                              if (details.pointerCount >= 2 || (details.scale - 1.0).abs() > 0.02) {
+                              // Pinch Zoom (2+ touch points or continuous scaling gesture)
+                              if (details.pointerCount >= 2 ||
+                                  _isPinching ||
+                                  (details.scale - 1.0).abs() > 0.01) {
+                                _isPinching = true;
                                 final scaleRatio = details.scale / _lastScale;
                                 controller.onZoom(scaleRatio, details.localFocalPoint);
                                 _lastScale = details.scale;
@@ -196,6 +245,7 @@ class _TradingChartState extends State<TradingChart> {
                         },
                         onScaleEnd: (_) {
                           _dragMode = _ChartDragMode.none;
+                          _isPinching = false;
                           _lastScale = 1.0;
                         },
                         onDoubleTap: () {
@@ -226,21 +276,23 @@ class _TradingChartState extends State<TradingChart> {
                         onLongPressEnd: (_) {
                           controller.setCrosshairPosition(null);
                         },
-                        child: CustomPaint(
-                          size: Size(width, height),
-                          painter: ChartPainter(
-                            candles: controller.candles,
-                            viewport: controller.viewport,
-                            theme: controller.theme,
-                            timeframe: controller.timeframe,
-                            candleStyle: controller.candleStyle,
-                            overlayIndicators: controller.overlayResults,
-                            subPaneIndicator: controller.subPaneResult,
-                            crosshairPosition: controller.crosshairPosition,
-                            showVolume: controller.showVolume,
-                            showGrid: controller.showGrid,
-                            verticalScale: controller.verticalScale,
-                            verticalPan: controller.verticalPan,
+                        child: ClipRect(
+                          child: CustomPaint(
+                            size: Size(width, height),
+                            painter: ChartPainter(
+                              candles: controller.candles,
+                              viewport: controller.viewport,
+                              theme: controller.theme,
+                              timeframe: controller.timeframe,
+                              candleStyle: controller.candleStyle,
+                              overlayIndicators: controller.overlayResults,
+                              subPaneIndicator: controller.subPaneResult,
+                              crosshairPosition: controller.crosshairPosition,
+                              showVolume: controller.showVolume,
+                              showGrid: controller.showGrid,
+                              verticalScale: controller.verticalScale,
+                              verticalPan: controller.verticalPan,
+                            ),
                           ),
                         ),
                       ),

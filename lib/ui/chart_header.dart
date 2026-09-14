@@ -35,145 +35,155 @@ class ChartHeader extends StatelessWidget {
           categoryTag = 'CRYPTO';
         }
 
-        return Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-          decoration: BoxDecoration(
-            color: theme.backgroundColor,
-            border: Border(bottom: BorderSide(color: theme.gridColor, width: 1.0)),
-          ),
+        return Align(
+          alignment: Alignment.centerLeft,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                // 1. Live Pulse Dot & Symbol Name
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF00E676),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x6600E676),
-                            blurRadius: 6,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      controller.symbol,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black87,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        categoryTag,
-                        style: TextStyle(
-                          color: theme.axisTextColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(left: 10.0, top: 8.0, bottom: 4.0, right: 10.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xCC131722) : const Color(0xD9FFFFFF),
+                borderRadius: BorderRadius.circular(6.0),
+                border: Border.all(
+                  color: theme.gridColor.withValues(alpha: 0.5),
+                  width: 1.0,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 1. Live Pulse Dot & Symbol Name
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF00E676),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x6600E676),
+                              blurRadius: 6,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(width: 12),
-
-                // 2. NSE / BSE Exchange Toggle
-                _buildExchangeSelector(controller, theme, isDark),
-
-                _buildDivider(theme),
-
-                // 3. LTP (Last Traded Price) & Dynamic Change
-                if (latest != null) ...[
-                  Text(
-                    latest.close.toStringAsFixed(2),
-                    style: TextStyle(
-                      color: changeColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
-                    ),
+                      const SizedBox(width: 8),
+                      Text(
+                        controller.symbol,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          categoryTag,
+                          style: TextStyle(
+                            color: theme.axisTextColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: changeColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '${latest.priceChange >= 0 ? '+' : ''}${latest.priceChange.toStringAsFixed(2)} (${latest.percentageChange.toStringAsFixed(2)}%)',
+
+                  const SizedBox(width: 12),
+
+                  // 2. NSE / BSE Exchange Toggle
+                  _buildExchangeSelector(controller, theme, isDark),
+
+                  _buildDivider(theme),
+
+                  // 3. LTP (Last Traded Price) & Dynamic Change
+                  if (latest != null) ...[
+                    Text(
+                      latest.close.toStringAsFixed(2),
                       style: TextStyle(
                         color: changeColor,
-                        fontSize: 11,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: changeColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${latest.priceChange >= 0 ? '+' : ''}${latest.priceChange.toStringAsFixed(2)} (${latest.percentageChange.toStringAsFixed(2)}%)',
+                        style: TextStyle(
+                          color: changeColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  _buildDivider(theme),
+
+                  // 4. Live / Hovered OHLCV Data Strip
+                  if (candle != null) ...[
+                    _buildMetricBadge('O', candle.open.toStringAsFixed(2), theme, isDark),
+                    _buildMetricBadge('H', candle.high.toStringAsFixed(2), theme, isDark),
+                    _buildMetricBadge('L', candle.low.toStringAsFixed(2), theme, isDark),
+                    _buildMetricBadge('C', candle.close.toStringAsFixed(2), theme, isDark, valueColor: changeColor),
+                    _buildMetricBadge('Vol', _formatVolume(candle.volume), theme, isDark),
+                  ],
+
+                  _buildDivider(theme),
+
+                  // 5. Quick Viewport Navigation
+                  IconButton(
+                    icon: Icon(Icons.zoom_out, size: 16, color: theme.axisTextColor),
+                    tooltip: 'Zoom Out',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: controller.zoomOut,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.zoom_in, size: 16, color: theme.axisTextColor),
+                    tooltip: 'Zoom In',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: controller.zoomIn,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.center_focus_strong, size: 16, color: theme.axisTextColor),
+                    tooltip: 'Reset Viewport',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: controller.resetView,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.last_page, size: 16, color: Color(0xFF00E676)),
+                    tooltip: 'Scroll to Latest Candle',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    onPressed: controller.scrollToLatest,
                   ),
                 ],
-
-                _buildDivider(theme),
-
-                // 4. Live / Hovered OHLCV Data Strip
-                if (candle != null) ...[
-                  _buildMetricBadge('O', candle.open.toStringAsFixed(2), theme, isDark),
-                  _buildMetricBadge('H', candle.high.toStringAsFixed(2), theme, isDark),
-                  _buildMetricBadge('L', candle.low.toStringAsFixed(2), theme, isDark),
-                  _buildMetricBadge('C', candle.close.toStringAsFixed(2), theme, isDark, valueColor: changeColor),
-                  _buildMetricBadge('Vol', _formatVolume(candle.volume), theme, isDark),
-                ],
-
-                _buildDivider(theme),
-
-                // 5. Quick Viewport Navigation
-                IconButton(
-                  icon: Icon(Icons.zoom_out, size: 16, color: theme.axisTextColor),
-                  tooltip: 'Zoom Out',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: controller.zoomOut,
-                ),
-                IconButton(
-                  icon: Icon(Icons.zoom_in, size: 16, color: theme.axisTextColor),
-                  tooltip: 'Zoom In',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: controller.zoomIn,
-                ),
-                IconButton(
-                  icon: Icon(Icons.center_focus_strong, size: 16, color: theme.axisTextColor),
-                  tooltip: 'Reset Viewport',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: controller.resetView,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.last_page, size: 16, color: Color(0xFF00E676)),
-                  tooltip: 'Scroll to Latest Candle',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  onPressed: controller.scrollToLatest,
-                ),
-              ],
+              ),
             ),
           ),
         );

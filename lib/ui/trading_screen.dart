@@ -107,12 +107,26 @@ class _TradingScreenState extends State<TradingScreen> {
                   // Row 1: Primary Toolbar (Search, Interval dropdown, Candles dropdown, Indicators dropdown, Refresh, Theme, Settings)
                   ChartToolbar(controller: _controller),
 
-                  // Row 2: Symbol & Telemetry Bar (Selected symbol, NSE/BSE, LTP, OHLC Data, Quick Nav)
-                  ChartHeader(controller: _controller),
-
-                  // Row 3: High-Performance Canvas Chart
+                  // Main Chart Canvas with Overlay Header in a Stack (TradingView architecture)
                   Expanded(
-                    child: TradingChart(controller: _controller),
+                    child: ClipRect(
+                      child: Stack(
+                        children: [
+                          // The High-Performance Canvas Chart spans 100% of the available area
+                          Positioned.fill(
+                            child: TradingChart(controller: _controller),
+                          ),
+
+                          // Overlay Symbol & Telemetry Header floating at top-left
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 65, // Leaves the price axis unobscured
+                            child: ChartHeader(controller: _controller),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

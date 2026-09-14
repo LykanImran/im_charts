@@ -13,16 +13,14 @@ import 'symbol_search_modal.dart';
 class ChartToolbar extends StatefulWidget {
   final TradingChartController controller;
 
-  const ChartToolbar({
-    super.key,
-    required this.controller,
-  });
+  const ChartToolbar({super.key, required this.controller});
 
   @override
   State<ChartToolbar> createState() => _ChartToolbarState();
 }
 
-class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderStateMixin {
+class _ChartToolbarState extends State<ChartToolbar>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _refreshAnimCtrl;
 
   @override
@@ -55,120 +53,171 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
         final theme = controller.theme;
         final isDark = controller.isDarkTheme;
 
-        return Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          decoration: BoxDecoration(
-            color: theme.backgroundColor,
-            border: Border(bottom: BorderSide(color: theme.gridColor, width: 1.0)),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                // 1. SEARCH BUTTON
-                InkWell(
-                  onTap: () => SymbolSearchModal.show(context, controller),
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E222D) : const Color(0xFFF0F3FA),
+        final solidToolbarBg = isDark
+            ? const Color(0xFF131722)
+            : const Color(0xFFFFFFFF);
+
+        return Material(
+          color: solidToolbarBg,
+          child: Container(
+            height: 44,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            decoration: BoxDecoration(
+              color: solidToolbarBg,
+              border: Border(
+                bottom: BorderSide(color: theme.gridColor, width: 1.0),
+              ),
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. SEARCH BUTTON
+                    InkWell(
+                      onTap: () => SymbolSearchModal.show(context, controller),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: theme.gridColor,
-                        width: 1,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E222D)
+                              : const Color(0xFFF0F3FA),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: theme.gridColor, width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.search,
+                              size: 16,
+                              color: Color(0xFF2962FF),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Search symbol...',
+                              style: TextStyle(
+                                color: theme.axisTextColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF2A2E39)
+                                    : const Color(0xFFE0E3EB),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                '⌘K',
+                                style: TextStyle(
+                                  color: theme.axisTextColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.search, size: 16, color: Color(0xFF2962FF)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Search symbol...',
-                          style: TextStyle(
-                            color: theme.axisTextColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+
+                    _buildDivider(theme),
+
+                    // 2. INTERVAL AS A DROPDOWN
+                    _buildIntervalDropdown(controller, theme, isDark),
+
+                    _buildDivider(theme),
+
+                    // 3. CANDLES DROPDOWN
+                    _buildCandlesDropdown(controller, theme, isDark),
+
+                    _buildDivider(theme),
+
+                    // 4. INDICATORS DROPDOWN
+                    _buildIndicatorsDropdown(controller, theme, isDark),
+
+                    _buildDivider(theme),
+
+                    // 5. REFRESH BUTTON
+                    RotationTransition(
+                      turns: _refreshAnimCtrl,
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.refresh,
+                          size: 18,
+                          color: theme.axisTextColor,
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Text(
-                            '⌘K',
-                            style: TextStyle(
-                              color: theme.axisTextColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        tooltip: 'Refresh Chart Data',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
-                      ],
+                        onPressed: _handleRefresh,
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(width: 4),
+
+                    // 6. DARK / LIGHT MODES TOGGLE
+                    IconButton(
+                      icon: Icon(
+                        isDark
+                            ? Icons.light_mode_outlined
+                            : Icons.dark_mode_outlined,
+                        size: 18,
+                        color: isDark
+                            ? const Color(0xFFFFB300)
+                            : const Color(0xFF2962FF),
+                      ),
+                      tooltip: isDark
+                          ? 'Switch to Light Mode'
+                          : 'Switch to Dark Mode',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: controller.toggleTheme,
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    // 7. SETTINGS BUTTON
+                    IconButton(
+                      icon: Icon(
+                        Icons.settings_outlined,
+                        size: 18,
+                        color: theme.axisTextColor,
+                      ),
+                      tooltip: 'Chart Settings',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: () =>
+                          ChartSettingsModal.show(context, controller),
+                    ),
+                  ],
                 ),
-
-                _buildDivider(theme),
-
-                // 2. INTERVAL AS A DROPDOWN
-                _buildIntervalDropdown(controller, theme, isDark),
-
-                _buildDivider(theme),
-
-                // 3. CANDLES DROPDOWN
-                _buildCandlesDropdown(controller, theme, isDark),
-
-                _buildDivider(theme),
-
-                // 4. INDICATORS DROPDOWN
-                _buildIndicatorsDropdown(controller, theme, isDark),
-
-                _buildDivider(theme),
-
-                // 5. REFRESH BUTTON
-                RotationTransition(
-                  turns: _refreshAnimCtrl,
-                  child: IconButton(
-                    icon: Icon(Icons.refresh, size: 18, color: theme.axisTextColor),
-                    tooltip: 'Refresh Chart Data',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    onPressed: _handleRefresh,
-                  ),
-                ),
-
-                const SizedBox(width: 4),
-
-                // 6. DARK / LIGHT MODES TOGGLE
-                IconButton(
-                  icon: Icon(
-                    isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                    size: 18,
-                    color: isDark ? const Color(0xFFFFB300) : const Color(0xFF2962FF),
-                  ),
-                  tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: controller.toggleTheme,
-                ),
-
-                const SizedBox(width: 4),
-
-                // 7. SETTINGS BUTTON
-                IconButton(
-                  icon: Icon(Icons.settings_outlined, size: 18, color: theme.axisTextColor),
-                  tooltip: 'Chart Settings',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: () => ChartSettingsModal.show(context, controller),
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -179,15 +228,15 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
   Widget _buildDivider(dynamic theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6.0),
-      child: Container(
-        height: 18,
-        width: 1,
-        color: theme.gridColor,
-      ),
+      child: Container(height: 18, width: 1, color: theme.gridColor),
     );
   }
 
-  Widget _buildIntervalDropdown(TradingChartController controller, dynamic theme, bool isDark) {
+  Widget _buildIntervalDropdown(
+    TradingChartController controller,
+    dynamic theme,
+    bool isDark,
+  ) {
     return PopupMenuButton<Timeframe>(
       tooltip: 'Interval',
       offset: const Offset(0, 36),
@@ -200,16 +249,64 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
       itemBuilder: (context) {
         return [
           _buildMenuSectionHeader('MINUTES', theme),
-          _buildTimeframeItem(Timeframe.oneMinute, '1m (1 Minute)', controller, theme, isDark),
-          _buildTimeframeItem(Timeframe.fiveMinutes, '5m (5 Minutes)', controller, theme, isDark),
-          _buildTimeframeItem(Timeframe.fifteenMinutes, '15m (15 Minutes)', controller, theme, isDark),
-          _buildTimeframeItem(Timeframe.thirtyMinutes, '30m (30 Minutes)', controller, theme, isDark),
+          _buildTimeframeItem(
+            Timeframe.oneMinute,
+            '1m (1 Minute)',
+            controller,
+            theme,
+            isDark,
+          ),
+          _buildTimeframeItem(
+            Timeframe.fiveMinutes,
+            '5m (5 Minutes)',
+            controller,
+            theme,
+            isDark,
+          ),
+          _buildTimeframeItem(
+            Timeframe.fifteenMinutes,
+            '15m (15 Minutes)',
+            controller,
+            theme,
+            isDark,
+          ),
+          _buildTimeframeItem(
+            Timeframe.thirtyMinutes,
+            '30m (30 Minutes)',
+            controller,
+            theme,
+            isDark,
+          ),
           _buildMenuSectionHeader('HOURS', theme),
-          _buildTimeframeItem(Timeframe.oneHour, '1H (1 Hour)', controller, theme, isDark),
-          _buildTimeframeItem(Timeframe.fourHours, '4H (4 Hours)', controller, theme, isDark),
+          _buildTimeframeItem(
+            Timeframe.oneHour,
+            '1H (1 Hour)',
+            controller,
+            theme,
+            isDark,
+          ),
+          _buildTimeframeItem(
+            Timeframe.fourHours,
+            '4H (4 Hours)',
+            controller,
+            theme,
+            isDark,
+          ),
           _buildMenuSectionHeader('DAYS & WEEKS', theme),
-          _buildTimeframeItem(Timeframe.oneDay, '1D (1 Day)', controller, theme, isDark),
-          _buildTimeframeItem(Timeframe.oneWeek, '1W (1 Week)', controller, theme, isDark),
+          _buildTimeframeItem(
+            Timeframe.oneDay,
+            '1D (1 Day)',
+            controller,
+            theme,
+            isDark,
+          ),
+          _buildTimeframeItem(
+            Timeframe.oneWeek,
+            '1W (1 Week)',
+            controller,
+            theme,
+            isDark,
+          ),
         ];
       },
       child: Container(
@@ -287,7 +384,11 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildCandlesDropdown(TradingChartController controller, dynamic theme, bool isDark) {
+  Widget _buildCandlesDropdown(
+    TradingChartController controller,
+    dynamic theme,
+    bool isDark,
+  ) {
     return PopupMenuButton<CandleStyle>(
       tooltip: 'Candle Style',
       offset: const Offset(0, 36),
@@ -308,7 +409,9 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
                 Icon(
                   style.icon,
                   size: 16,
-                  color: isSelected ? const Color(0xFF2962FF) : theme.axisTextColor,
+                  color: isSelected
+                      ? const Color(0xFF2962FF)
+                      : theme.axisTextColor,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -319,7 +422,9 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
                           ? const Color(0xFF2962FF)
                           : (isDark ? Colors.white : Colors.black87),
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -340,7 +445,11 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(controller.candleStyle.icon, size: 15, color: const Color(0xFF2962FF)),
+            Icon(
+              controller.candleStyle.icon,
+              size: 15,
+              color: const Color(0xFF2962FF),
+            ),
             const SizedBox(width: 6),
             Text(
               controller.candleStyle.shortLabel,
@@ -358,7 +467,11 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildIndicatorsDropdown(TradingChartController controller, dynamic theme, bool isDark) {
+  Widget _buildIndicatorsDropdown(
+    TradingChartController controller,
+    dynamic theme,
+    bool isDark,
+  ) {
     final activeCount = controller.activeIndicators.length;
 
     return PopupMenuButton<String>(
@@ -388,7 +501,9 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
             label: 'EMA 20 (Trend Fast)',
             color: const Color(0xFF2962FF),
             isActive: controller.isIndicatorActive('EMA_20'),
-            onTap: () => controller.toggleIndicator(EMAIndicator(period: 20, color: const Color(0xFF2962FF))),
+            onTap: () => controller.toggleIndicator(
+              EMAIndicator(period: 20, color: const Color(0xFF2962FF)),
+            ),
             theme: theme,
             isDark: isDark,
           ),
@@ -396,7 +511,9 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
             label: 'EMA 50 (Trend Slow)',
             color: const Color(0xFFE91E63),
             isActive: controller.isIndicatorActive('EMA_50'),
-            onTap: () => controller.toggleIndicator(EMAIndicator(period: 50, color: const Color(0xFFE91E63))),
+            onTap: () => controller.toggleIndicator(
+              EMAIndicator(period: 50, color: const Color(0xFFE91E63)),
+            ),
             theme: theme,
             isDark: isDark,
           ),
@@ -424,7 +541,9 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
           color: isDark ? const Color(0xFF1E222D) : const Color(0xFFF0F3FA),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: activeCount > 0 ? const Color(0xFF2962FF).withValues(alpha: 0.6) : theme.gridColor,
+            color: activeCount > 0
+                ? const Color(0xFF2962FF).withValues(alpha: 0.6)
+                : theme.gridColor,
             width: 1,
           ),
         ),
@@ -483,10 +602,7 @@ class _ChartToolbarState extends State<ChartToolbar> with SingleTickerProviderSt
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           Expanded(
