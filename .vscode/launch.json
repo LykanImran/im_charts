@@ -1,71 +1,25 @@
 {
-    // VS Code Flutter / Dart Launch Configurations for im_charts
-    // Official docs: https://dartcode.org/docs/launch-configuration/
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "im_charts (Debug)",
+            "name": "im_charts",
             "request": "launch",
-            "type": "dart",
-            "program": "lib/main.dart",
-            "flutterMode": "debug"
+            "type": "dart"
         },
         {
-            "name": "im_charts (macOS Desktop)",
+            "name": "im_charts (profile mode)",
             "request": "launch",
             "type": "dart",
-            "program": "lib/main.dart",
-            "deviceId": "macos",
-            "flutterMode": "debug"
-        },
-        {
-            "name": "im_charts (Web Chrome)",
-            "request": "launch",
-            "type": "dart",
-            "program": "lib/main.dart",
-            "deviceId": "chrome",
-            "flutterMode": "debug"
-        },
-        {
-            "name": "im_charts (Profile - Benchmark & DevTools)",
-            "request": "launch",
-            "type": "dart",
-            "program": "lib/main.dart",
-            "flutterMode": "profile",
-            // Recommended for charting engine FPS and shader compilation profiling:
-            // "args": ["--profile", "--trace-skia"]
-        },
-        {
-            "name": "im_charts (macOS Profile)",
-            "request": "launch",
-            "type": "dart",
-            "program": "lib/main.dart",
-            "deviceId": "macos",
             "flutterMode": "profile"
         },
         {
-            "name": "im_charts (Release Mode)",
+            "name": "im_charts (release mode)",
             "request": "launch",
             "type": "dart",
-            "program": "lib/main.dart",
             "flutterMode": "release"
-        },
-        {
-            "name": "Run All Tests",
-            "request": "launch",
-            "type": "dart",
-            "program": "test"
-        },
-        {
-            "name": "Run Current Test File",
-            "request": "launch",
-            "type": "dart",
-            "program": "${file}"
-        },
-        {
-            "name": "Attach to Flutter Process",
-            "request": "attach",
-            "type": "dart"
         }
     ]
 }
