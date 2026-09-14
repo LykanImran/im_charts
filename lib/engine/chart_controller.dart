@@ -7,6 +7,7 @@ import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
+import '../core/models/chart_position.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
 import '../core/models/tick.dart';
@@ -52,6 +53,11 @@ class TradingChartController extends ChangeNotifier {
   void Function(ChartOrder order)? onOrderPlaced;
   void Function(ChartOrder order)? onOrderModified;
   void Function(String orderId)? onOrderCancelled;
+
+  // Open Executed Positions
+  final List<ChartPosition> _positions = [];
+  void Function(ChartPosition position)? onPositionOpened;
+  void Function(ChartPosition position)? onPositionClosed;
 
   // Interactive Drawings
   final List<ChartDrawing> _drawings = [];
@@ -99,6 +105,7 @@ class TradingChartController extends ChangeNotifier {
   IndicatorResult? get subPaneResult => _subPaneResult;
   List<Indicator> get activeIndicators => List.unmodifiable(_activeIndicators);
   List<ChartOrder> get orders => List.unmodifiable(_orders);
+  List<ChartPosition> get positions => List.unmodifiable(_positions);
   List<ChartDrawing> get drawings => List.unmodifiable(_drawings);
   ChartDrawing? get previewDrawing => _previewDrawing;
   DrawingTool get activeDrawingTool => _activeDrawingTool;
@@ -258,6 +265,49 @@ class TradingChartController extends ChangeNotifier {
   void clearOrders() {
     _orders.clear();
     notifyListeners();
+  }
+
+  /// Opens an executed position on the chart.
+  void openPosition(ChartPosition position) {
+    _positions.removeWhere((p) => p.id == position.id);
+    _positions.add(position);
+    onPositionOpened?.call(position);
+    notifyListeners();
+  }
+
+  /// Updates an open position (e.g. adjust TP/SL or average price).
+  void updatePosition(ChartPosition position) {
+    final index = _positions.indexWhere((p) => p.id == position.id);
+    if (index >= 0) {
+      _positions[index] = position;
+      notifyListeners();
+    }
+  }
+
+  /// Closes an open position and removes it from the chart canvas.
+  void closePosition(String positionId) {
+    final index = _positions.indexWhere((p) => p.id == positionId);
+    if (index >= 0) {
+      final removed = _positions.removeAt(index);
+      onPositionClosed?.call(removed);
+      notifyListeners();
+    }
+  }
+
+  /// Replaces open positions on the chart.
+  void setPositions(List<ChartPosition> positions) {
+    _positions
+      ..clear()
+      ..addAll(positions);
+    notifyListeners();
+  }
+
+  /// Clears all open positions from the chart.
+  void clearPositions() {
+    if (_positions.isNotEmpty) {
+      _positions.clear();
+      notifyListeners();
+    }
   }
 
   /// Adds a new user drawing to the chart canvas.

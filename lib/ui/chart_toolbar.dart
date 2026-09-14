@@ -4,7 +4,9 @@ import '../core/models/timeframe.dart';
 import '../engine/chart_controller.dart';
 import '../engine/indicators/bollinger_bands.dart';
 import '../engine/indicators/ema.dart';
+import '../engine/indicators/macd.dart';
 import '../engine/indicators/rsi.dart';
+import '../engine/indicators/vwap.dart';
 import 'chart_settings_modal.dart';
 import 'symbol_search_modal.dart';
 
@@ -526,10 +528,26 @@ class _ChartToolbarState extends State<ChartToolbar>
             isDark: isDark,
           ),
           _buildIndicatorMenuItem(
+            label: 'VWAP (Intraday Benchmark)',
+            color: const Color(0xFFAB47BC),
+            isActive: controller.isIndicatorActive('VWAP'),
+            onTap: () => controller.toggleIndicator(VWAPIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
             label: 'RSI 14 (Momentum Sub-pane)',
             color: const Color(0xFF7E57C2),
             isActive: controller.isIndicatorActive('RSI_14'),
             onTap: () => controller.toggleIndicator(RSIIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'MACD (12, 26, 9 Sub-pane)',
+            color: const Color(0xFF00E5FF),
+            isActive: controller.isIndicatorActive('MACD_12_26_9'),
+            onTap: () => controller.toggleIndicator(MACDIndicator()),
             theme: theme,
             isDark: isDark,
           ),

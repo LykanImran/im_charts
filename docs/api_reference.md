@@ -113,6 +113,8 @@ Central state management controller coordinating data ingestion, viewport calcul
 - `Candle? get hoveredCandle`: Candle under crosshair pointer or latest candle.
 - `List<IndicatorResult> get overlayResults`: Computed overlay indicator series.
 - `IndicatorResult? get subPaneResult`: Computed sub-pane oscillator result.
+- `List<ChartOrder> get orders`: Active orders on chart.
+- `List<ChartPosition> get positions`: Open executed positions on chart.
 - `bool get isManualPriceScale`: `true` if user has dragged vertical price scale.
 - `bool get isDarkTheme`: `true` if dark mode palette is active.
 
@@ -131,6 +133,11 @@ Central state management controller coordinating data ingestion, viewport calcul
 - `void scrollToLatest()`: Animates/scrolls viewport to the latest candle.
 - `void toggleIndicator(Indicator indicator)`: Toggles active status of an indicator.
 - `void toggleTheme()`: Toggles between `ChartTheme.dark()` and `ChartTheme.light()`.
+- `void placeOrder(ChartOrder order)`: Submits new chart order with optional TP/SL brackets.
+- `void cancelOrder(String id)`: Cancels pending order by ID.
+- `void openPosition(ChartPosition position)`: Registers an executed market position.
+- `void closePosition(String id)`: Closes an open position at market.
+- `void updatePosition(ChartPosition position)`: Modifies open position (e.g. adjusts TP/SL).
 
 ---
 
@@ -285,4 +292,45 @@ Supported drawing instruments.
 - `DrawingTool.longPosition` (1-point Risk:Reward box with target/stop zones)
 - `DrawingTool.shortPosition` (1-point short Risk:Reward box)
 - `DrawingTool.ruler` (2-point measurement ruler calculating ΔPrice, Δ%, and bar count)
+
+---
+
+### `ChartOrder`
+Direct on-chart limit/stop order with optional connected Take Profit and Stop Loss brackets.
+
+```dart
+class ChartOrder {
+  final String id;
+  final String symbol;
+  final OrderSide side; // OrderSide.buy or OrderSide.sell
+  final OrderType type; // OrderType.limit, OrderType.stop, OrderType.market
+  final double price;
+  final double quantity;
+  final double? takeProfitPrice;
+  final double? stopLossPrice;
+  final OrderStatus status; // pending, partiallyFilled, filled, cancelled, rejected
+  final DateTime placedAt;
+}
+```
+
+---
+
+### `ChartPosition`
+Executed open market position with real-time unrealized P&L calculation and 1-click market close.
+
+```dart
+class ChartPosition {
+  final String id;
+  final String symbol;
+  final PositionSide side; // PositionSide.long or PositionSide.short
+  final double entryPrice;
+  final double quantity;
+  final double? takeProfitPrice;
+  final double? stopLossPrice;
+  final DateTime openedAt;
+
+  double unrealizedPnL(double currentPrice);
+  double unrealizedPnLPercentage(double currentPrice);
+}
+```
 

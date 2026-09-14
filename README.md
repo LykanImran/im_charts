@@ -4,12 +4,12 @@
 [![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
 [![Platform](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-28%2F28%20Passed-brightgreen.svg)](test/)
+[![Tests](https://img.shields.io/badge/Tests-51%2F51%20Passed-brightgreen.svg)](test/)
 [![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_im__charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
 > 
-> Explore all 7 interactive modes directly in your browser without installing anything (Full Institutional Terminal, Direct Chart Trading with Brackets, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
+> Explore all 7 interactive modes directly in your browser without installing anything (Full Institutional Terminal, Direct Chart Trading with Brackets & Positions, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
 
 An institutional-grade financial charting engine and professional trading terminal for **Flutter**, engineered from the ground up for high-frequency responsiveness on **Impeller** and **Skia**.
 
@@ -27,7 +27,7 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
 | 🏛️ **[Architecture & Internals](docs/architecture.md)** | Skia/Impeller rendering pipeline, coordinate projections, and gesture routing. |
 | 🔌 **[Data Sources & Real-Time Feeds](docs/data_sources.md)** | Connecting WebSockets, REST APIs, Binance, Zerodha Kite, and live tick aggregation. |
 | 🎨 **[Customization & Theming](docs/customization.md)** | Custom themes (`ChartTheme`), candle presentation styles, and layout sizing. |
-| 📈 **[Technical Indicators Guide](docs/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, RSI) and writing custom indicators. |
+| 📈 **[Technical Indicators Guide](docs/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, VWAP, MACD, RSI) and writing custom indicators. |
 | 📖 **[API Reference](docs/api_reference.md)** | Detailed documentation for all classes, methods, models, and enums. |
 
 ---
@@ -40,21 +40,23 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
 - **🕯️ 6 Candlestick Presentation Styles**:
   - Standard Candlesticks, Hollow Candles, Heikin Ashi, Line Chart, Area Mountain Chart, and Western OHLC Tick Bars.
 - **📈 Integrated Technical Indicators**:
-  - **Overlays**: Exponential Moving Averages (EMA 20, EMA 50), Bollinger Bands (20, 2).
-  - **Sub-Panes**: Relative Strength Index (RSI 14) with dynamic 70/30 threshold bounds.
+  - **Overlays**: Exponential Moving Averages (EMA 20, EMA 50), Bollinger Bands (20, 2), Volume Weighted Average Price (**VWAP** with intraday session boundary reset and $\pm 2.0\sigma$ standard deviation volatility envelope bands).
+  - **Sub-Panes**: Relative Strength Index (**RSI 14**) with dynamic 70/30 threshold bounds, Moving Average Convergence Divergence (**MACD 12, 26, 9**) with signal line, auto-scaled sub-pane, and dynamic emerald green / crimson red histogram bars from zero baseline.
   - **Volume**: Real-time auto-scaled volume histogram.
 - **🖐️ TradingView-Identical Multi-Zone Interactions**:
   - **Native macOS / Windows Trackpad Pinch Zoom**: Focal-anchored horizontal zoom without emulation lag.
   - **2-Finger Trackpad Pan**: Smooth horizontal time scrolling.
   - **Price Scale Drag**: Stretch and compress price vertically with interactive `AUTO` scale reset badge.
   - **Time Scale Drag**: Dynamic timeframe scaling via bottom time axis drag.
-- **🎯 Direct On-Chart Trading & Bracket Orders**:
+- **🎯 Direct On-Chart Trading, Orders & Open Positions**:
   - **Hover `+` Button**: Cursor-tracking `+` button rendered right before the vertical price axis.
   - **1-Click Order Execution**: Dropdown menu for Limit Buy, Limit Sell, and Brackets with support for custom consuming UI (`orderMenuBuilder`).
   - **Dotted Skia/Impeller Order Lines**: Green for Buy, Red for Sell, with real-time pill badges showing side, quantity, and limit price.
   - **Connected TP & SL Brackets**: Dedicated Take Profit (Cyan) and Stop Loss (Orange) dashed lines with vertical elbow connector arms.
   - **Drag-to-Modify**: Drag badges directly on the chart canvas to dynamically update order and bracket prices in real time.
-  - **Instant Cancellation & Callbacks**: Direct `✖` cancel buttons with `onOrderPlaced`, `onOrderModified`, and `onOrderCancelled` lifecycle hooks.
+  - **Executed Open Positions & Live P&L**: Skia/Impeller solid position lines with real-time unrealized P&L and percentage badge (`[LONG 100 @ ₹24,490.00 | +₹1,250.00 (+1.25%) | ✖ Close]`), attached TP/SL bracket arms, and 1-click market close button (`✖ Close`).
+  - **Tabbed Ledger Drawer**: Interactive slide-over ledger tracking pending Orders and active Positions with 1-click cancellations and market exits.
+  - **Lifecycle Callbacks**: Comprehensive `onOrderPlaced`, `onOrderModified`, `onOrderCancelled`, `onPositionOpened`, and `onPositionClosed` hooks.
 - **📐 Left Drawing Tools Bar**:
   - Left-docked professional toolbar with 7 analysis instruments: **Trendline** (2 anchor clicks), **Horizontal Ray** (support/resistance with price badge), **Fibonacci Retracement** (golden ratio bands: 0.0, 0.236, 0.382, 0.500, 0.618, 0.786, 1.0), **Long Position** (Risk:Reward box with green target and red stop zones), **Short Position** (Risk:Reward box), and **Measure Ruler** (ΔPrice, Δ%, bar count).
   - Financial coordinate anchoring `(candleIndex, price)` ensures drawings remain locked across horizontal zoom, pan, and real-time tick streaming.

@@ -22,9 +22,11 @@ class IndicatorRenderer extends BaseRenderer {
     for (final indicator in indicators) {
       if (!indicator.isOverlay) continue;
 
-      // Special rendering for Bollinger Bands (fill area between upper and lower)
-      if (indicator.indicatorId.startsWith('BB_') && indicator.series.length == 3) {
-        _drawBollingerBandsFill(
+      // Special rendering for Bollinger Bands / VWAP bands (fill area between upper and lower)
+      if ((indicator.indicatorId.startsWith('BB_') || indicator.indicatorId == 'VWAP') &&
+          indicator.series.any((s) => s.id == 'upper') &&
+          indicator.series.any((s) => s.id == 'lower')) {
+        _drawBandFill(
           canvas: canvas,
           bounds: bounds,
           indicator: indicator,
@@ -48,23 +50,26 @@ class IndicatorRenderer extends BaseRenderer {
     }
   }
 
-  /// Draws sub-pane indicators (e.g. RSI) inside the dedicated sub-pane bounds.
+  /// Draws sub-pane indicators (e.g. RSI, MACD) inside the dedicated sub-pane bounds.
   void drawSubPane({
     required Canvas canvas,
     required Rect bounds,
     required IndicatorResult indicator,
     required VisibleIndices visible,
     required CoordinateConverter converter,
+    PriceRange? priceRange,
+    double candleWidth = 8.0,
   }) {
-    final range = PriceRange(
-      indicator.fixedMin ?? 0.0,
-      indicator.fixedMax ?? 100.0,
-    );
+    final range = priceRange ??
+        PriceRange(
+          indicator.fixedMin ?? 0.0,
+          indicator.fixedMax ?? 100.0,
+        );
 
-    // Draw horizontal reference levels (e.g. 30, 50, 70)
+    // Draw horizontal reference levels (e.g. 30, 50, 70 for RSI or 0.0 for MACD)
     if (indicator.horizontalLevels != null) {
       final levelPaint = Paint()
-        ..color = theme.gridColor
+        ..color = theme.gridColor.withValues(alpha: 0.8)
         ..strokeWidth = 0.8
         ..style = PaintingStyle.stroke;
 
@@ -80,8 +85,24 @@ class IndicatorRenderer extends BaseRenderer {
       }
     }
 
-    // Draw series lines
+    // Draw histogram series first (if any) so line series render on top
     for (final s in indicator.series) {
+      if (s.id == 'histogram') {
+        _drawHistogramBars(
+          canvas: canvas,
+          bounds: bounds,
+          series: s,
+          visible: visible,
+          priceRange: range,
+          converter: converter,
+          candleWidth: candleWidth,
+        );
+      }
+    }
+
+    // Draw line series
+    for (final s in indicator.series) {
+      if (s.id == 'histogram') continue;
       _drawSeriesLine(
         canvas: canvas,
         bounds: bounds,
@@ -90,6 +111,42 @@ class IndicatorRenderer extends BaseRenderer {
         priceRange: range,
         converter: converter,
       );
+    }
+  }
+
+  void _drawHistogramBars({
+    required Canvas canvas,
+    required Rect bounds,
+    required IndicatorSeries series,
+    required VisibleIndices visible,
+    required PriceRange priceRange,
+    required CoordinateConverter converter,
+    required double candleWidth,
+  }) {
+    final zeroY = CoordinateConverter.priceToY(0.0, bounds, priceRange).clamp(bounds.top, bounds.bottom);
+    final barWidth = (candleWidth * 0.7).clamp(1.5, 24.0);
+
+    final greenPaint = Paint()
+      ..color = const Color(0xFF00E676).withValues(alpha: 0.8)
+      ..style = PaintingStyle.fill;
+
+    final redPaint = Paint()
+      ..color = const Color(0xFFFF3B30).withValues(alpha: 0.8)
+      ..style = PaintingStyle.fill;
+
+    for (int i = visible.start; i <= visible.end; i++) {
+      if (i < 0 || i >= series.values.length) continue;
+      final val = series.values[i];
+      if (val == null) continue;
+
+      final x = converter.indexToX(i);
+      final y = CoordinateConverter.priceToY(val, bounds, priceRange);
+
+      final topY = (val >= 0 ? y : zeroY).clamp(bounds.top, bounds.bottom);
+      final bottomY = (val >= 0 ? zeroY : y).clamp(bounds.top, bounds.bottom);
+
+      final barRect = Rect.fromLTRB(x - (barWidth / 2), topY, x + (barWidth / 2), bottomY);
+      canvas.drawRect(barRect, val >= 0 ? greenPaint : redPaint);
     }
   }
 
@@ -132,7 +189,7 @@ class IndicatorRenderer extends BaseRenderer {
     }
   }
 
-  void _drawBollingerBandsFill({
+  void _drawBandFill({
     required Canvas canvas,
     required Rect bounds,
     required IndicatorResult indicator,

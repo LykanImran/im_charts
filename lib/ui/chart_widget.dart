@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/coordinates/coordinate_converter.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
+import '../core/models/chart_position.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
 
@@ -11,7 +12,7 @@ enum _ChartDragMode { none, priceAxis, timeAxis, mainChart }
 
 /// Top-level chart presentation widget integrating the custom rendering pipeline,
 /// multi-zone scale interactions (Price Axis drag, Time Axis drag, Pinch Zoom),
-/// chart trading (hover '+' button, order lines, SL/TP brackets), and pointer tracking.
+/// chart trading (hover '+' button, order lines, SL/TP brackets, open positions), and pointer tracking.
 class TradingChart extends StatefulWidget {
   final TradingChartController controller;
   final bool enableChartTrading;
@@ -20,6 +21,7 @@ class TradingChart extends StatefulWidget {
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(String orderId)? onOrderCancelled;
+  final void Function(ChartPosition position)? onPositionClosed;
 
   const TradingChart({
     super.key,
@@ -30,6 +32,7 @@ class TradingChart extends StatefulWidget {
     this.orderMenuBuilder,
     this.onOrderPlaced,
     this.onOrderCancelled,
+    this.onPositionClosed,
   });
 
   @override
@@ -387,6 +390,7 @@ class _TradingChartState extends State<TradingChart> {
                               overlayIndicators: controller.overlayResults,
                               subPaneIndicator: controller.subPaneResult,
                               orders: controller.orders,
+                              positions: controller.positions,
                               drawings: controller.drawings,
                               previewDrawing: controller.previewDrawing,
                               crosshairPosition: controller.crosshairPosition,
@@ -409,6 +413,12 @@ class _TradingChartState extends State<TradingChart> {
                     if (widget.enableChartTrading && controller.orders.isNotEmpty) ...[
                       for (final order in controller.orders)
                         ..._buildOrderInteractiveWidgets(context, controller, order, timeAxisTop),
+                    ],
+
+                    // Interactive Position Badges & Close Hitboxes
+                    if (widget.enableChartTrading && controller.positions.isNotEmpty) ...[
+                      for (final position in controller.positions)
+                        ..._buildPositionInteractiveWidgets(context, controller, position, timeAxisTop),
                     ],
 
                     // Hover '+' button on the right side of the canvas (before vertical price axis)
@@ -962,5 +972,73 @@ class _TradingChartState extends State<TradingChart> {
         widget.onOrderCancelled?.call(order.id);
       }
     });
+  }
+
+  List<Widget> _buildPositionInteractiveWidgets(
+    BuildContext context,
+    TradingChartController controller,
+    ChartPosition position,
+    double timeAxisTop,
+  ) {
+    final posY = controller.yAtPrice(position.entryPrice);
+
+    return [
+      if (posY >= 0 && posY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 18,
+          top: (posY - 12).clamp(0.0, timeAxisTop - 24.0),
+          child: SizedBox(
+            width: 80,
+            height: 24,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Tooltip(
+                message: 'Close Position (Market Order)',
+                waitDuration: const Duration(milliseconds: 300),
+                child: GestureDetector(
+                  key: Key('close_position_${position.id}'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    controller.closePosition(position.id);
+                    widget.onPositionClosed?.call(position);
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Position closed: ${position.side.label} ${position.quantity.toStringAsFixed(0)} @ ₹${position.entryPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        backgroundColor: const Color(0xFF1E222D),
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFFF3B30).withValues(alpha: 0.5), width: 0.8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.close, size: 12, color: Color(0xFFFF5252)),
+                        SizedBox(width: 2),
+                        Text(
+                          'Close',
+                          style: TextStyle(color: Color(0xFFFF5252), fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ];
   }
 }

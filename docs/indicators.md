@@ -43,7 +43,48 @@ controller.toggleIndicator(bb);
 
 ---
 
-### 3. Relative Strength Index (`RSIIndicator`)
+---
+
+### 3. Volume Weighted Average Price (`VWAPIndicator`)
+An intraday benchmark overlay tracking the volume-weighted average price across daily trading sessions, equipped with $\pm 2.0\sigma$ standard deviation volatility envelope bands:
+
+```dart
+final vwap = VWAPIndicator(
+  multiplier: 2.0,
+  vwapColor: const Color(0xFFFFD600), // Vibrant gold benchmark line
+  bandColor: const Color(0x1A2962FF), // Soft blue volatility fill
+  bandLineColor: const Color(0x802962FF),
+);
+
+controller.toggleIndicator(vwap);
+```
+- **Intraday Session Boundary Reset**: Automatically resets cumulative volume and typical price $\frac{H + L + C}{3} \times V$ when crossing into a new trading day.
+- **Volatility Envelope**: Computes standard deviation $\sigma = \sqrt{\frac{\sum V \cdot (TP - VWAP)^2}{\sum V}}$ with upper and lower boundary bands.
+
+---
+
+### 4. Moving Average Convergence Divergence (`MACDIndicator`)
+A momentum oscillator calculating the difference between Fast and Slow Exponential Moving Averages, accompanied by a Signal EMA and zero-baseline histogram:
+
+```dart
+final macd = MACDIndicator(
+  fastPeriod: 12,
+  slowPeriod: 26,
+  signalPeriod: 9,
+  macdColor: const Color(0xFF2962FF),   // Blue MACD line
+  signalColor: const Color(0xFFFF6D00), // Orange signal line
+);
+
+// Opens a dedicated auto-scaled sub-pane below the chart
+controller.toggleIndicator(macd);
+```
+- **MACD Line**: $EMA_{12}(Close) - EMA_{26}(Close)$
+- **Signal Line**: $EMA_9(MACD)$
+- **Histogram**: Dynamic green (`#089981` / positive) and red (`#F23645` / negative) vertical bars rendered outward from the horizontal $0.0$ baseline level.
+
+---
+
+### 5. Relative Strength Index (`RSIIndicator`)
 A bounded oscillator (0 to 100) measuring the speed and change of price movements:
 
 ```dart

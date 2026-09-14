@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/coordinates/coordinate_converter.dart';
 import '../../core/models/chart_order.dart';
+import '../../core/models/chart_position.dart';
 import '../../core/models/chart_theme.dart';
 import '../../core/models/price_range.dart';
 
@@ -126,6 +127,215 @@ class OrderRenderer {
         }
       }
     }
+  }
+
+  void drawPositions({
+    required Canvas canvas,
+    required Rect bounds,
+    required List<ChartPosition> positions,
+    required PriceRange priceRange,
+    required double currentPrice,
+  }) {
+    if (positions.isEmpty) return;
+
+    for (final pos in positions) {
+      final posY = CoordinateConverter.priceToY(pos.entryPrice, bounds, priceRange);
+      final isLong = pos.isLong;
+      final posColor = isLong ? const Color(0xFF2962FF) : const Color(0xFFE91E63);
+
+      // 1. Draw Solid Position Line & Pill Badge
+      if (posY >= bounds.top - 20 && posY <= bounds.bottom + 20) {
+        final linePaint = Paint()
+          ..color = posColor.withValues(alpha: 0.85)
+          ..strokeWidth = 1.4
+          ..style = PaintingStyle.stroke;
+
+        canvas.drawLine(
+          Offset(bounds.left, posY),
+          Offset(bounds.right, posY),
+          linePaint,
+        );
+
+        _drawPositionBadge(
+          canvas: canvas,
+          bounds: bounds,
+          y: posY,
+          position: pos,
+          currentPrice: currentPrice,
+          color: posColor,
+        );
+      }
+
+      // 2. Draw Connected Take Profit (TP) Bracket
+      if (pos.hasTakeProfit) {
+        final tpPrice = pos.takeProfitPrice!;
+        final tpY = CoordinateConverter.priceToY(tpPrice, bounds, priceRange);
+        final tpColor = const Color(0xFF00E5FF);
+
+        if (tpY >= bounds.top - 20 && tpY <= bounds.bottom + 20) {
+          _drawDottedLine(
+            canvas: canvas,
+            y: tpY,
+            startX: bounds.left,
+            endX: bounds.right,
+            color: tpColor,
+            dashWidth: 4.0,
+            dashSpace: 3.0,
+            strokeWidth: 1.0,
+          );
+
+          _drawBracketBadge(
+            canvas: canvas,
+            bounds: bounds,
+            y: tpY,
+            label: 'TP',
+            price: tpPrice,
+            percentage: pos.takeProfitPercentage,
+            color: tpColor,
+            isProfit: true,
+          );
+
+          _drawBracketConnector(
+            canvas: canvas,
+            x: bounds.right - 230,
+            y1: posY,
+            y2: tpY,
+            color: tpColor,
+          );
+        }
+      }
+
+      // 3. Draw Connected Stop Loss (SL) Bracket
+      if (pos.hasStopLoss) {
+        final slPrice = pos.stopLossPrice!;
+        final slY = CoordinateConverter.priceToY(slPrice, bounds, priceRange);
+        final slColor = const Color(0xFFFF9100);
+
+        if (slY >= bounds.top - 20 && slY <= bounds.bottom + 20) {
+          _drawDottedLine(
+            canvas: canvas,
+            y: slY,
+            startX: bounds.left,
+            endX: bounds.right,
+            color: slColor,
+            dashWidth: 4.0,
+            dashSpace: 3.0,
+            strokeWidth: 1.0,
+          );
+
+          _drawBracketBadge(
+            canvas: canvas,
+            bounds: bounds,
+            y: slY,
+            label: 'SL',
+            price: slPrice,
+            percentage: pos.stopLossPercentage,
+            color: slColor,
+            isProfit: false,
+          );
+
+          _drawBracketConnector(
+            canvas: canvas,
+            x: bounds.right - 230,
+            y1: posY,
+            y2: slY,
+            color: slColor,
+          );
+        }
+      }
+    }
+  }
+
+  void _drawPositionBadge({
+    required Canvas canvas,
+    required Rect bounds,
+    required double y,
+    required ChartPosition position,
+    required double currentPrice,
+    required Color color,
+  }) {
+    final sideText = position.side.label;
+    final qtyText = position.quantity.toStringAsFixed(position.quantity % 1 == 0 ? 0 : 2);
+    final entryText = position.entryPrice.toStringAsFixed(2);
+    final pnl = position.unrealizedPnL(currentPrice);
+    final pnlPct = position.unrealizedPnLPercentage(currentPrice);
+    final isProfit = pnl >= 0;
+    final pnlColor = isProfit ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
+    final pnlSign = isProfit ? '+' : '';
+
+    final textSpan = TextSpan(
+      children: [
+        TextSpan(
+          text: '$sideText ',
+          style: TextStyle(
+            color: color,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+          ),
+        ),
+        TextSpan(
+          text: '$qtyText @ $entryText  ',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'monospace',
+          ),
+        ),
+        TextSpan(
+          text: '$pnlSign₹${pnl.abs().toStringAsFixed(2)} ($pnlSign${pnlPct.toStringAsFixed(2)}%)  ',
+          style: TextStyle(
+            color: pnlColor,
+            fontSize: 10.5,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+          ),
+        ),
+        const TextSpan(
+          text: '✖ Close',
+          style: TextStyle(
+            color: Color(0xFFFF5252),
+            fontSize: 10.5,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    const hPadding = 8.0;
+    const vPadding = 4.0;
+    final badgeWidth = textPainter.width + (hPadding * 2);
+    final badgeHeight = textPainter.height + (vPadding * 2);
+
+    final rightX = bounds.right - 18.0;
+    final leftX = rightX - badgeWidth;
+    final topY = y - (badgeHeight / 2);
+
+    final badgeRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(leftX, topY, badgeWidth, badgeHeight),
+      const Radius.circular(5.0),
+    );
+
+    // Background fill & dynamic glow border
+    canvas.drawRRect(
+      badgeRect,
+      Paint()..color = const Color(0xFF131722),
+    );
+    canvas.drawRRect(
+      badgeRect,
+      Paint()
+        ..color = pnlColor.withValues(alpha: 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+
+    textPainter.paint(canvas, Offset(leftX + hPadding, topY + vPadding));
   }
 
   void _drawDottedLine({

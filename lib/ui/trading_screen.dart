@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/models/candle_style.dart';
 import '../core/models/chart_order.dart';
+import '../core/models/chart_position.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/timeframe.dart';
 import '../datasource/chart_data_source.dart';
@@ -13,7 +14,7 @@ import 'chart_header.dart';
 import 'chart_toolbar.dart';
 import 'chart_widget.dart';
 
-/// Full out-of-the-box trading terminal screen combining Row 1 toolbar, Row 2 telemetry header, and the high-performance chart canvas.
+/// Top-level trading terminal widget combining toolbar, header, and chart.
 class TradingScreen extends StatefulWidget {
   final String initialSymbol;
   final String initialExchange;
@@ -31,6 +32,7 @@ class TradingScreen extends StatefulWidget {
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(String orderId)? onOrderCancelled;
+  final void Function(ChartPosition position)? onPositionClosed;
 
   const TradingScreen({
     super.key,
@@ -50,6 +52,7 @@ class TradingScreen extends StatefulWidget {
     this.orderMenuBuilder,
     this.onOrderPlaced,
     this.onOrderCancelled,
+    this.onPositionClosed,
   });
 
   @override
@@ -162,6 +165,7 @@ class _TradingScreenState extends State<TradingScreen> {
                                     orderMenuBuilder: widget.orderMenuBuilder,
                                     onOrderPlaced: widget.onOrderPlaced,
                                     onOrderCancelled: widget.onOrderCancelled,
+                                    onPositionClosed: widget.onPositionClosed,
                                   ),
                                 ),
 

@@ -10,6 +10,7 @@ import '../core/models/price_range.dart';
 import '../core/models/timeframe.dart';
 import '../engine/indicators/indicator_result.dart';
 import '../core/models/chart_order.dart';
+import '../core/models/chart_position.dart';
 import 'pane.dart';
 import 'renderers/axis_renderer.dart';
 import 'renderers/candle_renderer.dart';
@@ -31,6 +32,7 @@ class ChartPainter extends CustomPainter {
   final List<IndicatorResult> overlayIndicators;
   final IndicatorResult? subPaneIndicator;
   final List<ChartOrder> orders;
+  final List<ChartPosition> positions;
   final List<ChartDrawing> drawings;
   final ChartDrawing? previewDrawing;
   final Offset? crosshairPosition;
@@ -63,6 +65,7 @@ class ChartPainter extends CustomPainter {
     this.overlayIndicators = const [],
     this.subPaneIndicator,
     this.orders = const [],
+    this.positions = const [],
     this.drawings = const [],
     this.previewDrawing,
     this.crosshairPosition,
@@ -141,10 +144,7 @@ class ChartPainter extends CustomPainter {
       );
 
       if (layout.subPaneBounds != null && subPaneIndicator != null) {
-        final subRange = PriceRange(
-          subPaneIndicator!.fixedMin ?? 0.0,
-          subPaneIndicator!.fixedMax ?? 100.0,
-        );
+        final subRange = _calculateSubPaneRange(subPaneIndicator!, visible);
         _gridRenderer.drawGrid(
           canvas: canvas,
           bounds: layout.subPaneBounds!,
@@ -230,6 +230,18 @@ class ChartPainter extends CustomPainter {
       );
     }
 
+    // 8d. Draw Executed Open Positions & Live Unrealized P&L
+    if (positions.isNotEmpty) {
+      final currentPrice = candles.isNotEmpty ? candles.last.close : 0.0;
+      _orderRenderer.drawPositions(
+        canvas: canvas,
+        bounds: layout.mainPaneBounds,
+        positions: positions,
+        priceRange: priceRange,
+        currentPrice: currentPrice,
+      );
+    }
+
     // 9. Draw Current Price Line, Pulse Beacon & Countdown Badge
     if (candles.isNotEmpty) {
       final lastCandleX = converter.indexToX(candles.length - 1);
@@ -245,21 +257,20 @@ class ChartPainter extends CustomPainter {
       );
     }
 
-    // 10. Draw Sub-pane Indicator (e.g. RSI)
+    // 10. Draw Sub-pane Indicator (e.g. RSI, MACD)
     if (layout.subPaneBounds != null && subPaneIndicator != null) {
+      final subRange = _calculateSubPaneRange(subPaneIndicator!, visible);
       _indicatorRenderer.drawSubPane(
         canvas: canvas,
         bounds: layout.subPaneBounds!,
         indicator: subPaneIndicator!,
         visible: visible,
         converter: converter,
+        priceRange: subRange,
+        candleWidth: viewport.candleWidth,
       );
 
       // Sub-pane price scale
-      final subRange = PriceRange(
-        subPaneIndicator!.fixedMin ?? 0.0,
-        subPaneIndicator!.fixedMax ?? 100.0,
-      );
       _axisRenderer.drawPriceAxis(
         canvas: canvas,
         axisBounds: layout.subPanePriceAxisBounds!,
@@ -343,12 +354,49 @@ class ChartPainter extends CustomPainter {
     );
   }
 
+  PriceRange _calculateSubPaneRange(IndicatorResult indicator, VisibleIndices visible) {
+    if (indicator.fixedMin != null && indicator.fixedMax != null) {
+      return PriceRange(indicator.fixedMin!, indicator.fixedMax!);
+    }
+
+    double minVal = double.infinity;
+    double maxVal = -double.infinity;
+
+    for (final s in indicator.series) {
+      for (int i = visible.start; i <= visible.end; i++) {
+        if (i >= 0 && i < s.values.length) {
+          final val = s.values[i];
+          if (val != null && !val.isNaN && !val.isInfinite) {
+            if (val < minVal) minVal = val;
+            if (val > maxVal) maxVal = val;
+          }
+        }
+      }
+    }
+
+    // Always include zero baseline if horizontalLevels contains 0.0
+    if (indicator.horizontalLevels?.contains(0.0) == true || (minVal < double.infinity && minVal > 0) || (maxVal > -double.infinity && maxVal < 0)) {
+      if (minVal > 0) minVal = 0.0;
+      if (maxVal < 0) maxVal = 0.0;
+    }
+
+    if (minVal.isInfinite || maxVal.isInfinite || minVal == maxVal) {
+      minVal = -1.0;
+      maxVal = 1.0;
+    }
+
+    final span = maxVal - minVal;
+    final padding = span * 0.15;
+    return PriceRange(minVal - padding, maxVal + padding);
+  }
+
   @override
   bool shouldRepaint(covariant ChartPainter oldDelegate) {
     return oldDelegate.candles != candles ||
         oldDelegate.viewport != viewport ||
         oldDelegate.crosshairPosition != crosshairPosition ||
         oldDelegate.orders != orders ||
+        oldDelegate.positions != positions ||
         oldDelegate.drawings != drawings ||
         oldDelegate.previewDrawing != previewDrawing ||
         oldDelegate.showWatermark != showWatermark ||
