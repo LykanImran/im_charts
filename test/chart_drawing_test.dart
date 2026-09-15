@@ -440,5 +440,193 @@ void main() {
       controller.dispose();
       dataSource.dispose();
     });
+
+    test('ChartDrawing getHandleOffsets returns 8 handles for Rectangle and 3 for Horizontal Line', () {
+      final rect = ChartDrawing(
+        id: 'rect_handles',
+        tool: DrawingTool.rectangle,
+        points: [
+          DrawingPoint(candleIndex: 10, price: 24500.0),
+          DrawingPoint(candleIndex: 20, price: 24000.0),
+        ],
+      );
+      final hLine = ChartDrawing(
+        id: 'hline_handles',
+        tool: DrawingTool.horizontalLine,
+        points: [DrawingPoint(candleIndex: 10, price: 24200.0)],
+      );
+
+      const bounds = Rect.fromLTWH(0, 0, 800, 500);
+      const priceRange = PriceRange(23000.0, 25000.0);
+      final converter = CoordinateConverter(
+        viewport: const ChartViewport(candleWidth: 10, scrollOffset: 0, viewportWidth: 800, viewportHeight: 500),
+        totalCandles: 50,
+      );
+
+      final rectHandles = rect.getHandleOffsets(bounds, priceRange, converter);
+      expect(rectHandles.length, 8); // 4 corners + 4 edge midpoints
+
+      // Cursor resolution for each handle
+      expect(rect.getHandleCursor(0), SystemMouseCursors.resizeUpLeftDownRight);
+      expect(rect.getHandleCursor(1), SystemMouseCursors.resizeUpRightDownLeft);
+      expect(rect.getHandleCursor(4), SystemMouseCursors.resizeUpDown);
+      expect(rect.getHandleCursor(5), SystemMouseCursors.resizeLeftRight);
+
+      final hLineHandles = hLine.getHandleOffsets(bounds, priceRange, converter);
+      expect(hLineHandles.length, 3);
+      expect(hLine.getHandleCursor(0), SystemMouseCursors.resizeUpDown);
+    });
+
+    testWidgets('Dragging horizontal line up and down directly moves its price level', (WidgetTester tester) async {
+      final dataSource = MockTradingDataSource(initialPrice: 24000.0);
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: dataSource,
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 500,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+
+      final visiblePrice = double.parse(
+        ((controller.currentPriceRange.min + controller.currentPriceRange.max) / 2).toStringAsFixed(2),
+      );
+
+      final hLine = ChartDrawing(
+        id: 'drag_hline',
+        tool: DrawingTool.horizontalLine,
+        points: [DrawingPoint(candleIndex: 20, price: visiblePrice)],
+      );
+      controller.addDrawing(hLine);
+      controller.selectDrawing('drag_hline');
+      await tester.pump();
+
+      final initialPrice = controller.drawings.first.points[0].price;
+      expect(initialPrice, visiblePrice);
+
+      final initialY = controller.yAtPrice(visiblePrice);
+      final linePos = Offset(300, initialY);
+      // Perform vertical drag on the horizontal line
+      final gesture = await tester.startGesture(linePos);
+      await tester.pump();
+
+      // Slop displacement to win gesture arena and engage scale/drag
+      await gesture.moveBy(const Offset(0, 25));
+      await tester.pump();
+      // Second displacement to fire onScaleUpdate
+      await gesture.moveBy(const Offset(0, 35));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final draggedPrice = controller.drawings.first.points[0].price;
+      expect(draggedPrice, isNot(equals(initialPrice)));
+      expect(draggedPrice, lessThan(initialPrice));
+
+      controller.dispose();
+      dataSource.dispose();
+    });
+
+    testWidgets('Resizing Rectangle shape via corner and edge handles updates geometry correctly', (WidgetTester tester) async {
+      final dataSource = MockTradingDataSource(initialPrice: 24000.0);
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: dataSource,
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 500,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+
+      final bounds = Rect.fromLTWH(0, 0, 800 - 65.0, controller.mainPaneHeight);
+      final converter = CoordinateConverter(
+        viewport: controller.viewport,
+        totalCandles: controller.candles.length,
+      );
+
+      final centerIndex = converter.xToIndex(bounds.center.dx);
+      final centerPrice = double.parse(
+        ((controller.currentPriceRange.min + controller.currentPriceRange.max) / 2).toStringAsFixed(2),
+      );
+      final initialTopPrice = centerPrice + 60.0;
+      final initialBottomPrice = centerPrice - 60.0;
+      final initialLeftIndex = centerIndex - 8;
+      final initialRightIndex = centerIndex + 8;
+
+      final rect = ChartDrawing(
+        id: 'test_rect',
+        tool: DrawingTool.rectangle,
+        points: [
+          DrawingPoint(candleIndex: initialLeftIndex, price: initialTopPrice),
+          DrawingPoint(candleIndex: initialRightIndex, price: initialBottomPrice),
+        ],
+      );
+      controller.addDrawing(rect);
+      controller.selectDrawing('test_rect');
+      await tester.pump();
+
+      // 1. Verify 8 handles are present
+      final handles = controller.drawings.first.getHandleOffsets(bounds, controller.currentPriceRange, converter);
+      expect(handles.length, 8);
+
+      // 2. Drag Top Edge handle (handle index 4) upwards to increase top price
+      final topHandlePos = handles[4];
+      var gesture = await tester.startGesture(topHandlePos);
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -25));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -20));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      var updatedRect = controller.drawings.first;
+      // Top price should have increased above initialTopPrice
+      expect(updatedRect.points[0].price, greaterThan(initialTopPrice));
+      // Candle indices must stay identical (edge handle only resizes vertical price)
+      expect(updatedRect.points[0].candleIndex, initialLeftIndex);
+      expect(updatedRect.points[1].candleIndex, initialRightIndex);
+
+      // 3. Drag Right Edge handle (handle index 5) to the right to increase width
+      final handlesAfterFirst = updatedRect.getHandleOffsets(bounds, controller.currentPriceRange, converter);
+      final rightHandlePos = handlesAfterFirst[5];
+      gesture = await tester.startGesture(rightHandlePos);
+      await tester.pump();
+      await gesture.moveBy(const Offset(30, 0));
+      await tester.pump();
+      await gesture.moveBy(const Offset(30, 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      updatedRect = controller.drawings.first;
+      // Right candle index should have grown
+      expect(updatedRect.points[1].candleIndex, greaterThan(initialRightIndex));
+      // Top and bottom prices remain unaffected by horizontal edge handle
+      expect(updatedRect.points[0].candleIndex, initialLeftIndex);
+
+      controller.dispose();
+      dataSource.dispose();
+    });
   });
 }

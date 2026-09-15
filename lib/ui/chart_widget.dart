@@ -7,7 +7,6 @@ import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
-import '../core/models/price_range.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
 import 'replay_control_bar.dart';
@@ -20,6 +19,7 @@ enum _ChartDragMode {
   drawingCreation,
   drawingHandle,
   drawingMove,
+  horizontalLineDrag,
 }
 
 /// Top-level chart presentation widget integrating the custom rendering pipeline,
@@ -33,6 +33,7 @@ class TradingChart extends StatefulWidget {
   final GlobalKey? repaintBoundaryKey;
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
+  final void Function(ChartOrder order)? onOrderModified;
   final void Function(String orderId)? onOrderCancelled;
   final void Function(ChartPosition position)? onPositionClosed;
 
@@ -45,6 +46,7 @@ class TradingChart extends StatefulWidget {
     this.repaintBoundaryKey,
     this.orderMenuBuilder,
     this.onOrderPlaced,
+    this.onOrderModified,
     this.onOrderCancelled,
     this.onPositionClosed,
   });
@@ -54,25 +56,44 @@ class TradingChart extends StatefulWidget {
 }
 
 class _TradingChartState extends State<TradingChart> {
-  final GlobalKey _defaultRepaintKey = GlobalKey();
-  final FocusNode _focusNode = FocusNode();
-  double _lastScale = 1.0;
-  double _lastTrackpadScale = 1.0;
-  bool _isPinching = false;
-  Offset _lastFocalPoint = Offset.zero;
-  Offset _lastTapDownPosition = Offset.zero;
-  _ChartDragMode _dragMode = _ChartDragMode.none;
-  Offset? _hoverPosition;
-  DrawingPoint? _drawingAnchorPoint;
-  int? _draggingHandleIndex;
-  String? _draggingDrawingId;
-  Offset? _drawingDragStartPos;
-  bool _hasDraggedDuringCreation = false;
-
   static const double _priceAxisWidth = 65.0;
   static const double _timeAxisHeight = 24.0;
+  final GlobalKey _defaultRepaintKey = GlobalKey();
+
+  double _lastScale = 1.0;
+  double _lastTrackpadScale = 1.0;
+  Offset _lastFocalPoint = Offset.zero;
+  Offset _lastTapDownPosition = Offset.zero;
+  bool _isPinching = false;
+  _ChartDragMode _dragMode = _ChartDragMode.none;
+  final FocusNode _focusNode = FocusNode();
+
+  // Multi-point tool creation state (click-move-click OR drag-release)
+  DrawingPoint? _drawingAnchorPoint;
+  bool _hasDraggedDuringCreation = false;
+  Offset? _drawingDragStartPos;
+
+  // Selected drawing handle dragging state
+  int? _draggingHandleIndex;
+  String? _draggingDrawingId;
+
+  // Track hover position for dynamic cursor resolution
+  Offset? _hoverPosition;
 
   MouseCursor _resolveCursor(double width, double height) {
+    if (_dragMode == _ChartDragMode.horizontalLineDrag) {
+      return SystemMouseCursors.resizeUpDown;
+    }
+
+    if (_dragMode == _ChartDragMode.drawingHandle && _draggingDrawingId != null) {
+      for (final d in widget.controller.drawings) {
+        if (d.id == _draggingDrawingId && _draggingHandleIndex != null) {
+          return d.getHandleCursor(_draggingHandleIndex!);
+        }
+      }
+      return SystemMouseCursors.grab;
+    }
+
     if (_hoverPosition == null) return SystemMouseCursors.basic;
 
     final priceAxisLeft = width - _priceAxisWidth;
@@ -95,27 +116,37 @@ class _TradingChartState extends State<TradingChart> {
       return SystemMouseCursors.precise;
     }
 
-    // If hovering over a handle of the selected drawing
+    // Main canvas cursor resolution
     if (widget.controller.candles.isNotEmpty) {
-      final bounds = Rect.fromLTWH(0, 0, priceAxisLeft, timeAxisTop);
+      final chartWidth = priceAxisLeft;
+      final chartHeight = widget.controller.mainPaneHeight;
+      final bounds = Rect.fromLTWH(0, 0, chartWidth, chartHeight);
       final converter = CoordinateConverter(
         viewport: widget.controller.viewport,
         totalCandles: widget.controller.candles.length,
       );
-      final visible = widget.controller.viewport.calculateVisibleIndices(widget.controller.candles.length);
-      final priceRange = PriceRange.fromCandles(
-        widget.controller.candles,
-        start: visible.start,
-        end: visible.end,
-      );
+      final priceRange = widget.controller.currentPriceRange;
 
+      // 1. Check if hovering over an interactive handle on selected drawing
       final sel = widget.controller.selectedDrawing;
-      if (sel != null) {
+      if (sel != null && !sel.isLocked) {
         final handle = sel.hitTestHandle(_hoverPosition!, bounds, priceRange, converter);
-        if (handle != null) return SystemMouseCursors.grab;
-        if (sel.hitTest(_hoverPosition!, bounds, priceRange, converter)) return SystemMouseCursors.move;
+        if (handle != null) return sel.getHandleCursor(handle);
+        if (sel.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
+          return sel.tool == DrawingTool.horizontalLine
+              ? SystemMouseCursors.resizeUpDown
+              : SystemMouseCursors.move;
+        }
       }
 
+      // 2. Check if hovering over any horizontal line (always resizeUpDown like TradingView)
+      for (final d in widget.controller.drawings) {
+        if (d.tool == DrawingTool.horizontalLine && d.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
+          return SystemMouseCursors.resizeUpDown;
+        }
+      }
+
+      // 3. Check if hovering over any other drawing
       for (final d in widget.controller.drawings) {
         if (d.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
           return SystemMouseCursors.click;
@@ -363,10 +394,15 @@ class _TradingChartState extends State<TradingChart> {
                   children: [
                     // Main interactive canvas gesture detector
                     Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTapDown: (details) {
-                          _lastTapDownPosition = details.localPosition;
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: (event) {
+                          _lastTapDownPosition = event.localPosition;
+                        },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTapDown: (details) {
+                            _lastTapDownPosition = details.localPosition;
                           final pos = details.localPosition;
 
                           // Handle drawing tool interaction
@@ -448,17 +484,14 @@ class _TradingChartState extends State<TradingChart> {
                               pos.dx < priceAxisLeft &&
                               pos.dy < timeAxisTop &&
                               controller.candles.isNotEmpty) {
-                            final bounds = Rect.fromLTWH(0, 0, priceAxisLeft, timeAxisTop);
+                            final chartWidth = priceAxisLeft;
+                            final chartHeight = controller.mainPaneHeight;
+                            final bounds = Rect.fromLTWH(0, 0, chartWidth, chartHeight);
                             final converter = CoordinateConverter(
                               viewport: controller.viewport,
                               totalCandles: controller.candles.length,
                             );
-                            final visible = controller.viewport.calculateVisibleIndices(controller.candles.length);
-                            final priceRange = PriceRange.fromCandles(
-                              controller.candles,
-                              start: visible.start,
-                              end: visible.end,
-                            );
+                            final priceRange = controller.currentPriceRange;
 
                             ChartDrawing? tappedDrawing;
                             for (final d in controller.drawings.reversed) {
@@ -507,26 +540,28 @@ class _TradingChartState extends State<TradingChart> {
                           } else {
                             // In main chart canvas
                             if (controller.candles.isNotEmpty) {
-                              final bounds = Rect.fromLTWH(0, 0, priceAxisLeft, timeAxisTop);
+                              final chartWidth = priceAxisLeft;
+                              final chartHeight = controller.mainPaneHeight;
+                              final bounds = Rect.fromLTWH(0, 0, chartWidth, chartHeight);
                               final converter = CoordinateConverter(
                                 viewport: controller.viewport,
                                 totalCandles: controller.candles.length,
                               );
-                              final visible = controller.viewport.calculateVisibleIndices(controller.candles.length);
-                              final priceRange = PriceRange.fromCandles(
-                                controller.candles,
-                                start: visible.start,
-                                end: visible.end,
-                              );
+                              final priceRange = controller.currentPriceRange;
 
                               // 1. Check if dragging a handle on the selected drawing
                               final sel = controller.selectedDrawing;
                               if (sel != null && !sel.isLocked) {
-                                final handle = sel.hitTestHandle(start, bounds, priceRange, converter);
+                                final handle = sel.hitTestHandle(start, bounds, priceRange, converter) ??
+                                    sel.hitTestHandle(_lastTapDownPosition, bounds, priceRange, converter);
                                 if (handle != null) {
                                   _draggingHandleIndex = handle;
                                   _draggingDrawingId = sel.id;
-                                  _dragMode = _ChartDragMode.drawingHandle;
+                                  if (sel.tool == DrawingTool.horizontalLine) {
+                                    _dragMode = _ChartDragMode.horizontalLineDrag;
+                                  } else {
+                                    _dragMode = _ChartDragMode.drawingHandle;
+                                  }
                                   return;
                                 }
                               }
@@ -534,7 +569,8 @@ class _TradingChartState extends State<TradingChart> {
                               // 2. Check if clicking on any drawing to move it
                               ChartDrawing? hitDrawing;
                               for (final d in controller.drawings.reversed) {
-                                if (d.hitTest(start, bounds, priceRange, converter)) {
+                                if (d.hitTest(start, bounds, priceRange, converter) ||
+                                    d.hitTest(_lastTapDownPosition, bounds, priceRange, converter)) {
                                   hitDrawing = d;
                                   break;
                                 }
@@ -544,7 +580,11 @@ class _TradingChartState extends State<TradingChart> {
                                 controller.selectDrawing(hitDrawing.id);
                                 if (!hitDrawing.isLocked) {
                                   _draggingDrawingId = hitDrawing.id;
-                                  _dragMode = _ChartDragMode.drawingMove;
+                                  if (hitDrawing.tool == DrawingTool.horizontalLine) {
+                                    _dragMode = _ChartDragMode.horizontalLineDrag;
+                                  } else {
+                                    _dragMode = _ChartDragMode.drawingMove;
+                                  }
                                   return;
                                 }
                               }
@@ -584,6 +624,19 @@ class _TradingChartState extends State<TradingChart> {
                               }
                               break;
 
+                            case _ChartDragMode.horizontalLineDrag:
+                              if (_draggingDrawingId != null && controller.candles.isNotEmpty) {
+                                final newPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
+                                final index = controller.drawings.indexWhere((d) => d.id == _draggingDrawingId);
+                                if (index >= 0) {
+                                  final drawing = controller.drawings[index];
+                                  controller.updateDrawing(drawing.copyWith(
+                                    points: [DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice)],
+                                  ));
+                                }
+                              }
+                              break;
+
                             case _ChartDragMode.drawingHandle:
                               if (_draggingDrawingId != null && _draggingHandleIndex != null && controller.candles.isNotEmpty) {
                                 final converter = CoordinateConverter(
@@ -592,46 +645,83 @@ class _TradingChartState extends State<TradingChart> {
                                 );
                                 final newIndex = converter.xToIndex(details.localFocalPoint.dx);
                                 final newPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
-                                final newPoint = DrawingPoint(candleIndex: newIndex, price: newPrice);
 
-                                ChartDrawing? drawing;
-                                for (final d in controller.drawings) {
-                                  if (d.id == _draggingDrawingId) {
-                                    drawing = d;
-                                    break;
-                                  }
-                                }
+                                final index = controller.drawings.indexWhere((d) => d.id == _draggingDrawingId);
+                                if (index >= 0) {
+                                  final drawing = controller.drawings[index];
+                                  if (drawing.isLocked) break;
 
-                                if (drawing != null) {
-                                  if (drawing.tool == DrawingTool.longPosition || drawing.tool == DrawingTool.shortPosition) {
+                                  if (drawing.tool == DrawingTool.rectangle && drawing.points.length >= 2) {
+                                    final p0 = drawing.points[0];
+                                    final p1 = drawing.points[1];
+
+                                    // Canonical boundaries of the rectangle
+                                    var minC = math.min(p0.candleIndex, p1.candleIndex);
+                                    var maxC = math.max(p0.candleIndex, p1.candleIndex);
+                                    var maxP = math.max(p0.price, p1.price); // Top price
+                                    var minP = math.min(p0.price, p1.price); // Bottom price
+
+                                    switch (_draggingHandleIndex) {
+                                      case 0: // Top-Left corner
+                                        minC = newIndex;
+                                        maxP = newPrice;
+                                        break;
+                                      case 1: // Top-Right corner
+                                        maxC = newIndex;
+                                        maxP = newPrice;
+                                        break;
+                                      case 2: // Bottom-Right corner
+                                        maxC = newIndex;
+                                        minP = newPrice;
+                                        break;
+                                      case 3: // Bottom-Left corner
+                                        minC = newIndex;
+                                        minP = newPrice;
+                                        break;
+                                      case 4: // Top Edge
+                                        maxP = newPrice;
+                                        break;
+                                      case 5: // Right Edge
+                                        maxC = newIndex;
+                                        break;
+                                      case 6: // Bottom Edge
+                                        minP = newPrice;
+                                        break;
+                                      case 7: // Left Edge
+                                        minC = newIndex;
+                                        break;
+                                    }
+
+                                    controller.updateDrawing(drawing.copyWith(
+                                      points: [
+                                        DrawingPoint(candleIndex: minC, price: maxP),
+                                        DrawingPoint(candleIndex: maxC, price: minP),
+                                      ],
+                                    ));
+                                  } else if (drawing.tool == DrawingTool.horizontalLine) {
+                                    controller.updateDrawing(drawing.copyWith(
+                                      points: [DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice)],
+                                    ));
+                                  } else if (drawing.tool == DrawingTool.trendline ||
+                                      drawing.tool == DrawingTool.ruler ||
+                                      drawing.tool == DrawingTool.fibonacci) {
+                                    if (_draggingHandleIndex! < drawing.points.length) {
+                                      final updatedPoints = List<DrawingPoint>.from(drawing.points);
+                                      updatedPoints[_draggingHandleIndex!] = DrawingPoint(candleIndex: newIndex, price: newPrice);
+                                      controller.updateDrawing(drawing.copyWith(points: updatedPoints));
+                                    }
+                                  } else if (drawing.tool == DrawingTool.longPosition ||
+                                      drawing.tool == DrawingTool.shortPosition) {
                                     final entryX = converter.indexToX(drawing.points[0].candleIndex);
                                     if (_draggingHandleIndex == 0) {
                                       controller.updateDrawingProperties(drawing.id, {'targetPrice': newPrice});
                                     } else if (_draggingHandleIndex == 1) {
                                       controller.updateDrawingProperties(drawing.id, {'stopPrice': newPrice});
                                     } else if (_draggingHandleIndex == 2) {
-                                      controller.updateDrawingPoint(drawing.id, 0, newPoint);
+                                      controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: newIndex, price: newPrice));
                                     } else if (_draggingHandleIndex == 3) {
                                       final span = (details.localFocalPoint.dx - entryX).clamp(50.0, 1500.0);
                                       controller.updateDrawingProperties(drawing.id, {'widthSpan': span});
-                                    }
-                                  } else if (drawing.tool == DrawingTool.horizontalLine) {
-                                    controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice));
-                                  } else if (drawing.tool == DrawingTool.rectangle) {
-                                    if (_draggingHandleIndex == 0) {
-                                      controller.updateDrawingPoint(drawing.id, 0, newPoint);
-                                    } else if (_draggingHandleIndex == 1) {
-                                      controller.updateDrawingPoint(drawing.id, 1, DrawingPoint(candleIndex: newIndex, price: drawing.points[1].price));
-                                      controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice));
-                                    } else if (_draggingHandleIndex == 2) {
-                                      controller.updateDrawingPoint(drawing.id, 1, newPoint);
-                                    } else if (_draggingHandleIndex == 3) {
-                                      controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: newIndex, price: drawing.points[0].price));
-                                      controller.updateDrawingPoint(drawing.id, 1, DrawingPoint(candleIndex: drawing.points[1].candleIndex, price: newPrice));
-                                    }
-                                  } else {
-                                    if (_draggingHandleIndex! < drawing.points.length) {
-                                      controller.updateDrawingPoint(drawing.id, _draggingHandleIndex!, newPoint);
                                     }
                                   }
                                 }
@@ -792,6 +882,7 @@ class _TradingChartState extends State<TradingChart> {
                           ),
                         ),
                       ),
+                    ),
                     ),
 
                     // Interactive Order Badges & Hitboxes (Draggable & Cancel)

@@ -149,9 +149,11 @@ class DrawingRenderer {
     // Solid line across entire viewport
     canvas.drawLine(Offset(bounds.left, y), Offset(bounds.right, y), linePaint);
 
-    // If selected, draw grab handle at center and highlight glow
+    // If selected, draw grab handles and highlight glow
     if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(bounds.left + 50.0, y), drawing.color, radius: 4.5);
       _drawHandle(canvas, Offset(bounds.center.dx, y), drawing.color, radius: 5.5);
+      _drawHandle(canvas, Offset(bounds.right - 50.0, y), drawing.color, radius: 4.5);
       canvas.drawLine(
         Offset(bounds.left, y),
         Offset(bounds.right, y),
@@ -225,12 +227,21 @@ class DrawingRenderer {
         ..style = PaintingStyle.stroke,
     );
 
-    // If selected or previewing, draw 4 corner handles
+    // If selected or previewing, draw 4 corner handles + 4 edge midpoint handles
     if (drawing.isSelected || drawing.id == 'preview') {
-      _drawHandle(canvas, Offset(x1, y1), drawing.color);
-      _drawHandle(canvas, Offset(x2, y1), drawing.color);
-      _drawHandle(canvas, Offset(x2, y2), drawing.color);
-      _drawHandle(canvas, Offset(x1, y2), drawing.color);
+      // 4 Corner handles
+      _drawHandle(canvas, Offset(left, top), drawing.color);
+      _drawHandle(canvas, Offset(right, top), drawing.color);
+      _drawHandle(canvas, Offset(right, bottom), drawing.color);
+      _drawHandle(canvas, Offset(left, bottom), drawing.color);
+
+      // 4 Edge midpoint handles
+      final midX = (left + right) / 2;
+      final midY = (top + bottom) / 2;
+      _drawHandle(canvas, Offset(midX, top), drawing.color, radius: 3.5);
+      _drawHandle(canvas, Offset(right, midY), drawing.color, radius: 3.5);
+      _drawHandle(canvas, Offset(midX, bottom), drawing.color, radius: 3.5);
+      _drawHandle(canvas, Offset(left, midY), drawing.color, radius: 3.5);
 
       // Telemetry pill
       final deltaPrice = (p2.price - p1.price).abs();

@@ -186,7 +186,11 @@ class ChartDrawing {
 
       case DrawingTool.horizontalLine:
         final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
-        return [Offset(bounds.center.dx, y)];
+        return [
+          Offset(bounds.left + 50.0, y),
+          Offset(bounds.center.dx, y),
+          Offset(bounds.right - 50.0, y),
+        ];
 
       case DrawingTool.rectangle:
         if (points.length < 2) {
@@ -198,11 +202,23 @@ class ChartDrawing {
         final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
         final x2 = converter.indexToX(points[1].candleIndex);
         final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+
+        final left = math.min(x1, x2);
+        final right = math.max(x1, x2);
+        final top = math.min(y1, y2);
+        final bottom = math.max(y1, y2);
+        final midX = (left + right) / 2;
+        final midY = (top + bottom) / 2;
+
         return [
-          Offset(x1, y1),
-          Offset(x2, y1),
-          Offset(x2, y2),
-          Offset(x1, y2),
+          Offset(left, top), // 0: Top-Left corner
+          Offset(right, top), // 1: Top-Right corner
+          Offset(right, bottom), // 2: Bottom-Right corner
+          Offset(left, bottom), // 3: Bottom-Left corner
+          Offset(midX, top), // 4: Top Edge
+          Offset(right, midY), // 5: Right Edge
+          Offset(midX, bottom), // 6: Bottom Edge
+          Offset(left, midY), // 7: Left Edge
         ];
 
       case DrawingTool.fibonacci:
@@ -236,6 +252,53 @@ class ChartDrawing {
           Offset(entryX, entryY),
           Offset(rightX, entryY),
         ];
+    }
+  }
+
+  /// Returns the appropriate MouseCursor when hovering over a handle.
+  MouseCursor getHandleCursor(int handleIndex) {
+    switch (tool) {
+      case DrawingTool.horizontalLine:
+        return SystemMouseCursors.resizeUpDown;
+
+      case DrawingTool.rectangle:
+        switch (handleIndex) {
+          case 0:
+          case 2:
+            return SystemMouseCursors.resizeUpLeftDownRight;
+          case 1:
+          case 3:
+            return SystemMouseCursors.resizeUpRightDownLeft;
+          case 4:
+          case 6:
+            return SystemMouseCursors.resizeUpDown;
+          case 5:
+          case 7:
+            return SystemMouseCursors.resizeLeftRight;
+          default:
+            return SystemMouseCursors.grab;
+        }
+
+      case DrawingTool.longPosition:
+      case DrawingTool.shortPosition:
+        switch (handleIndex) {
+          case 0:
+          case 1:
+          case 2:
+            return SystemMouseCursors.resizeUpDown;
+          case 3:
+            return SystemMouseCursors.resizeLeftRight;
+          default:
+            return SystemMouseCursors.grab;
+        }
+
+      case DrawingTool.trendline:
+      case DrawingTool.ruler:
+      case DrawingTool.fibonacci:
+        return SystemMouseCursors.grab;
+
+      case DrawingTool.pointer:
+        return SystemMouseCursors.basic;
     }
   }
 
@@ -285,7 +348,9 @@ class ChartDrawing {
 
       case DrawingTool.horizontalLine:
         final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
-        return (pos.dy - y).abs() <= threshold && pos.dx >= bounds.left && pos.dx <= bounds.right;
+        return (pos.dy - y).abs() <= math.max(threshold, 10.0) &&
+            pos.dx >= bounds.left - 10 &&
+            pos.dx <= bounds.right + 10;
 
       case DrawingTool.rectangle:
         if (points.length < 2) return false;
