@@ -40,6 +40,7 @@ export 'renderer/pane.dart';
 
 // UI Components
 export 'ui/chart_drawing_toolbar.dart';
+export 'ui/drawing_action_toolbar.dart';
 export 'ui/chart_header.dart';
 export 'ui/chart_settings_modal.dart';
 export 'ui/chart_toolbar.dart';

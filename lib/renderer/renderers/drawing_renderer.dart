@@ -6,7 +6,8 @@ import '../../core/models/chart_theme.dart';
 import '../../core/models/price_range.dart';
 
 /// High-performance Skia/Impeller renderer for interactive chart drawings:
-/// Trendlines, Horizontal Lines, Fibonacci Retracements, Long/Short Risk:Reward boxes, and Rulers.
+/// Trendlines, Horizontal Lines, Rectangles, Fibonacci Retracements,
+/// Long/Short Risk:Reward boxes, and Rulers.
 class DrawingRenderer {
   final ChartTheme theme;
 
@@ -33,6 +34,9 @@ class DrawingRenderer {
         case DrawingTool.horizontalLine:
           _drawHorizontalLine(canvas, bounds, drawing, priceRange);
           break;
+        case DrawingTool.rectangle:
+          _drawRectangle(canvas, bounds, drawing, priceRange, converter);
+          break;
         case DrawingTool.fibonacci:
           _drawFibonacci(canvas, bounds, drawing, priceRange, converter);
           break;
@@ -47,6 +51,30 @@ class DrawingRenderer {
           break;
       }
     }
+  }
+
+  void _drawHandle(Canvas canvas, Offset offset, Color color, {double radius = 4.5}) {
+    // Subtle shadow
+    canvas.drawCircle(
+      offset.translate(0, 1),
+      radius + 0.5,
+      Paint()..color = Colors.black45,
+    );
+    // White center fill
+    canvas.drawCircle(
+      offset,
+      radius,
+      Paint()..color = Colors.white,
+    );
+    // Colored border
+    canvas.drawCircle(
+      offset,
+      radius,
+      Paint()
+        ..color = color
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke,
+    );
   }
 
   void _drawTrendline(
@@ -73,19 +101,33 @@ class DrawingRenderer {
 
     canvas.drawLine(Offset(x1, y1), Offset(x2, y2), linePaint);
 
-    // Draw circular anchor handles at ends
-    final handlePaint = Paint()
-      ..color = drawing.color
-      ..style = PaintingStyle.fill;
-    final handleBorder = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+    // Draw circular anchor handles ONLY if selected or preview
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x1, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y2), drawing.color);
 
-    canvas.drawCircle(Offset(x1, y1), 4.5, handlePaint);
-    canvas.drawCircle(Offset(x1, y1), 4.5, handleBorder);
-    canvas.drawCircle(Offset(x2, y2), 4.5, handlePaint);
-    canvas.drawCircle(Offset(x2, y2), 4.5, handleBorder);
+      // Angle & Price delta telemetry badge
+      final deltaY = y2 - y1;
+      final deltaX = x2 - x1;
+      final angle = (math.atan2(-deltaY, deltaX) * 180 / math.pi).round();
+      final deltaPrice = p2.price - p1.price;
+      final sign = deltaPrice >= 0 ? '+' : '';
+      final label = '$angle° • $sign${deltaPrice.toStringAsFixed(2)}';
+
+      final textSpan = TextSpan(
+        text: label,
+        style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w600),
+      );
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+      final mid = Offset((x1 + x2) / 2, (y1 + y2) / 2);
+      final pillRect = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: mid.translate(0, -12), width: tp.width + 10, height: tp.height + 4),
+        const Radius.circular(3),
+      );
+      canvas.drawRRect(pillRect, Paint()..color = const Color(0xE61E222D));
+      canvas.drawRRect(pillRect, Paint()..color = drawing.color..strokeWidth = 1.0..style = PaintingStyle.stroke);
+      tp.paint(canvas, Offset(pillRect.left + 5, pillRect.top + 2));
+    }
   }
 
   void _drawHorizontalLine(
@@ -104,8 +146,21 @@ class DrawingRenderer {
       ..strokeWidth = drawing.strokeWidth
       ..style = PaintingStyle.stroke;
 
-    // Solid line with subtle dash
+    // Solid line across entire viewport
     canvas.drawLine(Offset(bounds.left, y), Offset(bounds.right, y), linePaint);
+
+    // If selected, draw grab handle at center and highlight glow
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(bounds.center.dx, y), drawing.color, radius: 5.5);
+      canvas.drawLine(
+        Offset(bounds.left, y),
+        Offset(bounds.right, y),
+        Paint()
+          ..color = drawing.color.withValues(alpha: 0.25)
+          ..strokeWidth = drawing.strokeWidth + 4.0
+          ..style = PaintingStyle.stroke,
+      );
+    }
 
     // Pill badge on the right
     final textSpan = TextSpan(
@@ -131,6 +186,66 @@ class DrawingRenderer {
 
     canvas.drawRRect(badgeRect, Paint()..color = drawing.color);
     textPainter.paint(canvas, Offset(badgeRect.left + 6, badgeRect.top + 3));
+  }
+
+  void _drawRectangle(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (drawing.points.length < 2) return;
+    final p1 = drawing.points[0];
+    final p2 = drawing.points[1];
+
+    final x1 = converter.indexToX(p1.candleIndex);
+    final y1 = CoordinateConverter.priceToY(p1.price, bounds, priceRange);
+    final x2 = converter.indexToX(p2.candleIndex);
+    final y2 = CoordinateConverter.priceToY(p2.price, bounds, priceRange);
+
+    final left = math.min(x1, x2);
+    final right = math.max(x1, x2);
+    final top = math.min(y1, y2);
+    final bottom = math.max(y1, y2);
+    final rect = Rect.fromLTRB(left, top, right, bottom);
+
+    // Shaded box fill
+    canvas.drawRect(
+      rect,
+      Paint()..color = drawing.color.withValues(alpha: 0.15),
+    );
+
+    // Border
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = drawing.color
+        ..strokeWidth = drawing.strokeWidth
+        ..style = PaintingStyle.stroke,
+    );
+
+    // If selected or previewing, draw 4 corner handles
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x1, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y2), drawing.color);
+      _drawHandle(canvas, Offset(x1, y2), drawing.color);
+
+      // Telemetry pill
+      final deltaPrice = (p2.price - p1.price).abs();
+      final textSpan = TextSpan(
+        text: 'Zone: ₹${deltaPrice.toStringAsFixed(2)}',
+        style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+      );
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+      final pillRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(left + 6, top - tp.height - 6, tp.width + 10, tp.height + 4),
+        const Radius.circular(3),
+      );
+      canvas.drawRRect(pillRect, Paint()..color = drawing.color);
+      tp.paint(canvas, Offset(pillRect.left + 5, pillRect.top + 2));
+    }
   }
 
   void _drawFibonacci(
@@ -205,6 +320,13 @@ class DrawingRenderer {
         tp.paint(canvas, Offset(minX + 8, y - tp.height - 2));
       }
     }
+
+    if (drawing.isSelected || drawing.id == 'preview') {
+      final y1 = CoordinateConverter.priceToY(p1.price, bounds, priceRange);
+      final y2 = CoordinateConverter.priceToY(p2.price, bounds, priceRange);
+      _drawHandle(canvas, Offset(x1, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y2), drawing.color);
+    }
   }
 
   void _drawPositionBox(
@@ -220,7 +342,7 @@ class DrawingRenderer {
     final entryX = converter.indexToX(entry.candleIndex);
 
     // Box width spans 40 candles (or to end of chart)
-    final widthSpan = 40 * 11.0;
+    final widthSpan = (drawing.properties['widthSpan'] as double?) ?? (40 * 11.0);
     final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
     // Target and Stop prices
@@ -307,6 +429,14 @@ class DrawingRenderer {
         ..style = PaintingStyle.stroke,
     );
     textPainter.paint(canvas, Offset(badgeRect.left + 8, badgeRect.top + 4));
+
+    // If selected, draw grab handles
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset((entryX + rightX) / 2, targetY), const Color(0xFF00E676), radius: 5.0);
+      _drawHandle(canvas, Offset((entryX + rightX) / 2, stopY), const Color(0xFFFF3B30), radius: 5.0);
+      _drawHandle(canvas, Offset(entryX, entryY), Colors.white, radius: 4.5);
+      _drawHandle(canvas, Offset(rightX, entryY), const Color(0xFF2962FF), radius: 4.5);
+    }
   }
 
   void _drawRuler(
@@ -384,5 +514,10 @@ class DrawingRenderer {
         ..style = PaintingStyle.stroke,
     );
     tp.paint(canvas, Offset(badgeRect.left + 7, badgeRect.top + 3));
+
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x1, y1), boxColor);
+      _drawHandle(canvas, Offset(x2, y2), boxColor);
+    }
   }
 }

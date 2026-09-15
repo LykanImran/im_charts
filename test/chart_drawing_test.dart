@@ -64,11 +64,30 @@ void main() {
       }
       expect(DrawingTool.trendline.requiredPoints, 2);
       expect(DrawingTool.horizontalLine.requiredPoints, 1);
+      expect(DrawingTool.rectangle.requiredPoints, 2);
+      expect(DrawingTool.rectangle.label, 'Rectangle');
       expect(DrawingTool.fibonacci.requiredPoints, 2);
       expect(DrawingTool.longPosition.requiredPoints, 1);
       expect(DrawingTool.shortPosition.requiredPoints, 1);
       expect(DrawingTool.ruler.requiredPoints, 2);
       expect(DrawingTool.pointer.requiredPoints, 0);
+    });
+
+    test('distanceToSegment accurately computes perpendicular distances', () {
+      const p1 = Offset(0, 0);
+      const p2 = Offset(100, 0);
+
+      // Point right above line
+      final d1 = ChartDrawing.distanceToSegment(const Offset(50, 10), p1, p2);
+      expect(d1, closeTo(10.0, 0.001));
+
+      // Point beyond end of line
+      final d2 = ChartDrawing.distanceToSegment(const Offset(120, 0), p1, p2);
+      expect(d2, closeTo(20.0, 0.001));
+
+      // Point on the line
+      final d3 = ChartDrawing.distanceToSegment(const Offset(50, 0), p1, p2);
+      expect(d3, closeTo(0.0, 0.001));
     });
   });
 
@@ -172,6 +191,72 @@ void main() {
       expect(controller.previewDrawing, isNull);
     });
 
+    test('updateDrawingPoint modifies specific anchor point of drawing', () {
+      final drawing = ChartDrawing(
+        id: 'd_trend',
+        tool: DrawingTool.trendline,
+        points: [
+          DrawingPoint(candleIndex: 10, price: 24000.0),
+          DrawingPoint(candleIndex: 20, price: 24200.0),
+        ],
+      );
+      controller.addDrawing(drawing);
+
+      controller.updateDrawingPoint('d_trend', 1, DrawingPoint(candleIndex: 25, price: 24350.0));
+      final updated = controller.drawings.first;
+      expect(updated.points[1].candleIndex, 25);
+      expect(updated.points[1].price, 24350.0);
+      expect(updated.points[0].candleIndex, 10);
+    });
+
+    test('translateDrawing shifts all points and position properties', () {
+      final drawing = ChartDrawing(
+        id: 'd_pos',
+        tool: DrawingTool.longPosition,
+        points: [DrawingPoint(candleIndex: 10, price: 24000.0)],
+        properties: {'targetPrice': 24360.0, 'stopPrice': 23820.0},
+      );
+      controller.addDrawing(drawing);
+
+      controller.translateDrawing('d_pos', 5, 100.0);
+      final updated = controller.drawings.first;
+      expect(updated.points[0].candleIndex, 15);
+      expect(updated.points[0].price, 24100.0);
+      expect(updated.properties['targetPrice'], 24460.0);
+      expect(updated.properties['stopPrice'], 23920.0);
+    });
+
+    test('setSelectedDrawingColor, strokeWidth, lock and delete operate on selected drawing', () {
+      final drawing = ChartDrawing(
+        id: 'd_sel',
+        tool: DrawingTool.rectangle,
+        points: [
+          DrawingPoint(candleIndex: 10, price: 24000.0),
+          DrawingPoint(candleIndex: 20, price: 24500.0),
+        ],
+      );
+      controller.addDrawing(drawing);
+      controller.selectDrawing('d_sel');
+      expect(controller.selectedDrawing?.id, 'd_sel');
+
+      controller.setSelectedDrawingColor(const Color(0xFF00E676));
+      expect(controller.selectedDrawing?.color, const Color(0xFF00E676));
+
+      controller.setSelectedDrawingStrokeWidth(3.0);
+      expect(controller.selectedDrawing?.strokeWidth, 3.0);
+
+      controller.toggleSelectedDrawingLocked();
+      expect(controller.selectedDrawing?.isLocked, isTrue);
+
+      // Locked drawing cannot be modified
+      controller.setSelectedDrawingStrokeWidth(4.0);
+      expect(controller.selectedDrawing?.strokeWidth, 3.0);
+
+      controller.deleteSelectedDrawing();
+      expect(controller.drawings, isEmpty);
+      expect(controller.selectedDrawing, isNull);
+    });
+
     test('Countdown timer produces valid formatted time', () async {
       await controller.initialize();
       expect(controller.candleCountdownText, isNotEmpty);
@@ -188,7 +273,7 @@ void main() {
   });
 
   group('ChartDrawingToolbar Widget Tests', () {
-    testWidgets('Renders all drawing tool buttons and handles selection', (WidgetTester tester) async {
+    testWidgets('Renders all drawing tool buttons including Rectangle and handles selection', (WidgetTester tester) async {
       final dataSource = MockTradingDataSource(initialPrice: 24000.0);
       final controller = TradingChartController(
         symbol: 'NIFTY 50',
@@ -217,11 +302,17 @@ void main() {
       expect(find.byTooltip('Cursor'), findsOneWidget);
       expect(find.byTooltip('Trendline'), findsOneWidget);
       expect(find.byTooltip('Horizontal Line'), findsOneWidget);
+      expect(find.byTooltip('Rectangle'), findsOneWidget);
       expect(find.byTooltip('Fibonacci Retracement'), findsOneWidget);
       expect(find.byTooltip('Long Position'), findsOneWidget);
       expect(find.byTooltip('Short Position'), findsOneWidget);
       expect(find.byTooltip('Measure Ruler'), findsOneWidget);
       expect(find.byTooltip('Clear Drawings (1)'), findsOneWidget);
+
+      // Tap Rectangle tool
+      await tester.tap(find.byTooltip('Rectangle'));
+      await tester.pump();
+      expect(controller.activeDrawingTool, DrawingTool.rectangle);
 
       // Tap Trendline tool
       await tester.tap(find.byTooltip('Trendline'));
@@ -240,6 +331,111 @@ void main() {
 
       // Tool should now be collapsed (width 18 with chevron_right icon)
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+
+      controller.dispose();
+      dataSource.dispose();
+    });
+
+    testWidgets('TradingChart displays floating action bar when drawing is selected and allows deletion', (WidgetTester tester) async {
+      final dataSource = MockTradingDataSource(initialPrice: 24000.0);
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: dataSource,
+      );
+      await controller.initialize();
+
+      final drawing = ChartDrawing(
+        id: 'd_box',
+        tool: DrawingTool.rectangle,
+        points: [
+          DrawingPoint(candleIndex: 10, price: 24000.0),
+          DrawingPoint(candleIndex: 20, price: 24200.0),
+        ],
+      );
+      controller.addDrawing(drawing);
+      controller.selectDrawing('d_box');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 500,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+
+      // Verify floating action bar is rendered
+      expect(find.byKey(const Key('delete_drawing_d_box')), findsOneWidget);
+      expect(find.text('Rectangle'), findsOneWidget);
+
+      // Tap delete button on floating action bar
+      await tester.tap(find.byKey(const Key('delete_drawing_d_box')));
+      await tester.pump();
+
+      // Drawing should be deleted
+      expect(controller.drawings, isEmpty);
+      expect(find.byKey(const Key('delete_drawing_d_box')), findsNothing);
+
+      controller.dispose();
+      dataSource.dispose();
+    });
+
+    testWidgets('DrawingActionToolbar changes color, stroke width, lock status and deletes drawing', (WidgetTester tester) async {
+      final dataSource = MockTradingDataSource(initialPrice: 24000.0);
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: dataSource,
+      );
+      await controller.initialize();
+
+      final drawing = ChartDrawing(
+        id: 'tb_test',
+        tool: DrawingTool.trendline,
+        points: [
+          DrawingPoint(candleIndex: 5, price: 23900.0),
+          DrawingPoint(candleIndex: 15, price: 24100.0),
+        ],
+        color: const Color(0xFF2962FF),
+        strokeWidth: 2.0,
+      );
+      controller.addDrawing(drawing);
+      controller.selectDrawing('tb_test');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: DrawingActionToolbar(
+                controller: controller,
+                selectedDrawing: controller.selectedDrawing!,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Trendline'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_open_outlined), findsOneWidget);
+
+      // Tap lock button
+      await tester.tap(find.byIcon(Icons.lock_open_outlined));
+      await tester.pump();
+      expect(controller.drawings.first.isLocked, isTrue);
+
+      // Unlock
+      await tester.tap(find.byIcon(Icons.lock));
+      await tester.pump();
+      expect(controller.drawings.first.isLocked, isFalse);
+
+      // Change stroke width to 4px (index 3 in stroke widths)
+      await tester.tap(find.byKey(const Key('delete_drawing_tb_test')));
+      await tester.pump();
+      expect(controller.drawings, isEmpty);
 
       controller.dispose();
       dataSource.dispose();

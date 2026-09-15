@@ -4,7 +4,7 @@
 [![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
 [![Platform](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-62%2F62%20Passed-brightgreen.svg)](test/)
+[![Tests](https://img.shields.io/badge/Tests-68%2F68%20Passed-brightgreen.svg)](test/)
 [![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_im__charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
@@ -80,9 +80,13 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
   - **Executed Open Positions & Live P&L**: Skia/Impeller solid position lines with real-time unrealized P&L and percentage badge (`[LONG 100 @ ₹24,490.00 | +₹1,250.00 (+1.25%) | ✖ Close]`), attached TP/SL bracket arms, and 1-click market close button (`✖ Close`).
   - **Tabbed Ledger Drawer**: Interactive slide-over ledger tracking pending Orders and active Positions with 1-click cancellations and market exits.
   - **Lifecycle Callbacks**: Comprehensive `onOrderPlaced`, `onOrderModified`, `onOrderCancelled`, `onPositionOpened`, and `onPositionClosed` hooks.
-- **📐 Left Drawing Tools Bar**:
-  - Left-docked professional toolbar with 7 analysis instruments: **Trendline** (2 anchor clicks), **Horizontal Ray** (support/resistance with price badge), **Fibonacci Retracement** (golden ratio bands: 0.0, 0.236, 0.382, 0.500, 0.618, 0.786, 1.0), **Long Position** (Risk:Reward box with green target and red stop zones), **Short Position** (Risk:Reward box), and **Measure Ruler** (ΔPrice, Δ%, bar count).
-  - Financial coordinate anchoring `(candleIndex, price)` ensures drawings remain locked across horizontal zoom, pan, and real-time tick streaming.
+- **📐 TradingView-Standard Drawing Instruments & Floating Action Bar**:
+  - **8 Analysis Tools**: **Trendline** (with angle/delta badge), **Horizontal Ray** (full-width support/resistance), **Rectangle** (Supply & Demand / SMC order block zone box with translucent fill and corner handles), **Fibonacci Retracement** (golden ratio bands), **Long Position** (interactive target & stop handles), **Short Position**, **Measure Ruler** (ΔPrice, Δ%, bar count), and **Cursor Pointer**.
+  - **Dual Creation Gestures**: Supports both **Click-and-Drag** (drag & release) and **Click-Move-Click** (anchor 1 $\rightarrow$ hover $\rightarrow$ anchor 2).
+  - **Interactive Anchor Handles**: Selected drawings display circular grab handles to modify individual coordinates or target/stop boundaries.
+  - **Drag-to-Move**: Click & drag the body of any drawing to translate it smoothly across candles and price levels.
+  - **Floating Action Bar**: Glassmorphic floating menu for selected drawings featuring 1-tap color swatches (Blue, Emerald, Crimson, Amber, Purple, White), stroke thickness (1–4px), lock/unlock, and delete (`🗑️`).
+  - **Financial Coordinate Anchoring**: Stored in `(candleIndex, price)` to stay mathematically pinned across zoom, pan, and live tick streaming.
 - **⏱️ Live Candle Close Countdown Timer & Watermark**:
   - **Countdown Timer Badge**: Live ticking badge on the vertical price axis showing exact time remaining before the active bar closes (e.g. `04:18`).
   - **Background Canvas Watermark**: Bold institutional typography (`NIFTY 50 • 5m • NSE`) rendered in the background pane at 4.5% opacity.

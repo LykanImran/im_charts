@@ -151,6 +151,12 @@ class TradingChartController extends ChangeNotifier {
   bool get isReplaying => _isReplaying;
   double get replaySpeed => _replaySpeed;
   ChartDrawing? get previewDrawing => _previewDrawing;
+  ChartDrawing? get selectedDrawing {
+    for (final d in _drawings) {
+      if (d.isSelected) return d;
+    }
+    return null;
+  }
   DrawingTool get activeDrawingTool => _activeDrawingTool;
   set activeDrawingTool(DrawingTool tool) {
     if (_activeDrawingTool != tool) {
@@ -404,6 +410,118 @@ class TradingChartController extends ChangeNotifier {
       }
     }
     if (changed) notifyListeners();
+  }
+
+  /// Updates a specific anchor point index of a drawing.
+  void updateDrawingPoint(String id, int pointIndex, DrawingPoint newPoint) {
+    final index = _drawings.indexWhere((d) => d.id == id);
+    if (index >= 0) {
+      final drawing = _drawings[index];
+      if (drawing.isLocked) return;
+      if (pointIndex >= 0 && pointIndex < drawing.points.length) {
+        final updatedPoints = List<DrawingPoint>.from(drawing.points);
+        updatedPoints[pointIndex] = newPoint;
+        _drawings[index] = drawing.copyWith(points: updatedPoints);
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Translates all points and prices of a drawing by a given candle and price delta.
+  void translateDrawing(String id, int deltaCandles, double deltaPrice) {
+    final index = _drawings.indexWhere((d) => d.id == id);
+    if (index >= 0) {
+      final drawing = _drawings[index];
+      if (drawing.isLocked) return;
+
+      final updatedPoints = drawing.points.map((p) {
+        return p.copyWith(
+          candleIndex: p.candleIndex + deltaCandles,
+          price: double.parse((p.price + deltaPrice).toStringAsFixed(2)),
+        );
+      }).toList();
+
+      final updatedProps = Map<String, dynamic>.from(drawing.properties);
+      if (updatedProps.containsKey('targetPrice')) {
+        updatedProps['targetPrice'] = double.parse(
+          ((updatedProps['targetPrice'] as double) + deltaPrice).toStringAsFixed(2),
+        );
+      }
+      if (updatedProps.containsKey('stopPrice')) {
+        updatedProps['stopPrice'] = double.parse(
+          ((updatedProps['stopPrice'] as double) + deltaPrice).toStringAsFixed(2),
+        );
+      }
+
+      _drawings[index] = drawing.copyWith(
+        points: updatedPoints,
+        properties: updatedProps,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Updates arbitrary metadata properties on a drawing (e.g. targetPrice, stopPrice, widthSpan).
+  void updateDrawingProperties(String id, Map<String, dynamic> newProperties) {
+    final index = _drawings.indexWhere((d) => d.id == id);
+    if (index >= 0) {
+      final drawing = _drawings[index];
+      if (drawing.isLocked) return;
+      final mergedProps = Map<String, dynamic>.from(drawing.properties)..addAll(newProperties);
+      _drawings[index] = drawing.copyWith(properties: mergedProps);
+      notifyListeners();
+    }
+  }
+
+  /// Updates the color of the currently selected drawing.
+  void setSelectedDrawingColor(Color color) {
+    final sel = selectedDrawing;
+    if (sel != null && !sel.isLocked) {
+      final index = _drawings.indexWhere((d) => d.id == sel.id);
+      if (index >= 0) {
+        _drawings[index] = _drawings[index].copyWith(color: color);
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Updates the stroke width of the currently selected drawing.
+  void setSelectedDrawingStrokeWidth(double strokeWidth) {
+    final sel = selectedDrawing;
+    if (sel != null && !sel.isLocked) {
+      final index = _drawings.indexWhere((d) => d.id == sel.id);
+      if (index >= 0) {
+        _drawings[index] = _drawings[index].copyWith(strokeWidth: strokeWidth);
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Toggles the lock state of the currently selected drawing.
+  void toggleSelectedDrawingLocked() {
+    final sel = selectedDrawing;
+    if (sel != null) {
+      final index = _drawings.indexWhere((d) => d.id == sel.id);
+      if (index >= 0) {
+        _drawings[index] = _drawings[index].copyWith(isLocked: !sel.isLocked);
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Deletes the currently selected drawing.
+  void deleteSelectedDrawing() {
+    final sel = selectedDrawing;
+    if (sel != null) {
+      removeDrawing(sel.id);
+    }
+  }
+
+  /// Cancels in-progress drawing, resets tool to pointer, and clears preview.
+  void cancelActiveDrawing() {
+    _activeDrawingTool = DrawingTool.pointer;
+    _previewDrawing = null;
+    notifyListeners();
   }
 
   // Visual Price Alerts

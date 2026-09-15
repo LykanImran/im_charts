@@ -7,11 +7,20 @@ import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
+import '../core/models/price_range.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
 import 'replay_control_bar.dart';
 
-enum _ChartDragMode { none, priceAxis, timeAxis, mainChart }
+enum _ChartDragMode {
+  none,
+  priceAxis,
+  timeAxis,
+  mainChart,
+  drawingCreation,
+  drawingHandle,
+  drawingMove,
+}
 
 /// Top-level chart presentation widget integrating the custom rendering pipeline,
 /// multi-zone scale interactions (Price Axis drag, Time Axis drag, Pinch Zoom),
@@ -55,6 +64,10 @@ class _TradingChartState extends State<TradingChart> {
   _ChartDragMode _dragMode = _ChartDragMode.none;
   Offset? _hoverPosition;
   DrawingPoint? _drawingAnchorPoint;
+  int? _draggingHandleIndex;
+  String? _draggingDrawingId;
+  Offset? _drawingDragStartPos;
+  bool _hasDraggedDuringCreation = false;
 
   static const double _priceAxisWidth = 65.0;
   static const double _timeAxisHeight = 24.0;
@@ -76,6 +89,40 @@ class _TradingChartState extends State<TradingChart> {
     } else if (isCorner) {
       return SystemMouseCursors.click;
     }
+
+    // When a drawing tool is active, show crosshair cursor
+    if (widget.controller.activeDrawingTool != DrawingTool.pointer) {
+      return SystemMouseCursors.precise;
+    }
+
+    // If hovering over a handle of the selected drawing
+    if (widget.controller.candles.isNotEmpty) {
+      final bounds = Rect.fromLTWH(0, 0, priceAxisLeft, timeAxisTop);
+      final converter = CoordinateConverter(
+        viewport: widget.controller.viewport,
+        totalCandles: widget.controller.candles.length,
+      );
+      final visible = widget.controller.viewport.calculateVisibleIndices(widget.controller.candles.length);
+      final priceRange = PriceRange.fromCandles(
+        widget.controller.candles,
+        start: visible.start,
+        end: visible.end,
+      );
+
+      final sel = widget.controller.selectedDrawing;
+      if (sel != null) {
+        final handle = sel.hitTestHandle(_hoverPosition!, bounds, priceRange, converter);
+        if (handle != null) return SystemMouseCursors.grab;
+        if (sel.hitTest(_hoverPosition!, bounds, priceRange, converter)) return SystemMouseCursors.move;
+      }
+
+      for (final d in widget.controller.drawings) {
+        if (d.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
+          return SystemMouseCursors.click;
+        }
+      }
+    }
+
     return SystemMouseCursors.precise;
   }
 
@@ -103,6 +150,7 @@ class _TradingChartState extends State<TradingChart> {
           color: const Color(0xFF2962FF),
         );
         controller.addDrawing(drawing);
+        controller.selectDrawing(drawing.id);
         return KeyEventResult.handled;
       } else if (event.logicalKey == LogicalKeyboardKey.keyT) {
         controller.activeDrawingTool = DrawingTool.trendline;
@@ -127,6 +175,10 @@ class _TradingChartState extends State<TradingChart> {
     }
 
     if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (controller.selectedDrawing != null) {
+        controller.deleteSelectedDrawing();
+        return KeyEventResult.handled;
+      }
       final selected = controller.drawings.where((d) => d.isSelected).toList();
       for (final d in selected) {
         controller.removeDrawing(d.id);
@@ -151,7 +203,13 @@ class _TradingChartState extends State<TradingChart> {
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
-      controller.activeDrawingTool = DrawingTool.pointer;
+      setState(() {
+        _drawingAnchorPoint = null;
+        _hasDraggedDuringCreation = false;
+        _draggingHandleIndex = null;
+        _draggingDrawingId = null;
+      });
+      controller.cancelActiveDrawing();
       controller.selectDrawing(null);
       return KeyEventResult.handled;
     }
@@ -325,41 +383,57 @@ class _TradingChartState extends State<TradingChart> {
                             final tool = controller.activeDrawingTool;
 
                             if (tool == DrawingTool.horizontalLine) {
-                              controller.addDrawing(ChartDrawing(
+                              final drawing = ChartDrawing(
                                 id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
                                 tool: DrawingTool.horizontalLine,
                                 points: [DrawingPoint(candleIndex: clickedIndex, price: clickedPrice)],
                                 color: const Color(0xFF00E5FF),
-                              ));
+                              );
+                              controller.addDrawing(drawing);
+                              controller.selectDrawing(drawing.id);
                               controller.activeDrawingTool = DrawingTool.pointer;
                             } else if (tool == DrawingTool.longPosition || tool == DrawingTool.shortPosition) {
                               final isLong = tool == DrawingTool.longPosition;
-                              controller.addDrawing(ChartDrawing(
+                              final drawing = ChartDrawing(
                                 id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
                                 tool: tool,
                                 points: [DrawingPoint(candleIndex: clickedIndex, price: clickedPrice)],
                                 properties: {
                                   'targetPrice': double.parse((isLong ? clickedPrice * 1.015 : clickedPrice * 0.985).toStringAsFixed(2)),
                                   'stopPrice': double.parse((isLong ? clickedPrice * 0.9925 : clickedPrice * 1.0075).toStringAsFixed(2)),
+                                  'widthSpan': 40 * 11.0,
                                 },
-                              ));
+                              );
+                              controller.addDrawing(drawing);
+                              controller.selectDrawing(drawing.id);
                               controller.activeDrawingTool = DrawingTool.pointer;
                             } else {
-                              // Multi-point tools (trendline, fibonacci, ruler)
+                              // Multi-point tools (trendline, rectangle, fibonacci, ruler)
                               if (_drawingAnchorPoint == null) {
                                 setState(() {
                                   _drawingAnchorPoint = DrawingPoint(candleIndex: clickedIndex, price: clickedPrice);
+                                  _hasDraggedDuringCreation = false;
+                                  _drawingDragStartPos = pos;
                                 });
                               } else {
-                                controller.addDrawing(ChartDrawing(
+                                // Second click in Click-Move-Click mode!
+                                final drawing = ChartDrawing(
                                   id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
                                   tool: tool,
                                   points: [
                                     _drawingAnchorPoint!,
                                     DrawingPoint(candleIndex: clickedIndex, price: clickedPrice),
                                   ],
-                                ));
-                                setState(() => _drawingAnchorPoint = null);
+                                  color: tool == DrawingTool.rectangle
+                                      ? const Color(0xFFFFB300)
+                                      : const Color(0xFF2962FF),
+                                );
+                                controller.addDrawing(drawing);
+                                controller.selectDrawing(drawing.id);
+                                setState(() {
+                                  _drawingAnchorPoint = null;
+                                  _hasDraggedDuringCreation = false;
+                                });
                                 controller.setPreviewDrawing(null);
                                 controller.activeDrawingTool = DrawingTool.pointer;
                               }
@@ -367,16 +441,62 @@ class _TradingChartState extends State<TradingChart> {
                             return;
                           }
                         },
+                        onTapUp: (details) {
+                          final pos = details.localPosition;
+                          // If in pointer mode, check if user tapped on a drawing or handle to select it
+                          if (controller.activeDrawingTool == DrawingTool.pointer &&
+                              pos.dx < priceAxisLeft &&
+                              pos.dy < timeAxisTop &&
+                              controller.candles.isNotEmpty) {
+                            final bounds = Rect.fromLTWH(0, 0, priceAxisLeft, timeAxisTop);
+                            final converter = CoordinateConverter(
+                              viewport: controller.viewport,
+                              totalCandles: controller.candles.length,
+                            );
+                            final visible = controller.viewport.calculateVisibleIndices(controller.candles.length);
+                            final priceRange = PriceRange.fromCandles(
+                              controller.candles,
+                              start: visible.start,
+                              end: visible.end,
+                            );
+
+                            ChartDrawing? tappedDrawing;
+                            for (final d in controller.drawings.reversed) {
+                              if (d.hitTest(pos, bounds, priceRange, converter)) {
+                                tappedDrawing = d;
+                                break;
+                              }
+                            }
+                            controller.selectDrawing(tappedDrawing?.id);
+                          }
+                        },
                         onScaleStart: (details) {
+                          final start = details.localFocalPoint;
+                          _lastFocalPoint = start;
+                          _lastScale = 1.0;
+                          _isPinching = false;
+
+                          // If a drawing tool is currently active
                           if (controller.activeDrawingTool != DrawingTool.pointer) {
-                            _dragMode = _ChartDragMode.none;
+                            _dragMode = _ChartDragMode.drawingCreation;
+                            _drawingDragStartPos = start;
+                            if (_drawingAnchorPoint == null &&
+                                start.dx < priceAxisLeft &&
+                                start.dy < timeAxisTop &&
+                                controller.candles.isNotEmpty) {
+                              final converter = CoordinateConverter(
+                                viewport: controller.viewport,
+                                totalCandles: controller.candles.length,
+                              );
+                              final clickedIndex = converter.xToIndex(start.dx);
+                              final clickedPrice = double.parse(controller.priceAtY(start.dy).toStringAsFixed(2));
+                              _drawingAnchorPoint = DrawingPoint(candleIndex: clickedIndex, price: clickedPrice);
+                              _hasDraggedDuringCreation = false;
+                            }
                             return;
                           }
-                          _isPinching = false;
-                          _lastScale = 1.0;
-                          _lastFocalPoint = details.localFocalPoint;
-                          final start = details.localFocalPoint;
 
+                          // Pointer tool active
                           if (start.dx >= priceAxisLeft && start.dy < timeAxisTop) {
                             _dragMode = _ChartDragMode.priceAxis;
                           } else if (start.dy >= timeAxisTop && start.dx < priceAxisLeft) {
@@ -385,6 +505,51 @@ class _TradingChartState extends State<TradingChart> {
                             _dragMode = _ChartDragMode.none;
                             controller.resetView();
                           } else {
+                            // In main chart canvas
+                            if (controller.candles.isNotEmpty) {
+                              final bounds = Rect.fromLTWH(0, 0, priceAxisLeft, timeAxisTop);
+                              final converter = CoordinateConverter(
+                                viewport: controller.viewport,
+                                totalCandles: controller.candles.length,
+                              );
+                              final visible = controller.viewport.calculateVisibleIndices(controller.candles.length);
+                              final priceRange = PriceRange.fromCandles(
+                                controller.candles,
+                                start: visible.start,
+                                end: visible.end,
+                              );
+
+                              // 1. Check if dragging a handle on the selected drawing
+                              final sel = controller.selectedDrawing;
+                              if (sel != null && !sel.isLocked) {
+                                final handle = sel.hitTestHandle(start, bounds, priceRange, converter);
+                                if (handle != null) {
+                                  _draggingHandleIndex = handle;
+                                  _draggingDrawingId = sel.id;
+                                  _dragMode = _ChartDragMode.drawingHandle;
+                                  return;
+                                }
+                              }
+
+                              // 2. Check if clicking on any drawing to move it
+                              ChartDrawing? hitDrawing;
+                              for (final d in controller.drawings.reversed) {
+                                if (d.hitTest(start, bounds, priceRange, converter)) {
+                                  hitDrawing = d;
+                                  break;
+                                }
+                              }
+
+                              if (hitDrawing != null) {
+                                controller.selectDrawing(hitDrawing.id);
+                                if (!hitDrawing.isLocked) {
+                                  _draggingDrawingId = hitDrawing.id;
+                                  _dragMode = _ChartDragMode.drawingMove;
+                                  return;
+                                }
+                              }
+                            }
+
                             _dragMode = _ChartDragMode.mainChart;
                           }
                         },
@@ -393,6 +558,106 @@ class _TradingChartState extends State<TradingChart> {
                           final deltaY = details.localFocalPoint.dy - _lastFocalPoint.dy;
 
                           switch (_dragMode) {
+                            case _ChartDragMode.drawingCreation:
+                              if (_drawingAnchorPoint != null && controller.candles.isNotEmpty) {
+                                final dist = (details.localFocalPoint - (_drawingDragStartPos ?? details.localFocalPoint)).distance;
+                                if (dist > 8.0) {
+                                  _hasDraggedDuringCreation = true;
+                                }
+                                final converter = CoordinateConverter(
+                                  viewport: controller.viewport,
+                                  totalCandles: controller.candles.length,
+                                );
+                                final hoverIndex = converter.xToIndex(details.localFocalPoint.dx);
+                                final hoverPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
+                                controller.setPreviewDrawing(ChartDrawing(
+                                  id: 'preview',
+                                  tool: controller.activeDrawingTool,
+                                  points: [
+                                    _drawingAnchorPoint!,
+                                    DrawingPoint(candleIndex: hoverIndex, price: hoverPrice),
+                                  ],
+                                  color: controller.activeDrawingTool == DrawingTool.rectangle
+                                      ? const Color(0xFFFFB300).withValues(alpha: 0.8)
+                                      : const Color(0xFF2962FF).withValues(alpha: 0.8),
+                                ));
+                              }
+                              break;
+
+                            case _ChartDragMode.drawingHandle:
+                              if (_draggingDrawingId != null && _draggingHandleIndex != null && controller.candles.isNotEmpty) {
+                                final converter = CoordinateConverter(
+                                  viewport: controller.viewport,
+                                  totalCandles: controller.candles.length,
+                                );
+                                final newIndex = converter.xToIndex(details.localFocalPoint.dx);
+                                final newPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
+                                final newPoint = DrawingPoint(candleIndex: newIndex, price: newPrice);
+
+                                ChartDrawing? drawing;
+                                for (final d in controller.drawings) {
+                                  if (d.id == _draggingDrawingId) {
+                                    drawing = d;
+                                    break;
+                                  }
+                                }
+
+                                if (drawing != null) {
+                                  if (drawing.tool == DrawingTool.longPosition || drawing.tool == DrawingTool.shortPosition) {
+                                    final entryX = converter.indexToX(drawing.points[0].candleIndex);
+                                    if (_draggingHandleIndex == 0) {
+                                      controller.updateDrawingProperties(drawing.id, {'targetPrice': newPrice});
+                                    } else if (_draggingHandleIndex == 1) {
+                                      controller.updateDrawingProperties(drawing.id, {'stopPrice': newPrice});
+                                    } else if (_draggingHandleIndex == 2) {
+                                      controller.updateDrawingPoint(drawing.id, 0, newPoint);
+                                    } else if (_draggingHandleIndex == 3) {
+                                      final span = (details.localFocalPoint.dx - entryX).clamp(50.0, 1500.0);
+                                      controller.updateDrawingProperties(drawing.id, {'widthSpan': span});
+                                    }
+                                  } else if (drawing.tool == DrawingTool.horizontalLine) {
+                                    controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice));
+                                  } else if (drawing.tool == DrawingTool.rectangle) {
+                                    if (_draggingHandleIndex == 0) {
+                                      controller.updateDrawingPoint(drawing.id, 0, newPoint);
+                                    } else if (_draggingHandleIndex == 1) {
+                                      controller.updateDrawingPoint(drawing.id, 1, DrawingPoint(candleIndex: newIndex, price: drawing.points[1].price));
+                                      controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice));
+                                    } else if (_draggingHandleIndex == 2) {
+                                      controller.updateDrawingPoint(drawing.id, 1, newPoint);
+                                    } else if (_draggingHandleIndex == 3) {
+                                      controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: newIndex, price: drawing.points[0].price));
+                                      controller.updateDrawingPoint(drawing.id, 1, DrawingPoint(candleIndex: drawing.points[1].candleIndex, price: newPrice));
+                                    }
+                                  } else {
+                                    if (_draggingHandleIndex! < drawing.points.length) {
+                                      controller.updateDrawingPoint(drawing.id, _draggingHandleIndex!, newPoint);
+                                    }
+                                  }
+                                }
+                              }
+                              break;
+
+                            case _ChartDragMode.drawingMove:
+                              if (_draggingDrawingId != null && controller.candles.isNotEmpty) {
+                                final converter = CoordinateConverter(
+                                  viewport: controller.viewport,
+                                  totalCandles: controller.candles.length,
+                                );
+                                final prevIndex = converter.xToIndex(_lastFocalPoint.dx);
+                                final currIndex = converter.xToIndex(details.localFocalPoint.dx);
+                                final deltaCandles = currIndex - prevIndex;
+
+                                final prevPrice = controller.priceAtY(_lastFocalPoint.dy);
+                                final currPrice = controller.priceAtY(details.localFocalPoint.dy);
+                                final deltaPrice = currPrice - prevPrice;
+
+                                if (deltaCandles != 0 || deltaPrice.abs() > 0.001) {
+                                  controller.translateDrawing(_draggingDrawingId!, deltaCandles, deltaPrice);
+                                }
+                              }
+                              break;
+
                             case _ChartDragMode.priceAxis:
                               if (deltaY.abs() > 0.05) {
                                 controller.onVerticalScale(deltaY);
@@ -406,7 +671,6 @@ class _TradingChartState extends State<TradingChart> {
                               break;
 
                             case _ChartDragMode.mainChart:
-                              // Pinch Zoom (2+ touch points or continuous scaling gesture)
                               if (details.pointerCount >= 2 ||
                                   _isPinching ||
                                   (details.scale - 1.0).abs() > 0.01) {
@@ -415,14 +679,12 @@ class _TradingChartState extends State<TradingChart> {
                                 controller.onZoom(scaleRatio, details.localFocalPoint);
                                 _lastScale = details.scale;
                               } else {
-                                // Single-pointer Pan
                                 if (deltaX.abs() > 0.1) {
                                   controller.onPan(deltaX);
                                 }
                                 if (controller.isManualPriceScale && deltaY.abs() > 0.1) {
                                   controller.onVerticalPan(deltaY, timeAxisTop);
                                 }
-                                // Update crosshair tracking
                                 if (details.localFocalPoint.dx < priceAxisLeft &&
                                     details.localFocalPoint.dy < timeAxisTop) {
                                   controller.setCrosshairPosition(details.localFocalPoint);
@@ -437,6 +699,31 @@ class _TradingChartState extends State<TradingChart> {
                           _lastFocalPoint = details.localFocalPoint;
                         },
                         onScaleEnd: (_) {
+                          if (_dragMode == _ChartDragMode.drawingCreation) {
+                            if (_hasDraggedDuringCreation &&
+                                _drawingAnchorPoint != null &&
+                                controller.previewDrawing != null) {
+                              final completed = ChartDrawing(
+                                id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                tool: controller.activeDrawingTool,
+                                points: controller.previewDrawing!.points,
+                                color: controller.activeDrawingTool == DrawingTool.rectangle
+                                    ? const Color(0xFFFFB300)
+                                    : const Color(0xFF2962FF),
+                              );
+                              controller.addDrawing(completed);
+                              controller.selectDrawing(completed.id);
+                              controller.setPreviewDrawing(null);
+                              setState(() {
+                                _drawingAnchorPoint = null;
+                                _hasDraggedDuringCreation = false;
+                              });
+                              controller.activeDrawingTool = DrawingTool.pointer;
+                            }
+                          }
+
+                          _draggingHandleIndex = null;
+                          _draggingDrawingId = null;
                           _dragMode = _ChartDragMode.none;
                           _isPinching = false;
                           _lastScale = 1.0;
@@ -541,6 +828,14 @@ class _TradingChartState extends State<TradingChart> {
                         child: Center(
                           child: ReplayControlBar(controller: controller),
                         ),
+                      ),
+
+                    // Floating Drawing Action Bar (when a drawing is selected)
+                    if (controller.selectedDrawing != null)
+                      Positioned(
+                        top: 14,
+                        left: 16,
+                        child: _buildDrawingActionBar(context, controller, controller.selectedDrawing!),
                       ),
 
                     // TradingView-style "Auto" Scale Pill in the bottom right of the price axis
@@ -1189,5 +1484,142 @@ class _TradingChartState extends State<TradingChart> {
           ),
         ),
     ];
+  }
+
+  Widget _buildDrawingActionBar(
+    BuildContext context,
+    TradingChartController controller,
+    ChartDrawing drawing,
+  ) {
+    const swatches = [
+      Color(0xFF2962FF), // Blue
+      Color(0xFF00E676), // Emerald
+      Color(0xFFFF3B30), // Crimson
+      Color(0xFFFFB300), // Amber
+      Color(0xFFAB47BC), // Purple
+      Color(0xFFFFFFFF), // White
+    ];
+
+    const strokeWidths = [1.0, 2.0, 3.0, 4.0];
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xE61E222D),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF2A2E39), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tool Icon & Title
+            Icon(drawing.tool.icon, size: 16, color: drawing.color),
+            const SizedBox(width: 6),
+            Text(
+              drawing.tool.label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(width: 1, height: 18, color: const Color(0xFF363A45)),
+            const SizedBox(width: 10),
+
+            // Color Swatches
+            for (final color in swatches) ...[
+              GestureDetector(
+                onTap: () => controller.setSelectedDrawingColor(color),
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: drawing.color == color ? Colors.white : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(width: 8),
+            Container(width: 1, height: 18, color: const Color(0xFF363A45)),
+            const SizedBox(width: 8),
+
+            // Stroke Width Selector
+            for (final w in strokeWidths) ...[
+              InkWell(
+                onTap: () => controller.setSelectedDrawingStrokeWidth(w),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                  decoration: BoxDecoration(
+                    color: drawing.strokeWidth == w ? const Color(0xFF2962FF) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '${w.toInt()}px',
+                    style: TextStyle(
+                      color: drawing.strokeWidth == w ? Colors.white : const Color(0xFF868993),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(width: 8),
+            Container(width: 1, height: 18, color: const Color(0xFF363A45)),
+            const SizedBox(width: 6),
+
+            // Lock Toggle
+            IconButton(
+              tooltip: drawing.isLocked ? 'Unlock Drawing' : 'Lock Drawing',
+              icon: Icon(
+                drawing.isLocked ? Icons.lock : Icons.lock_open_outlined,
+                size: 16,
+                color: drawing.isLocked ? const Color(0xFFFFB300) : const Color(0xFF868993),
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              onPressed: controller.toggleSelectedDrawingLocked,
+            ),
+
+            // Delete Button
+            IconButton(
+              key: Key('delete_drawing_${drawing.id}'),
+              tooltip: 'Delete Drawing (Del)',
+              icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFFF3B30)),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              onPressed: controller.deleteSelectedDrawing,
+            ),
+
+            // Close / Deselect
+            IconButton(
+              tooltip: 'Deselect (Esc)',
+              icon: const Icon(Icons.close, size: 15, color: Color(0xFF868993)),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 28),
+              onPressed: () => controller.selectDrawing(null),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -57,6 +57,19 @@ const ChartDrawingToolbar({
 
 ---
 
+### `DrawingActionToolbar`
+Floating glassmorphic contextual quick-action toolbar displayed when any drawing is selected. Provides color swatches, stroke widths (1–4px), lock/unlock, and instant deletion.
+
+```dart
+const DrawingActionToolbar({
+  super.key,
+  required TradingChartController controller,
+  required ChartDrawing selectedDrawing,
+});
+```
+
+---
+
 ### `TradingChart`
 Standalone high-performance canvas presentation widget.
 
@@ -307,6 +320,7 @@ Supported drawing instruments.
 - `DrawingTool.pointer` (Standard cursor)
 - `DrawingTool.trendline` (2-point angled trendline)
 - `DrawingTool.horizontalLine` (1-point horizontal support/resistance ray)
+- `DrawingTool.rectangle` (2-point Supply/Demand box with translucent shading and 4-corner handles)
 - `DrawingTool.fibonacci` (2-point Fibonacci retracement with golden ratio bands)
 - `DrawingTool.longPosition` (1-point Risk:Reward box with target/stop zones)
 - `DrawingTool.shortPosition` (1-point short Risk:Reward box)

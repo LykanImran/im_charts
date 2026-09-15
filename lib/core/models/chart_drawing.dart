@@ -1,10 +1,14 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../coordinates/coordinate_converter.dart';
+import 'price_range.dart';
 
 /// Available interactive drawing tools on the chart.
 enum DrawingTool {
   pointer,
   trendline,
   horizontalLine,
+  rectangle,
   fibonacci,
   longPosition,
   shortPosition,
@@ -20,6 +24,8 @@ extension DrawingToolExtension on DrawingTool {
         return 'Trendline';
       case DrawingTool.horizontalLine:
         return 'Horizontal Line';
+      case DrawingTool.rectangle:
+        return 'Rectangle';
       case DrawingTool.fibonacci:
         return 'Fibonacci Retracement';
       case DrawingTool.longPosition:
@@ -39,6 +45,8 @@ extension DrawingToolExtension on DrawingTool {
         return Icons.trending_up;
       case DrawingTool.horizontalLine:
         return Icons.horizontal_rule;
+      case DrawingTool.rectangle:
+        return Icons.crop_square_outlined;
       case DrawingTool.fibonacci:
         return Icons.stacked_bar_chart;
       case DrawingTool.longPosition:
@@ -60,6 +68,7 @@ extension DrawingToolExtension on DrawingTool {
       case DrawingTool.shortPosition:
         return 1;
       case DrawingTool.trendline:
+      case DrawingTool.rectangle:
       case DrawingTool.fibonacci:
       case DrawingTool.ruler:
         return 2;
@@ -136,5 +145,202 @@ class ChartDrawing {
       isSelected: isSelected ?? this.isSelected,
       properties: properties ?? this.properties,
     );
+  }
+
+  /// Calculates perpendicular distance from point [p] to segment between [a] and [b].
+  static double distanceToSegment(Offset p, Offset a, Offset b) {
+    final l2 = (b - a).distanceSquared;
+    if (l2 == 0) return (p - a).distance;
+    final t = math.max(
+      0.0,
+      math.min(1.0, ((p.dx - a.dx) * (b.dx - a.dx) + (p.dy - a.dy) * (b.dy - a.dy)) / l2),
+    );
+    final projection = Offset(a.dx + t * (b.dx - a.dx), a.dy + t * (b.dy - a.dy));
+    return (p - projection).distance;
+  }
+
+  /// Returns pixel positions of all interactive handles for this drawing.
+  List<Offset> getHandleOffsets(
+    Rect bounds,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (points.isEmpty) return const [];
+
+    switch (tool) {
+      case DrawingTool.pointer:
+        return const [];
+
+      case DrawingTool.trendline:
+      case DrawingTool.ruler:
+        if (points.length < 2) {
+          final x = converter.indexToX(points[0].candleIndex);
+          final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+          return [Offset(x, y)];
+        }
+        final x1 = converter.indexToX(points[0].candleIndex);
+        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final x2 = converter.indexToX(points[1].candleIndex);
+        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        return [Offset(x1, y1), Offset(x2, y2)];
+
+      case DrawingTool.horizontalLine:
+        final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        return [Offset(bounds.center.dx, y)];
+
+      case DrawingTool.rectangle:
+        if (points.length < 2) {
+          final x = converter.indexToX(points[0].candleIndex);
+          final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+          return [Offset(x, y)];
+        }
+        final x1 = converter.indexToX(points[0].candleIndex);
+        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final x2 = converter.indexToX(points[1].candleIndex);
+        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        return [
+          Offset(x1, y1),
+          Offset(x2, y1),
+          Offset(x2, y2),
+          Offset(x1, y2),
+        ];
+
+      case DrawingTool.fibonacci:
+        if (points.length < 2) return const [];
+        final x1 = converter.indexToX(points[0].candleIndex);
+        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final x2 = converter.indexToX(points[1].candleIndex);
+        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        return [Offset(x1, y1), Offset(x2, y2)];
+
+      case DrawingTool.longPosition:
+      case DrawingTool.shortPosition:
+        final isLong = tool == DrawingTool.longPosition;
+        final entry = points.first;
+        final entryX = converter.indexToX(entry.candleIndex);
+        final entryY = CoordinateConverter.priceToY(entry.price, bounds, priceRange);
+        final widthSpan = (properties['widthSpan'] as double?) ?? (40 * 11.0);
+        final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
+
+        final targetPrice = properties['targetPrice'] as double? ??
+            (isLong ? entry.price * 1.015 : entry.price * 0.985);
+        final stopPrice = properties['stopPrice'] as double? ??
+            (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
+
+        final targetY = CoordinateConverter.priceToY(targetPrice, bounds, priceRange);
+        final stopY = CoordinateConverter.priceToY(stopPrice, bounds, priceRange);
+
+        return [
+          Offset((entryX + rightX) / 2, targetY),
+          Offset((entryX + rightX) / 2, stopY),
+          Offset(entryX, entryY),
+          Offset(rightX, entryY),
+        ];
+    }
+  }
+
+  /// Checks if [pos] falls within [threshold] pixels of any handle on this drawing.
+  int? hitTestHandle(
+    Offset pos,
+    Rect bounds,
+    PriceRange priceRange,
+    CoordinateConverter converter, {
+    double threshold = 12.0,
+  }) {
+    final handles = getHandleOffsets(bounds, priceRange, converter);
+    for (int i = 0; i < handles.length; i++) {
+      if ((pos - handles[i]).distance <= threshold) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  /// Checks if [pos] hits this drawing (near line, inside box, or near handles).
+  bool hitTest(
+    Offset pos,
+    Rect bounds,
+    PriceRange priceRange,
+    CoordinateConverter converter, {
+    double threshold = 8.0,
+  }) {
+    if (points.isEmpty) return false;
+
+    if (hitTestHandle(pos, bounds, priceRange, converter, threshold: threshold + 4) != null) {
+      return true;
+    }
+
+    switch (tool) {
+      case DrawingTool.pointer:
+        return false;
+
+      case DrawingTool.trendline:
+      case DrawingTool.ruler:
+        if (points.length < 2) return false;
+        final x1 = converter.indexToX(points[0].candleIndex);
+        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final x2 = converter.indexToX(points[1].candleIndex);
+        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        return distanceToSegment(pos, Offset(x1, y1), Offset(x2, y2)) <= threshold;
+
+      case DrawingTool.horizontalLine:
+        final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        return (pos.dy - y).abs() <= threshold && pos.dx >= bounds.left && pos.dx <= bounds.right;
+
+      case DrawingTool.rectangle:
+        if (points.length < 2) return false;
+        final x1 = converter.indexToX(points[0].candleIndex);
+        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final x2 = converter.indexToX(points[1].candleIndex);
+        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        final rect = Rect.fromLTRB(
+          math.min(x1, x2),
+          math.min(y1, y2),
+          math.max(x1, x2),
+          math.max(y1, y2),
+        );
+        return rect.inflate(threshold).contains(pos);
+
+      case DrawingTool.fibonacci:
+        if (points.length < 2) return false;
+        final p1 = points[0];
+        final p2 = points[1];
+        final x1 = converter.indexToX(p1.candleIndex);
+        final x2 = converter.indexToX(p2.candleIndex);
+        final minX = math.min(x1, x2) - threshold;
+        final maxX = math.max(bounds.right, math.max(x1, x2)) + threshold;
+
+        if (pos.dx < minX || pos.dx > maxX) return false;
+
+        final priceDiff = p2.price - p1.price;
+        const ratios = [0.0, 0.236, 0.382, 0.500, 0.618, 0.786, 1.0];
+        for (final r in ratios) {
+          final levelPrice = p1.price + (priceDiff * r);
+          final y = CoordinateConverter.priceToY(levelPrice, bounds, priceRange);
+          if ((pos.dy - y).abs() <= threshold) return true;
+        }
+        return false;
+
+      case DrawingTool.longPosition:
+      case DrawingTool.shortPosition:
+        final isLong = tool == DrawingTool.longPosition;
+        final entry = points.first;
+        final entryX = converter.indexToX(entry.candleIndex);
+        final widthSpan = (properties['widthSpan'] as double?) ?? (40 * 11.0);
+        final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
+
+        final targetPrice = properties['targetPrice'] as double? ??
+            (isLong ? entry.price * 1.015 : entry.price * 0.985);
+        final stopPrice = properties['stopPrice'] as double? ??
+            (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
+
+        final targetY = CoordinateConverter.priceToY(targetPrice, bounds, priceRange);
+        final stopY = CoordinateConverter.priceToY(stopPrice, bounds, priceRange);
+
+        final minY = math.min(targetY, stopY);
+        final maxY = math.max(targetY, stopY);
+        final totalRect = Rect.fromLTRB(entryX, minY, rightX, maxY);
+        return totalRect.inflate(threshold).contains(pos);
+    }
   }
 }

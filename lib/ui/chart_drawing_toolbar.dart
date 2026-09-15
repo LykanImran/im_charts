@@ -26,6 +26,7 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
     DrawingTool.pointer,
     DrawingTool.trendline,
     DrawingTool.horizontalLine,
+    DrawingTool.rectangle,
     DrawingTool.fibonacci,
     DrawingTool.longPosition,
     DrawingTool.shortPosition,
