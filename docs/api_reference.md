@@ -112,11 +112,18 @@ Central state management controller coordinating data ingestion, viewport calcul
 - `Candle? get currentCandle`: Active forming candle.
 - `Candle? get hoveredCandle`: Candle under crosshair pointer or latest candle.
 - `List<IndicatorResult> get overlayResults`: Computed overlay indicator series.
-- `IndicatorResult? get subPaneResult`: Computed sub-pane oscillator result.
+- `IndicatorResult? get subPaneResult`: Primary sub-pane oscillator result (backward compatible).
+- `List<IndicatorResult> get subPaneResults`: All active stacked sub-pane oscillator results.
+- `bool get showVolumeProfile`: Whether Visible Range Volume Profile is displayed.
+- `VolumeProfile? get volumeProfile`: Active computed volume profile across visible bars.
+- `List<ChartAlert> get alerts`: Active price alerts.
 - `List<ChartOrder> get orders`: Active orders on chart.
 - `List<ChartPosition> get positions`: Open executed positions on chart.
 - `bool get isManualPriceScale`: `true` if user has dragged vertical price scale.
 - `bool get isDarkTheme`: `true` if dark mode palette is active.
+- `bool get isReplayMode`: `true` if historical bar replay simulator is active.
+- `bool get isReplaying`: `true` if continuous playback is currently running.
+- `int get replaySpeed`: Current replay playback speed multiplier (`1` to `5`).
 
 #### Key Methods
 - `Future<void> initialize()`: Fetches historical candles and starts real-time streaming.
@@ -131,13 +138,25 @@ Central state management controller coordinating data ingestion, viewport calcul
 - `void resetView()`: Resets all zoom, manual price scaling, and scroll to default.
 - `void resetPriceScale()`: Restores auto-scale mode on price axis.
 - `void scrollToLatest()`: Animates/scrolls viewport to the latest candle.
-- `void toggleIndicator(Indicator indicator)`: Toggles active status of an indicator.
+- `void toggleIndicator(Indicator indicator)`: Toggles active status of an indicator (supports multiple sub-panes).
+- `void removeSubPane(Indicator indicator)`: Closes and removes a specific sub-pane oscillator.
+- `void toggleVolumeProfile()`: Toggles Visible Range Volume Profile overlay.
 - `void toggleTheme()`: Toggles between `ChartTheme.dark()` and `ChartTheme.light()`.
 - `void placeOrder(ChartOrder order)`: Submits new chart order with optional TP/SL brackets.
 - `void cancelOrder(String id)`: Cancels pending order by ID.
 - `void openPosition(ChartPosition position)`: Registers an executed market position.
 - `void closePosition(String id)`: Closes an open position at market.
 - `void updatePosition(ChartPosition position)`: Modifies open position (e.g. adjusts TP/SL).
+- `void addAlert(ChartAlert alert)`: Registers a new price alert line on canvas.
+- `void updateAlert(ChartAlert alert)`: Modifies alert price threshold or condition.
+- `void removeAlert(String id)`: Deletes an alert by ID.
+- `void clearAlerts()`: Removes all active alerts.
+- `void startReplay({int? fromIndex})`: Initializes bar replay simulator sliced to historical index.
+- `void stepReplayForward()`: Advances replay simulation by 1 candle.
+- `void stepReplayBackward()`: Steps replay simulation backward by 1 candle.
+- `void toggleReplayPlay()`: Toggles automated replay playback on/off.
+- `void setReplaySpeed(int speed)`: Sets replay timer rate (`1x`, `2x`, `3x`, `5x`).
+- `void exitReplay()`: Exits simulator and restores live real-time candle stream.
 
 ---
 
@@ -333,4 +352,70 @@ class ChartPosition {
   double unrealizedPnLPercentage(double currentPrice);
 }
 ```
+
+---
+
+### `ChartAlert`
+Canvas-rendered visual price alert line with draggable threshold and trigger detection.
+
+```dart
+class ChartAlert {
+  final String id;
+  final String symbol;
+  final double price;
+  final AlertTriggerCondition condition; // crossing, crossingUp, crossingDown
+  final String? message;
+  final DateTime createdAt;
+  final bool isTriggered;
+  final bool isActive;
+
+  bool checkTrigger(double previousPrice, double currentPrice);
+}
+```
+
+---
+
+### `VolumeProfile`
+Visible Range Volume Profile calculating high-liquidity nodes, POC, and 70% Value Area.
+
+```dart
+class VolumeProfile {
+  final List<VolumeProfileBin> bins;
+  final double pointOfControl; // POC price
+  final double valueAreaHigh;   // VAH
+  final double valueAreaLow;    // VAL
+  final double totalVolume;
+  final double maxBinVolume;
+
+  static VolumeProfile calculate(
+    List<Candle> visibleCandles, {
+    int binCount = 30,
+    double valueAreaPercent = 0.70,
+  });
+}
+```
+
+---
+
+## 🛠️ Utilities & Widgets
+
+### `ChartExporter`
+High-DPI retina canvas snapshot generator and preview dialog.
+
+- `static Future<Uint8List?> captureChart(GlobalKey boundaryKey, {double pixelRatio = 2.0})`: Captures high-res PNG byte array.
+- `static Future<void> showSnapshotDialog(BuildContext context, Uint8List pngBytes, {String symbol = 'CHART'})`: Displays interactive modal with download and clipboard triggers.
+
+---
+
+### `ReplayControlBar`
+Floating glassmorphic playback control toolbar rendered during bar replay simulation.
+
+```dart
+const ReplayControlBar({
+  super.key,
+  required TradingChartController controller,
+  VoidCallback? onExit,
+});
+```
+
 

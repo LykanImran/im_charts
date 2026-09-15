@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/models/candle_style.dart';
 import '../core/models/timeframe.dart';
+import '../core/utils/chart_exporter.dart';
 import '../engine/chart_controller.dart';
 import '../engine/indicators/bollinger_bands.dart';
 import '../engine/indicators/ema.dart';
@@ -11,11 +12,16 @@ import 'chart_settings_modal.dart';
 import 'symbol_search_modal.dart';
 
 /// Row 1: Primary Toolbar containing:
-/// Search, Interval Dropdown, Candles Dropdown, Indicators Dropdown, Refresh, Dark/Light Mode, Settings.
+/// Search, Interval Dropdown, Candles Dropdown, Indicators Dropdown, Refresh, Dark/Light Mode, Settings, Replay, Snapshot, Shortcuts.
 class ChartToolbar extends StatefulWidget {
   final TradingChartController controller;
+  final GlobalKey? repaintBoundaryKey;
 
-  const ChartToolbar({super.key, required this.controller});
+  const ChartToolbar({
+    super.key,
+    required this.controller,
+    this.repaintBoundaryKey,
+  });
 
   @override
   State<ChartToolbar> createState() => _ChartToolbarState();
@@ -216,6 +222,91 @@ class _ChartToolbarState extends State<ChartToolbar>
                       ),
                       onPressed: () =>
                           ChartSettingsModal.show(context, controller),
+                    ),
+
+                    _buildDivider(theme),
+
+                    // 8. BAR REPLAY BUTTON
+                    IconButton(
+                      icon: Icon(
+                        Icons.history,
+                        size: 18,
+                        color: controller.isReplayMode
+                            ? const Color(0xFFFF9800)
+                            : theme.axisTextColor,
+                      ),
+                      tooltip: controller.isReplayMode
+                          ? 'Exit Bar Replay'
+                          : 'Bar Replay Simulator',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: () {
+                        if (controller.isReplayMode) {
+                          controller.exitReplay();
+                        } else {
+                          controller.startReplay();
+                        }
+                      },
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    // 9. SNAPSHOT / EXPORT PNG
+                    IconButton(
+                      icon: Icon(
+                        Icons.camera_alt_outlined,
+                        size: 18,
+                        color: theme.axisTextColor,
+                      ),
+                      tooltip: 'Take Chart Snapshot (Export PNG)',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: () async {
+                        if (widget.repaintBoundaryKey != null) {
+                          final bytes = await ChartExporter.capturePng(
+                              widget.repaintBoundaryKey!);
+                          if (bytes != null && context.mounted) {
+                            ChartExporter.showSnapshotDialog(
+                              context: context,
+                              pngBytes: bytes,
+                              symbol: controller.symbol,
+                            );
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Chart snapshot captured (1080p)!'),
+                              backgroundColor: Color(0xFF1E222D),
+                              duration: Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    // 10. SHORTCUTS / HOTKEYS HELP
+                    IconButton(
+                      icon: Icon(
+                        Icons.keyboard_outlined,
+                        size: 18,
+                        color: theme.axisTextColor,
+                      ),
+                      tooltip: 'Keyboard Shortcuts (Hotkeys)',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: () => _showShortcutsDialog(context, isDark),
                     ),
                   ],
                 ),
@@ -551,6 +642,14 @@ class _ChartToolbarState extends State<ChartToolbar>
             theme: theme,
             isDark: isDark,
           ),
+          _buildIndicatorMenuItem(
+            label: 'Volume Profile (VRVP)',
+            color: const Color(0xFFFF1744),
+            isActive: controller.showVolumeProfile,
+            onTap: () => controller.toggleVolumeProfile(),
+            theme: theme,
+            isDark: isDark,
+          ),
         ];
       },
       child: Container(
@@ -639,6 +738,121 @@ class _ChartToolbarState extends State<ChartToolbar>
             isActive ? Icons.check_box : Icons.check_box_outline_blank,
             size: 18,
             color: isActive ? const Color(0xFF2962FF) : theme.axisTextColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showShortcutsDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E222D) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+              color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+            ),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.keyboard_outlined,
+                              size: 20, color: Color(0xFF2962FF)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'TradingView Keyboard Shortcuts',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF131722),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close,
+                            size: 18,
+                            color: isDark
+                                ? const Color(0xFF787B86)
+                                : Colors.black54),
+                        onPressed: () => Navigator.pop(ctx),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildShortcutRow(
+                      'Alt + H', 'Place Horizontal Support/Resistance Line', isDark),
+                  _buildShortcutRow('Alt + T', 'Activate Trendline Tool', isDark),
+                  _buildShortcutRow('Alt + A', 'Set Price Alert at Cursor', isDark),
+                  _buildShortcutRow('Alt + R', 'Reset View to Auto-Scale', isDark),
+                  _buildShortcutRow(
+                      'Delete / Backspace', 'Remove Selected Drawing', isDark),
+                  _buildShortcutRow('← / →', 'Pan Historical Candlesticks', isDark),
+                  _buildShortcutRow('+ / -', 'Zoom In / Out Horizontally', isDark),
+                  _buildShortcutRow('Esc', 'Clear Tool / Selection', isDark),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildShortcutRow(
+      String keyCombination, String description, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFECEFF1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isDark ? const Color(0xFF363A45) : const Color(0xFFCFD8DC),
+              ),
+            ),
+            child: Text(
+              keyCombination,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              description,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color:
+                    isDark ? const Color(0xFFB2B5BE) : const Color(0xFF434651),
+                fontSize: 11.5,
+              ),
+            ),
           ),
         ],
       ),

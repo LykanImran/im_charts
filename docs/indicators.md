@@ -101,6 +101,29 @@ controller.toggleIndicator(rsi);
 
 ---
 
+### 6. Visible Range Volume Profile (`VolumeProfile` / VRVP)
+An institutional order flow indicator that calculates and visualizes volume distribution strictly over the currently visible price action bars. It identifies high-liquidity zones, fair value areas, and critical price magnets:
+
+```dart
+// Calculate volume profile over visible candles
+final profile = VolumeProfile.calculate(
+  visibleCandles,
+  binCount: 30,             // Number of horizontal price brackets
+  valueAreaPercent: 0.70,   // Standard 70% Value Area threshold
+);
+
+// Toggle directly via the chart controller
+controller.toggleVolumeProfile();
+```
+
+#### Key Components:
+- **Point of Control (POC)**: The single horizontal price bin that traded the highest total volume. Rendered as a solid, high-visibility crimson red line across the viewport with an interactive `POC ₹...` pill badge.
+- **Value Area High (VAH) & Value Area Low (VAL)**: Upper and lower price bounds enclosing exactly 70% of all traded volume in the visible range. Drawn with subtle dashed reference lines and price tags.
+- **Buy / Sell Volume Breakdown**: Every horizontal bin decomposes volume into bullish (close $\ge$ open) and bearish (close $<$ open) sub-segments painted on the right side of the canvas.
+- **Dynamic Recalculation**: Automatically updates as the trader pans, zooms, or streams new candles into view.
+
+---
+
 ## ✍️ Authoring Custom Technical Indicators
 
 Creating a custom indicator in `im_charts` is straightforward. Simply extend [`Indicator`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/engine/indicators/indicator.dart) and implement `calculate(List<Candle> candles)`.

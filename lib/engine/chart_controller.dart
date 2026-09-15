@@ -5,6 +5,7 @@ import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
@@ -16,6 +17,7 @@ import '../datasource/chart_data_source.dart';
 import 'candle_builder.dart';
 import 'indicators/indicator.dart';
 import 'indicators/indicator_result.dart';
+import 'indicators/volume_profile.dart';
 
 /// Top-level controller managing chart state, gestures, viewport, indicators, and live data stream.
 class TradingChartController extends ChangeNotifier {
@@ -33,6 +35,7 @@ class TradingChartController extends ChangeNotifier {
 
   final List<Indicator> _activeIndicators = [];
   List<IndicatorResult> _overlayResults = [];
+  List<IndicatorResult> _subPaneResults = [];
   IndicatorResult? _subPaneResult;
 
   Offset? _crosshairPosition;
@@ -43,6 +46,21 @@ class TradingChartController extends ChangeNotifier {
   bool _isLoading = true;
   bool _showCountdownTimer = true;
   bool _showWatermark = true;
+
+  // Visible Range Volume Profile (VRVP)
+  bool _showVolumeProfile = false;
+  VolumeProfile? _volumeProfile;
+
+  // Visual Price Alerts
+  final List<ChartAlert> _alerts = [];
+  void Function(ChartAlert alert)? onAlertTriggered;
+
+  // Bar Replay Mode
+  bool _isReplayMode = false;
+  int? _replayIndex;
+  bool _isReplaying = false;
+  Timer? _replayTimer;
+  double _replaySpeed = 1.0;
 
   // Vertical Price Scale (TradingView manual scale & pan)
   double _verticalScale = 1.0;
@@ -98,15 +116,40 @@ class TradingChartController extends ChangeNotifier {
   Timeframe get timeframe => _timeframe;
   CandleStyle get candleStyle => _candleStyle;
   ChartViewport get viewport => _viewport;
-  List<Candle> get candles => _candleBuilder.candles;
-  Candle? get currentCandle => _candleBuilder.currentCandle;
+  int get allCandlesCount => _candleBuilder.candles.length;
+  List<Candle> get candles => (_isReplayMode && _replayIndex != null)
+      ? _candleBuilder.candles.sublist(0, math.min(_replayIndex! + 1, _candleBuilder.candles.length))
+      : _candleBuilder.candles;
+  Candle? get currentCandle => (_isReplayMode && _replayIndex != null && _candleBuilder.candles.isNotEmpty)
+      ? _candleBuilder.candles[math.min(_replayIndex!, _candleBuilder.candles.length - 1)]
+      : _candleBuilder.currentCandle;
   Candle? get hoveredCandle => _hoveredCandle ?? currentCandle;
   List<IndicatorResult> get overlayResults => _overlayResults;
-  IndicatorResult? get subPaneResult => _subPaneResult;
+  List<IndicatorResult> get subPaneResults => List.unmodifiable(_subPaneResults);
+  IndicatorResult? get subPaneResult => _subPaneResults.isNotEmpty ? _subPaneResults.first : null;
   List<Indicator> get activeIndicators => List.unmodifiable(_activeIndicators);
   List<ChartOrder> get orders => List.unmodifiable(_orders);
   List<ChartPosition> get positions => List.unmodifiable(_positions);
   List<ChartDrawing> get drawings => List.unmodifiable(_drawings);
+  List<ChartAlert> get alerts => List.unmodifiable(_alerts);
+
+  bool get showVolumeProfile => _showVolumeProfile;
+  set showVolumeProfile(bool val) {
+    if (_showVolumeProfile != val) {
+      _showVolumeProfile = val;
+      _recalculateIndicators();
+      notifyListeners();
+    }
+  }
+  void toggleVolumeProfile() {
+    showVolumeProfile = !_showVolumeProfile;
+  }
+  VolumeProfile? get volumeProfile => _volumeProfile;
+
+  bool get isReplayMode => _isReplayMode;
+  int? get replayIndex => _replayIndex;
+  bool get isReplaying => _isReplaying;
+  double get replaySpeed => _replaySpeed;
   ChartDrawing? get previewDrawing => _previewDrawing;
   DrawingTool get activeDrawingTool => _activeDrawingTool;
   set activeDrawingTool(DrawingTool tool) {
@@ -363,6 +406,120 @@ class TradingChartController extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
+  // Visual Price Alerts
+  void addAlert(ChartAlert alert) {
+    _alerts.removeWhere((a) => a.id == alert.id);
+    _alerts.add(alert);
+    notifyListeners();
+  }
+
+  void updateAlert(ChartAlert alert) {
+    final index = _alerts.indexWhere((a) => a.id == alert.id);
+    if (index >= 0) {
+      _alerts[index] = alert;
+      notifyListeners();
+    }
+  }
+
+  void removeAlert(String id) {
+    _alerts.removeWhere((a) => a.id == id);
+    notifyListeners();
+  }
+
+  void clearAlerts() {
+    _alerts.clear();
+    notifyListeners();
+  }
+
+  // Stackable Multiple Sub-Panes
+  void removeSubPane(String indicatorId) {
+    _activeIndicators.removeWhere((i) => i.id == indicatorId);
+    _recalculateIndicators();
+    notifyListeners();
+  }
+
+  // Bar Replay Mode & Simulator
+  void startReplay([int? startIndex]) {
+    _isReplayMode = true;
+    final total = _candleBuilder.candles.length;
+    final defaultIndex = total > 40 ? total - 40 : (total ~/ 2);
+    _replayIndex = (startIndex ?? defaultIndex).clamp(1, math.max(1, total - 1));
+    _isReplaying = false;
+    _replayTimer?.cancel();
+    _recalculateIndicators();
+    scrollToLatest();
+    notifyListeners();
+  }
+
+  void stepReplayForward() {
+    if (!_isReplayMode || _replayIndex == null) return;
+    if (_replayIndex! < _candleBuilder.candles.length - 1) {
+      _replayIndex = _replayIndex! + 1;
+      _recalculateIndicators();
+      notifyListeners();
+    } else {
+      pauseReplay();
+    }
+  }
+
+  void stepReplayBackward() {
+    if (!_isReplayMode || _replayIndex == null) return;
+    if (_replayIndex! > 5) {
+      _replayIndex = _replayIndex! - 1;
+      _recalculateIndicators();
+      notifyListeners();
+    }
+  }
+
+  void toggleReplayPlay() {
+    if (_isReplaying) {
+      pauseReplay();
+    } else {
+      playReplay();
+    }
+  }
+
+  void playReplay() {
+    if (!_isReplayMode) return;
+    _isReplaying = true;
+    _replayTimer?.cancel();
+    final intervalMs = (1000 / _replaySpeed).round().clamp(100, 3000);
+    _replayTimer = Timer.periodic(Duration(milliseconds: intervalMs), (_) {
+      if (_replayIndex != null && _replayIndex! < _candleBuilder.candles.length - 1) {
+        _replayIndex = _replayIndex! + 1;
+        _recalculateIndicators();
+        notifyListeners();
+      } else {
+        pauseReplay();
+      }
+    });
+    notifyListeners();
+  }
+
+  void pauseReplay() {
+    _isReplaying = false;
+    _replayTimer?.cancel();
+    notifyListeners();
+  }
+
+  void setReplaySpeed(double speed) {
+    _replaySpeed = speed;
+    if (_isReplaying) {
+      playReplay();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void exitReplay() {
+    pauseReplay();
+    _isReplayMode = false;
+    _replayIndex = null;
+    _recalculateIndicators();
+    scrollToLatest();
+    notifyListeners();
+  }
+
   /// Loads initial historical data and establishes real-time tick ingestion.
   Future<void> initialize() async {
     _isLoading = true;
@@ -389,13 +546,30 @@ class TradingChartController extends ChangeNotifier {
   }
 
   void _onLiveTick(Tick tick) {
+    if (_isReplayMode) return; // Freeze live ticks while in replay simulator
+    final prevClose = currentCandle?.close ?? tick.price;
     final updatedCandle = _candleBuilder.onTick(tick);
+    _checkAlerts(prevClose, tick.price);
     _recalculateIndicators();
     // Update hovered candle if it was tracking latest
     if (_crosshairPosition == null) {
       _hoveredCandle = updatedCandle;
     }
     notifyListeners();
+  }
+
+  void _checkAlerts(double prevPrice, double currentPrice) {
+    for (int i = 0; i < _alerts.length; i++) {
+      final alert = _alerts[i];
+      if (alert.isActive && !alert.isTriggered && alert.checkTrigger(currentPrice, prevPrice)) {
+        final triggered = alert.copyWith(
+          isTriggered: true,
+          triggeredAt: DateTime.now(),
+        );
+        _alerts[i] = triggered;
+        onAlertTriggered?.call(triggered);
+      }
+    }
   }
 
   /// Sets a new symbol and reloads chart data.
@@ -664,19 +838,34 @@ class TradingChartController extends ChangeNotifier {
 
   void _recalculateIndicators() {
     _overlayResults = [];
+    _subPaneResults = [];
     _subPaneResult = null;
 
-    final candleList = _candleBuilder.candles;
-    if (candleList.isEmpty) return;
+    final candleList = candles;
+    if (candleList.isEmpty) {
+      _volumeProfile = null;
+      return;
+    }
 
     for (final ind in _activeIndicators) {
       final res = ind.calculate(candleList);
       if (res.isOverlay) {
         _overlayResults.add(res);
       } else {
-        // Single primary sub-pane indicator (e.g. RSI)
-        _subPaneResult = res;
+        _subPaneResults.add(res);
       }
+    }
+    _subPaneResult = _subPaneResults.isNotEmpty ? _subPaneResults.first : null;
+
+    // Calculate Visible Range Volume Profile (VRVP) if enabled
+    if (_showVolumeProfile) {
+      final visible = _viewport.calculateVisibleIndices(candleList.length);
+      final start = visible.start.clamp(0, candleList.length);
+      final end = (visible.end + 1).clamp(start, candleList.length);
+      final visCandles = candleList.sublist(start, end);
+      _volumeProfile = VolumeProfile.calculate(visCandles);
+    } else {
+      _volumeProfile = null;
     }
   }
 
@@ -684,6 +873,7 @@ class TradingChartController extends ChangeNotifier {
   void dispose() {
     _countdownTicker?.cancel();
     _tickSubscription?.cancel();
+    _replayTimer?.cancel();
     super.dispose();
   }
 }

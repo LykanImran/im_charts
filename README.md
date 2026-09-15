@@ -4,7 +4,7 @@
 [![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
 [![Platform](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-51%2F51%20Passed-brightgreen.svg)](test/)
+[![Tests](https://img.shields.io/badge/Tests-62%2F62%20Passed-brightgreen.svg)](test/)
 [![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_im__charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
@@ -27,7 +27,7 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
 | 🏛️ **[Architecture & Internals](docs/architecture.md)** | Skia/Impeller rendering pipeline, coordinate projections, and gesture routing. |
 | 🔌 **[Data Sources & Real-Time Feeds](docs/data_sources.md)** | Connecting WebSockets, REST APIs, Binance, Zerodha Kite, and live tick aggregation. |
 | 🎨 **[Customization & Theming](docs/customization.md)** | Custom themes (`ChartTheme`), candle presentation styles, and layout sizing. |
-| 📈 **[Technical Indicators Guide](docs/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, VWAP, MACD, RSI) and writing custom indicators. |
+| 📈 **[Technical Indicators Guide](docs/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, VWAP, MACD, RSI, Volume Profile VRVP) and writing custom indicators. |
 | 📖 **[API Reference](docs/api_reference.md)** | Detailed documentation for all classes, methods, models, and enums. |
 
 ---
@@ -35,19 +35,42 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
 ## ✨ Key Features
 
 - **⚡ Institutional 2-Row Terminal Layout**:
-  - **Row 1 (Primary Toolbar)**: Symbol Search Dialog (`⌘K`), Interval Dropdown (`1m` to `1W`), Candle Style Dropdown, Technical Indicators Selector (`fx`), Real-time Refresh, Dark/Light Theme Toggle, and Chart Settings Modal.
+  - **Row 1 (Primary Toolbar)**: Symbol Search Dialog (`⌘K`), Interval Dropdown (`1m` to `1W`), Candle Style Dropdown, Technical Indicators Selector (`fx`), Bar Replay Simulator (`⏮`), High-DPI Camera Snapshot (`📷`), Keyboard Shortcuts Cheatsheet (`⌨️`), Real-time Refresh, Dark/Light Theme Toggle, and Chart Settings Modal.
   - **Row 2 (Floating Telemetry Header)**: Glassmorphic overlay displaying Live Ticker, Exchange Badge (displays whatever exchange is passed), LTP with real-time dynamic color pulse, and high-density OHLCV telemetry strip.
 - **🕯️ 6 Candlestick Presentation Styles**:
   - Standard Candlesticks, Hollow Candles, Heikin Ashi, Line Chart, Area Mountain Chart, and Western OHLC Tick Bars.
-- **📈 Integrated Technical Indicators**:
+- **📈 Integrated Technical Indicators & Volume Profile**:
   - **Overlays**: Exponential Moving Averages (EMA 20, EMA 50), Bollinger Bands (20, 2), Volume Weighted Average Price (**VWAP** with intraday session boundary reset and $\pm 2.0\sigma$ standard deviation volatility envelope bands).
-  - **Sub-Panes**: Relative Strength Index (**RSI 14**) with dynamic 70/30 threshold bounds, Moving Average Convergence Divergence (**MACD 12, 26, 9**) with signal line, auto-scaled sub-pane, and dynamic emerald green / crimson red histogram bars from zero baseline.
+  - **Visible Range Volume Profile (VRVP)**: Real-time volume profile over currently visible bars with Point of Control (POC), 70% Value Area High (VAH) and Value Area Low (VAL) dashed bounds, and color-coded buy/sell horizontal volume bars.
+  - **Stacked Multi-SubPanes**: Simultaneously run multiple oscillators (e.g. **RSI 14** and **MACD 12, 26, 9**) stacked below the chart, each with auto-scaled coordinate spaces, dynamic zero-baseline histograms, and individual close buttons.
   - **Volume**: Real-time auto-scaled volume histogram.
+- **🔔 Visual Price Alerts (`ChartAlert`)**:
+  - Direct canvas amber dashed alert lines with draggable price levels.
+  - Ticker alert pill on the vertical price scale (`🔔 ₹...`).
+  - Integration with the hover `+` button dropdown (`🔔 Add Alert @ ₹...`).
+  - Customizable trigger conditions (`crossing`, `crossingUp`, `crossingDown`) and reactive callbacks.
 - **🖐️ TradingView-Identical Multi-Zone Interactions**:
   - **Native macOS / Windows Trackpad Pinch Zoom**: Focal-anchored horizontal zoom without emulation lag.
   - **2-Finger Trackpad Pan**: Smooth horizontal time scrolling.
   - **Price Scale Drag**: Stretch and compress price vertically with interactive `AUTO` scale reset badge.
   - **Time Scale Drag**: Dynamic timeframe scaling via bottom time axis drag.
+- **⌨️ Keyboard Shortcuts & Hotkeys**:
+  - `Alt + H`: Quick-draw Horizontal Ray / Support & Resistance line at cursor.
+  - `Alt + T`: Quick-draw Trendline.
+  - `Alt + A`: Open instant Alert modal at hovered price.
+  - `Alt + R`: Reset chart zoom and scaling to auto.
+  - `Delete` / `Backspace`: Remove selected drawing or order.
+  - `Left / Right Arrow`: Pan horizontally across historical time.
+  - `+ / -`: Zoom in and zoom out.
+  - `Escape`: Cancel active tool or dismiss overlays.
+- **⏮️ Bar Replay / Backtesting Simulator**:
+  - Cut historical candles back to any chosen point in time.
+  - Step forward bar-by-bar or step backward.
+  - Automated continuous playback with speed multipliers (`1x`, `2x`, `3x`, `5x`).
+  - Floating glassmorphic control bar (`ReplayControlBar`) with instant exit button.
+- **📷 High-DPI Chart Snapshot & Export (`ChartExporter`)**:
+  - High-resolution 2.0x retina PNG image rendering via `RepaintBoundary`.
+  - Built-in preview modal dialog with direct download and clipboard copy capabilities.
 - **🎯 Direct On-Chart Trading, Orders & Open Positions**:
   - **Hover `+` Button**: Cursor-tracking `+` button rendered right before the vertical price axis.
   - **1-Click Order Execution**: Dropdown menu for Limit Buy, Limit Sell, and Brackets with support for custom consuming UI (`orderMenuBuilder`).

@@ -1,12 +1,15 @@
 import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/coordinates/coordinate_converter.dart';
+import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
+import 'replay_control_bar.dart';
 
 enum _ChartDragMode { none, priceAxis, timeAxis, mainChart }
 
@@ -18,6 +21,7 @@ class TradingChart extends StatefulWidget {
   final bool enableChartTrading;
   final bool showWatermark;
   final bool showCountdownTimer;
+  final GlobalKey? repaintBoundaryKey;
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(String orderId)? onOrderCancelled;
@@ -29,6 +33,7 @@ class TradingChart extends StatefulWidget {
     this.enableChartTrading = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
+    this.repaintBoundaryKey,
     this.orderMenuBuilder,
     this.onOrderPlaced,
     this.onOrderCancelled,
@@ -40,6 +45,8 @@ class TradingChart extends StatefulWidget {
 }
 
 class _TradingChartState extends State<TradingChart> {
+  final GlobalKey _defaultRepaintKey = GlobalKey();
+  final FocusNode _focusNode = FocusNode();
   double _lastScale = 1.0;
   double _lastTrackpadScale = 1.0;
   bool _isPinching = false;
@@ -73,6 +80,86 @@ class _TradingChartState extends State<TradingChart> {
   }
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final isAlt = HardwareKeyboard.instance.isAltPressed;
+    final controller = widget.controller;
+
+    if (isAlt) {
+      if (event.logicalKey == LogicalKeyboardKey.keyH) {
+        final price = _hoverPosition != null
+            ? double.parse(controller.priceAtY(_hoverPosition!.dy).toStringAsFixed(2))
+            : (controller.currentCandle?.close ?? 0.0);
+        final drawing = ChartDrawing(
+          id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+          tool: DrawingTool.horizontalLine,
+          points: [DrawingPoint(candleIndex: controller.candles.length - 1, price: price)],
+          color: const Color(0xFF2962FF),
+        );
+        controller.addDrawing(drawing);
+        return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.keyT) {
+        controller.activeDrawingTool = DrawingTool.trendline;
+        return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.keyA) {
+        final price = _hoverPosition != null
+            ? double.parse(controller.priceAtY(_hoverPosition!.dy).toStringAsFixed(2))
+            : (controller.currentCandle?.close ?? 0.0);
+        final alert = ChartAlert(
+          id: 'alt_${DateTime.now().millisecondsSinceEpoch}',
+          symbol: controller.symbol,
+          price: price,
+          note: 'Crossing $price',
+          createdAt: DateTime.now(),
+        );
+        controller.addAlert(alert);
+        return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.keyR) {
+        controller.resetView();
+        return KeyEventResult.handled;
+      }
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
+      final selected = controller.drawings.where((d) => d.isSelected).toList();
+      for (final d in selected) {
+        controller.removeDrawing(d.id);
+      }
+      return selected.isNotEmpty ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      controller.onPan(40.0);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      controller.onPan(-40.0);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.equal || event.logicalKey == LogicalKeyboardKey.add) {
+      controller.zoomIn();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.minus) {
+      controller.zoomOut();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      controller.activeDrawingTool = DrawingTool.pointer;
+      controller.selectDrawing(null);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
 
@@ -85,9 +172,13 @@ class _TradingChartState extends State<TradingChart> {
 
         controller.updateDimensions(width, height);
 
-        return ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) {
+        return Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: _handleKeyEvent,
+          child: ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) {
             if (controller.isLoading) {
               return Container(
                 color: controller.theme.backgroundColor,
@@ -378,31 +469,38 @@ class _TradingChartState extends State<TradingChart> {
                         onLongPressEnd: (_) {
                           controller.setCrosshairPosition(null);
                         },
-                        child: ClipRect(
-                          child: CustomPaint(
-                            size: Size(width, height),
-                            painter: ChartPainter(
-                              candles: controller.candles,
-                              viewport: controller.viewport,
-                              theme: controller.theme,
-                              timeframe: controller.timeframe,
-                              candleStyle: controller.candleStyle,
-                              overlayIndicators: controller.overlayResults,
-                              subPaneIndicator: controller.subPaneResult,
-                              orders: controller.orders,
-                              positions: controller.positions,
-                              drawings: controller.drawings,
-                              previewDrawing: controller.previewDrawing,
-                              crosshairPosition: controller.crosshairPosition,
-                              showVolume: controller.showVolume,
-                              showGrid: controller.showGrid,
-                              showWatermark: widget.showWatermark && controller.showWatermark,
-                              showCountdownTimer: widget.showCountdownTimer && controller.showCountdownTimer,
-                              countdownText: controller.candleCountdownText,
-                              symbol: controller.symbol,
-                              exchange: controller.exchange,
-                              verticalScale: controller.verticalScale,
-                              verticalPan: controller.verticalPan,
+                        child: RepaintBoundary(
+                          key: widget.repaintBoundaryKey ?? _defaultRepaintKey,
+                          child: ClipRect(
+                            child: CustomPaint(
+                              size: Size(width, height),
+                              painter: ChartPainter(
+                                candles: controller.candles,
+                                viewport: controller.viewport,
+                                theme: controller.theme,
+                                timeframe: controller.timeframe,
+                                candleStyle: controller.candleStyle,
+                                overlayIndicators: controller.overlayResults,
+                                subPaneIndicator: controller.subPaneResult,
+                                subPaneIndicators: controller.subPaneResults,
+                                orders: controller.orders,
+                                positions: controller.positions,
+                                drawings: controller.drawings,
+                                alerts: controller.alerts,
+                                previewDrawing: controller.previewDrawing,
+                                crosshairPosition: controller.crosshairPosition,
+                                showVolume: controller.showVolume,
+                                showVolumeProfile: controller.showVolumeProfile,
+                                volumeProfile: controller.volumeProfile,
+                                showGrid: controller.showGrid,
+                                showWatermark: widget.showWatermark && controller.showWatermark,
+                                showCountdownTimer: widget.showCountdownTimer && controller.showCountdownTimer,
+                                countdownText: controller.candleCountdownText,
+                                symbol: controller.symbol,
+                                exchange: controller.exchange,
+                                verticalScale: controller.verticalScale,
+                                verticalPan: controller.verticalPan,
+                              ),
                             ),
                           ),
                         ),
@@ -433,6 +531,17 @@ class _TradingChartState extends State<TradingChart> {
                         child: _buildPlusOrderButton(context, controller, _hoverPosition!.dy),
                       ),
                     ],
+
+                    // Floating Replay Control Bar
+                    if (controller.isReplayMode)
+                      Positioned(
+                        bottom: _timeAxisHeight + 10,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: ReplayControlBar(controller: controller),
+                        ),
+                      ),
 
                     // TradingView-style "Auto" Scale Pill in the bottom right of the price axis
                     if (controller.isManualPriceScale)
@@ -509,9 +618,10 @@ class _TradingChartState extends State<TradingChart> {
               ),
             );
           },
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 
   Widget _buildPlusOrderButton(BuildContext context, TradingChartController controller, double y) {
@@ -574,6 +684,8 @@ class _TradingChartState extends State<TradingChart> {
       Rect.fromLTWH(buttonPosition.dx, buttonPosition.dy, 1, 1),
       Offset.zero & overlay.size,
     );
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
 
     showMenu<String>(
       context: context,
@@ -649,6 +761,21 @@ class _TradingChartState extends State<TradingChart> {
             ],
           ),
         ),
+        const PopupMenuDivider(height: 1),
+        PopupMenuItem<String>(
+          value: 'add_alert',
+          height: 38,
+          child: Row(
+            children: [
+              const Icon(Icons.notifications_active_outlined, size: 14, color: Color(0xFFFFB300)),
+              const SizedBox(width: 8),
+              Text(
+                'Add Alert @ $roundedPrice',
+                style: const TextStyle(color: Color(0xFFFFB300), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
       ],
     ).then((choice) {
       if (choice == null) return;
@@ -705,6 +832,28 @@ class _TradingChartState extends State<TradingChart> {
         );
         controller.placeOrder(order);
         widget.onOrderPlaced?.call(order);
+      } else if (choice == 'add_alert') {
+        final alert = ChartAlert(
+          id: 'alt_${DateTime.now().millisecondsSinceEpoch}',
+          symbol: controller.symbol,
+          price: roundedPrice,
+          note: 'Crossing $roundedPrice',
+          createdAt: DateTime.now(),
+        );
+        controller.addAlert(alert);
+        messenger?.clearSnackBars();
+        messenger?.showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔔 Alert set at ₹$roundedPrice for ${controller.symbol}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+            backgroundColor: const Color(0xFF1E222D),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          ),
+        );
       }
     });
   }

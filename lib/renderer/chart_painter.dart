@@ -4,6 +4,7 @@ import '../core/coordinates/coordinate_converter.dart';
 import '../core/coordinates/viewport.dart';
 import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
@@ -11,7 +12,9 @@ import '../core/models/timeframe.dart';
 import '../engine/indicators/indicator_result.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
+import '../engine/indicators/volume_profile.dart';
 import 'pane.dart';
+import 'renderers/alert_renderer.dart';
 import 'renderers/axis_renderer.dart';
 import 'renderers/candle_renderer.dart';
 import 'renderers/crosshair_renderer.dart';
@@ -20,6 +23,7 @@ import 'renderers/drawing_renderer.dart';
 import 'renderers/grid_renderer.dart';
 import 'renderers/indicator_renderer.dart';
 import 'renderers/order_renderer.dart';
+import 'renderers/volume_profile_renderer.dart';
 import 'renderers/volume_renderer.dart';
 
 /// Primary CustomPainter coordinating the high-performance Skia/Impeller rendering pipeline.
@@ -31,12 +35,16 @@ class ChartPainter extends CustomPainter {
   final CandleStyle candleStyle;
   final List<IndicatorResult> overlayIndicators;
   final IndicatorResult? subPaneIndicator;
+  final List<IndicatorResult> subPaneIndicators;
   final List<ChartOrder> orders;
   final List<ChartPosition> positions;
   final List<ChartDrawing> drawings;
+  final List<ChartAlert> alerts;
   final ChartDrawing? previewDrawing;
   final Offset? crosshairPosition;
   final bool showVolume;
+  final bool showVolumeProfile;
+  final VolumeProfile? volumeProfile;
   final bool showGrid;
   final bool showWatermark;
   final bool showCountdownTimer;
@@ -49,12 +57,14 @@ class ChartPainter extends CustomPainter {
   final GridRenderer _gridRenderer;
   final CandleRenderer _candleRenderer;
   final VolumeRenderer _volumeRenderer;
+  final VolumeProfileRenderer _volumeProfileRenderer;
   final IndicatorRenderer _indicatorRenderer;
   final CurrentPriceRenderer _currentPriceRenderer;
   final AxisRenderer _axisRenderer;
   final CrosshairRenderer _crosshairRenderer;
   final OrderRenderer _orderRenderer;
   final DrawingRenderer _drawingRenderer;
+  final AlertRenderer _alertRenderer;
 
   ChartPainter({
     required this.candles,
@@ -64,12 +74,16 @@ class ChartPainter extends CustomPainter {
     this.candleStyle = CandleStyle.candles,
     this.overlayIndicators = const [],
     this.subPaneIndicator,
+    this.subPaneIndicators = const [],
     this.orders = const [],
     this.positions = const [],
     this.drawings = const [],
+    this.alerts = const [],
     this.previewDrawing,
     this.crosshairPosition,
     this.showVolume = true,
+    this.showVolumeProfile = false,
+    this.volumeProfile,
     this.showGrid = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
@@ -81,12 +95,14 @@ class ChartPainter extends CustomPainter {
   })  : _gridRenderer = GridRenderer(theme),
         _candleRenderer = CandleRenderer(theme),
         _volumeRenderer = VolumeRenderer(theme),
+        _volumeProfileRenderer = VolumeProfileRenderer(theme),
         _indicatorRenderer = IndicatorRenderer(theme),
         _currentPriceRenderer = CurrentPriceRenderer(theme),
         _axisRenderer = AxisRenderer(theme),
         _crosshairRenderer = CrosshairRenderer(theme),
         _orderRenderer = OrderRenderer(theme),
-        _drawingRenderer = DrawingRenderer(theme);
+        _drawingRenderer = DrawingRenderer(theme),
+        _alertRenderer = AlertRenderer(theme);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -102,10 +118,14 @@ class ChartPainter extends CustomPainter {
       Paint()..color = theme.backgroundColor,
     );
 
+    final activeSubPanes = subPaneIndicators.isNotEmpty
+        ? subPaneIndicators
+        : (subPaneIndicator != null ? [subPaneIndicator!] : <IndicatorResult>[]);
+
     // 2. Setup multi-pane layout
     final layout = ChartPaneLayout(
       totalSize: size,
-      hasSubPane: subPaneIndicator != null,
+      subPanes: activeSubPanes.length,
     );
 
     if (candles.isEmpty) {
@@ -143,17 +163,20 @@ class ChartPainter extends CustomPainter {
         totalCandles: candles.length,
       );
 
-      if (layout.subPaneBounds != null && subPaneIndicator != null) {
-        final subRange = _calculateSubPaneRange(subPaneIndicator!, visible);
-        _gridRenderer.drawGrid(
-          canvas: canvas,
-          bounds: layout.subPaneBounds!,
-          priceRange: subRange,
-          converter: converter,
-          viewport: viewport,
-          totalCandles: candles.length,
-          verticalDivisions: 3,
-        );
+      for (int i = 0; i < activeSubPanes.length; i++) {
+        if (i < layout.subPanesBounds.length) {
+          final subInd = activeSubPanes[i];
+          final subRange = _calculateSubPaneRange(subInd, visible);
+          _gridRenderer.drawGrid(
+            canvas: canvas,
+            bounds: layout.subPanesBounds[i],
+            priceRange: subRange,
+            converter: converter,
+            viewport: viewport,
+            totalCandles: candles.length,
+            verticalDivisions: 3,
+          );
+        }
       }
     }
 
@@ -203,6 +226,16 @@ class ChartPainter extends CustomPainter {
       candleStyle: candleStyle,
     );
 
+    // 8a. Draw Visible Range Volume Profile (VRVP) if enabled
+    if (showVolumeProfile && volumeProfile != null) {
+      _volumeProfileRenderer.drawVolumeProfile(
+        canvas: canvas,
+        bounds: layout.mainPaneBounds,
+        profile: volumeProfile!,
+        priceRange: priceRange,
+      );
+    }
+
     // 8b. Draw Interactive Chart Drawings (Trendlines, Fib, Position Boxes, Ruler)
     final allDrawings = [
       ...drawings,
@@ -242,6 +275,17 @@ class ChartPainter extends CustomPainter {
       );
     }
 
+    // 8e. Draw Visual Price Alerts
+    if (alerts.isNotEmpty) {
+      _alertRenderer.drawAlerts(
+        canvas: canvas,
+        bounds: layout.mainPaneBounds,
+        priceAxisBounds: layout.priceAxisBounds,
+        alerts: alerts,
+        priceRange: priceRange,
+      );
+    }
+
     // 9. Draw Current Price Line, Pulse Beacon & Countdown Badge
     if (candles.isNotEmpty) {
       final lastCandleX = converter.indexToX(candles.length - 1);
@@ -257,24 +301,45 @@ class ChartPainter extends CustomPainter {
       );
     }
 
-    // 10. Draw Sub-pane Indicator (e.g. RSI, MACD)
-    if (layout.subPaneBounds != null && subPaneIndicator != null) {
-      final subRange = _calculateSubPaneRange(subPaneIndicator!, visible);
+    // 10. Draw Stacked Sub-pane Indicators (e.g. RSI, MACD)
+    for (int i = 0; i < activeSubPanes.length; i++) {
+      if (i >= layout.subPanesBounds.length) break;
+      final sBounds = layout.subPanesBounds[i];
+      final sAxisBounds = layout.subPanesPriceAxisBounds[i];
+      final sInd = activeSubPanes[i];
+      final subRange = _calculateSubPaneRange(sInd, visible);
+
+      // Clip & Draw indicator lines / bars
+      canvas.save();
+      canvas.clipRect(sBounds);
       _indicatorRenderer.drawSubPane(
         canvas: canvas,
-        bounds: layout.subPaneBounds!,
-        indicator: subPaneIndicator!,
+        bounds: sBounds,
+        indicator: sInd,
         visible: visible,
         converter: converter,
         priceRange: subRange,
         candleWidth: viewport.candleWidth,
       );
+      canvas.restore();
+
+      // Top dividing border
+      canvas.drawLine(
+        Offset(0, sBounds.top),
+        Offset(size.width, sBounds.top),
+        Paint()
+          ..color = theme.gridColor
+          ..strokeWidth = 1.0,
+      );
+
+      // Sub-pane header strip
+      _drawSubPaneHeader(canvas, sBounds, sInd);
 
       // Sub-pane price scale
       _axisRenderer.drawPriceAxis(
         canvas: canvas,
-        axisBounds: layout.subPanePriceAxisBounds!,
-        paneBounds: layout.subPaneBounds!,
+        axisBounds: sAxisBounds,
+        paneBounds: sBounds,
         priceRange: subRange,
         verticalDivisions: 3,
       );
@@ -390,6 +455,26 @@ class ChartPainter extends CustomPainter {
     return PriceRange(minVal - padding, maxVal + padding);
   }
 
+  void _drawSubPaneHeader(Canvas canvas, Rect bounds, IndicatorResult indicator) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: indicator.name,
+        style: TextStyle(
+          color: theme.axisTextColor.withValues(alpha: 0.85),
+          fontSize: 10.0,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    textPainter.paint(
+      canvas,
+      Offset(bounds.left + 8, bounds.top + 4),
+    );
+  }
+
   @override
   bool shouldRepaint(covariant ChartPainter oldDelegate) {
     return oldDelegate.candles != candles ||
@@ -398,6 +483,9 @@ class ChartPainter extends CustomPainter {
         oldDelegate.orders != orders ||
         oldDelegate.positions != positions ||
         oldDelegate.drawings != drawings ||
+        oldDelegate.alerts != alerts ||
+        oldDelegate.showVolumeProfile != showVolumeProfile ||
+        oldDelegate.volumeProfile != volumeProfile ||
         oldDelegate.previewDrawing != previewDrawing ||
         oldDelegate.showWatermark != showWatermark ||
         oldDelegate.showCountdownTimer != showCountdownTimer ||
@@ -408,6 +496,7 @@ class ChartPainter extends CustomPainter {
         oldDelegate.candleStyle != candleStyle ||
         oldDelegate.overlayIndicators != overlayIndicators ||
         oldDelegate.subPaneIndicator != subPaneIndicator ||
+        oldDelegate.subPaneIndicators != subPaneIndicators ||
         oldDelegate.showVolume != showVolume ||
         oldDelegate.showGrid != showGrid ||
         oldDelegate.verticalScale != verticalScale ||

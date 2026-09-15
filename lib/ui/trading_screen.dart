@@ -110,6 +110,8 @@ class _TradingScreenState extends State<TradingScreen> {
     super.dispose();
   }
 
+  final GlobalKey _chartRepaintKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -138,9 +140,12 @@ class _TradingScreenState extends State<TradingScreen> {
             body: SafeArea(
               child: Column(
                 children: [
-                  // Row 1: Primary Toolbar (Search, Interval dropdown, Candles dropdown, Indicators dropdown, Refresh, Theme, Settings)
+                  // Row 1: Primary Toolbar (Search, Interval dropdown, Candles dropdown, Indicators dropdown, Refresh, Theme, Settings, Replay, Snapshot, Shortcuts)
                   if (widget.showToolbar)
-                    ChartToolbar(controller: _controller),
+                    ChartToolbar(
+                      controller: _controller,
+                      repaintBoundaryKey: _chartRepaintKey,
+                    ),
 
                   // Main Chart Canvas with Left Drawing Toolbar and Overlay Header (TradingView architecture)
                   Expanded(
@@ -159,6 +164,7 @@ class _TradingScreenState extends State<TradingScreen> {
                                 Positioned.fill(
                                   child: TradingChart(
                                     controller: _controller,
+                                    repaintBoundaryKey: _chartRepaintKey,
                                     enableChartTrading: widget.enableChartTrading,
                                     showWatermark: widget.showWatermark,
                                     showCountdownTimer: widget.showCountdownTimer,
