@@ -9,6 +9,7 @@ import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
+import '../core/models/chart_save_state.dart';
 import '../core/models/chart_theme.dart';
 import '../core/models/price_range.dart';
 import '../core/models/tick.dart';
@@ -55,6 +56,10 @@ class TradingChartController extends ChangeNotifier {
   ChartSyncGroup? _syncGroup;
   bool _isDisposed = false;
   bool _isReceivingSync = false;
+
+  ChartSaveState _saveState = ChartSaveState.saved;
+  Timer? _autoSaveTimer;
+  Future<void> Function(String serializedData)? onSaveCallback;
 
   // Visible Range Volume Profile (VRVP)
   bool _showVolumeProfile = false;
@@ -242,6 +247,7 @@ class TradingChartController extends ChangeNotifier {
   }
 
   bool get isDisposed => _isDisposed;
+  ChartSaveState get saveState => _saveState;
   ChartSyncGroup? get syncGroup => _syncGroup;
   set syncGroup(ChartSyncGroup? group) {
     if (_syncGroup == group) return;
@@ -439,7 +445,7 @@ class TradingChartController extends ChangeNotifier {
     _redoStack.clear();
   }
 
-  /// Restores drawings to the previous historical state.
+  /// Undoes the last drawing modification.
   void undo() {
     if (!canUndo) return;
     _redoStack.add(_drawings.map((d) => d.copyWith()).toList());
@@ -447,6 +453,7 @@ class TradingChartController extends ChangeNotifier {
       ..clear()
       ..addAll(_undoStack.removeLast());
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Reapplies drawings to the next forward state in history.
@@ -457,6 +464,7 @@ class TradingChartController extends ChangeNotifier {
       ..clear()
       ..addAll(_redoStack.removeLast());
     notifyListeners();
+    triggerAutoSave();
   }
 
   // --- Magnet Mode (Snap to OHLC) ---
@@ -536,6 +544,7 @@ class TradingChartController extends ChangeNotifier {
     _previewDrawing = null;
     onDrawingAdded?.call(drawing);
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Updates an existing drawing (e.g. dragging an anchor point).
@@ -544,6 +553,7 @@ class TradingChartController extends ChangeNotifier {
     if (index >= 0) {
       _drawings[index] = drawing;
       notifyListeners();
+      triggerAutoSave();
     }
   }
 
@@ -555,6 +565,7 @@ class TradingChartController extends ChangeNotifier {
       _drawings.removeWhere((d) => d.id == id);
       onDrawingRemoved?.call(id);
       notifyListeners();
+      triggerAutoSave();
     }
   }
 
@@ -565,6 +576,7 @@ class TradingChartController extends ChangeNotifier {
       _drawings.clear();
       _previewDrawing = null;
       notifyListeners();
+      triggerAutoSave();
     }
   }
 
@@ -909,6 +921,7 @@ class TradingChartController extends ChangeNotifier {
     _crosshairPosition = null;
     _hoveredCandle = null;
     await initialize();
+    triggerAutoSave();
   }
 
   /// Changes the candle presentation style (Candles, Hollow, Heikin Ashi, Line, Area, Bars).
@@ -916,6 +929,7 @@ class TradingChartController extends ChangeNotifier {
     if (_candleStyle == style) return;
     _candleStyle = style;
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Manually refreshes historical data and restarts stream.
@@ -931,18 +945,21 @@ class TradingChartController extends ChangeNotifier {
       theme = ChartTheme.dark();
     }
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Sets an explicit theme.
   void setTheme(ChartTheme newTheme) {
     theme = newTheme;
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Toggles grid lines on/off.
   void toggleGrid() {
     _showGrid = !_showGrid;
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Toggles crosshair on/off.
@@ -952,6 +969,7 @@ class TradingChartController extends ChangeNotifier {
       _crosshairPosition = null;
     }
     notifyListeners();
+    triggerAutoSave();
   }
 
   /// Updates viewport canvas dimensions (called by LayoutBuilder in UI).
@@ -1242,6 +1260,7 @@ class TradingChartController extends ChangeNotifier {
     }
     _recalculateIndicators();
     notifyListeners();
+    triggerAutoSave();
   }
 
   bool isIndicatorActive(String id) {
@@ -1300,9 +1319,68 @@ class TradingChartController extends ChangeNotifier {
     }
   }
 
+  /// Persists the current chart configuration and drawings asynchronously.
+  Future<void> saveChart() async {
+    if (_saveState == ChartSaveState.saving) return;
+    _saveState = ChartSaveState.saving;
+    notifyListeners();
+
+    try {
+      final json = exportSettingsJson();
+      if (onSaveCallback != null) {
+        await onSaveCallback!(json);
+      } else {
+        // Visual feedback delay
+        await Future.delayed(const Duration(milliseconds: 650));
+      }
+      _saveState = ChartSaveState.saved;
+    } catch (e) {
+      debugPrint('Error saving chart: $e');
+      _saveState = ChartSaveState.unsaved;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Schedules an auto-save operation with debouncing.
+  void triggerAutoSave() {
+    _autoSaveTimer?.cancel();
+    if (_saveState != ChartSaveState.saving) {
+      _saveState = ChartSaveState.unsaved;
+      notifyListeners();
+    }
+    _autoSaveTimer = Timer(const Duration(milliseconds: 750), () {
+      if (!_isDisposed) {
+        saveChart();
+      }
+    });
+  }
+
+  /// Serializes chart layout, settings, timeframe, candle style, and drawings to JSON.
+  String exportSettingsJson() {
+    final map = <String, dynamic>{
+      'symbol': _symbol,
+      'exchange': _exchange,
+      'timeframe': _timeframe.name,
+      'candleStyle': _candleStyle.name,
+      'showVolume': _showVolume,
+      'showGrid': _showGrid,
+      'showCrosshair': _showCrosshair,
+      'showWatermark': _showWatermark,
+      'showCountdownTimer': _showCountdownTimer,
+      'showVolumeProfile': _showVolumeProfile,
+      'isDarkTheme': isDarkTheme,
+      'drawings': _drawings.map((d) => d.toJson()).toList(),
+      'activeIndicators': _activeIndicators.map((i) => i.id).toList(),
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+    return jsonEncode(map);
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
+    _autoSaveTimer?.cancel();
     _syncGroup?.unregister(this);
     _countdownTicker?.cancel();
     _tickSubscription?.cancel();

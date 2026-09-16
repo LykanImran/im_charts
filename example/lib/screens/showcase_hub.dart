@@ -114,7 +114,10 @@ class ShowcaseHubScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final h = (constraints.maxWidth * 0.28).clamp(120.0, 240.0);
+                      final h = (constraints.maxWidth * 0.28).clamp(
+                        120.0,
+                        240.0,
+                      );
                       return SizedBox(
                         width: double.infinity,
                         height: h,

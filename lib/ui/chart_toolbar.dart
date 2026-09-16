@@ -8,6 +8,7 @@ import '../engine/indicators/ema.dart';
 import '../engine/indicators/macd.dart';
 import '../engine/indicators/rsi.dart';
 import '../engine/indicators/vwap.dart';
+import 'chart_save_status_badge.dart';
 import 'chart_settings_modal.dart';
 import 'formula_editor_modal.dart';
 import 'symbol_search_modal.dart';
@@ -224,9 +225,17 @@ class _ChartToolbarState extends State<ChartToolbar>
                           ChartSettingsModal.show(context, controller),
                     ),
 
+                    const SizedBox(width: 4),
+
+                    // 8. ANIMATED SAVE STATUS BADGE (SAVING / SAVED)
+                    ChartSaveStatusBadge(
+                      controller: controller,
+                      isDark: isDark,
+                    ),
+
                     _buildDivider(theme),
 
-                    // 8. BAR REPLAY BUTTON
+                    // 9. BAR REPLAY BUTTON
                     IconButton(
                       icon: Icon(
                         Icons.history,
