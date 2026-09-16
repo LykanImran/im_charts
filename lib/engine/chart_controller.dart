@@ -19,6 +19,7 @@ import 'candle_builder.dart';
 import 'chart_sync_group.dart';
 import 'indicators/indicator.dart';
 import 'indicators/indicator_result.dart';
+import 'indicators/smart_money_concepts.dart';
 import 'indicators/sma.dart';
 import 'indicators/supertrend.dart';
 import 'indicators/volume_profile.dart';
@@ -64,6 +65,10 @@ class TradingChartController extends ChangeNotifier {
   // Visible Range Volume Profile (VRVP)
   bool _showVolumeProfile = false;
   VolumeProfile? _volumeProfile;
+
+  // Smart Money Concepts (SMC: FVG, BOS, CHoCH, Order Blocks)
+  bool _showSMC = false;
+  SmartMoneyConcepts? _smc;
 
   // Visual Price Alerts
   final List<ChartAlert> _alerts = [];
@@ -181,6 +186,21 @@ class TradingChartController extends ChangeNotifier {
   }
 
   VolumeProfile? get volumeProfile => _volumeProfile;
+
+  bool get showSMC => _showSMC;
+  set showSMC(bool val) {
+    if (_showSMC != val) {
+      _showSMC = val;
+      _recalculateIndicators();
+      notifyListeners();
+    }
+  }
+
+  void toggleSMC() {
+    showSMC = !_showSMC;
+  }
+
+  SmartMoneyConcepts? get smc => _smc;
 
   bool get isReplayMode => _isReplayMode;
   int? get replayIndex => _replayIndex;
@@ -1333,6 +1353,13 @@ class TradingChartController extends ChangeNotifier {
     } else {
       _volumeProfile = null;
     }
+
+    // Calculate Smart Money Concepts (SMC) if enabled
+    if (_showSMC) {
+      _smc = SmartMoneyConcepts.calculate(candleList);
+    } else {
+      _smc = null;
+    }
   }
 
   /// Persists the current chart configuration and drawings asynchronously.
@@ -1385,6 +1412,7 @@ class TradingChartController extends ChangeNotifier {
       'showWatermark': _showWatermark,
       'showCountdownTimer': _showCountdownTimer,
       'showVolumeProfile': _showVolumeProfile,
+      'showSMC': _showSMC,
       'isDarkTheme': isDarkTheme,
       'drawings': _drawings.map((d) => d.toJson()).toList(),
       'activeIndicators': _activeIndicators.map((i) => i.id).toList(),

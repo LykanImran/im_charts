@@ -1202,6 +1202,8 @@ class _TradingChartState extends State<TradingChart> {
                                     showVolumeProfile:
                                         controller.showVolumeProfile,
                                     volumeProfile: controller.volumeProfile,
+                                    showSMC: controller.showSMC,
+                                    smc: controller.smc,
                                     showGrid: controller.showGrid,
                                     showWatermark: widget.showWatermark &&
                                         controller.showWatermark,

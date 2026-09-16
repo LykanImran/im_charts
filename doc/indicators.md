@@ -124,6 +124,77 @@ controller.toggleVolumeProfile();
 
 ---
 
+### 7. Smart Money Concepts (`SmartMoneyConcepts` / SMC)
+The industry standard institutional price action engine:
+- **Fair Value Gaps (FVG)**: 3-candle imbalance zones with 50% Consequent Encroachment (CE) dashed midlines. Traces mitigation dynamically when future prices penetrate the imbalance.
+- **Break of Structure (BOS) & Change of Character (CHoCH)**: Fractal swing high/low break detection with labeled dotted structure break lines.
+- **Order Blocks (OB)**: Supply and demand institutional accumulation/distribution candles preceding strong market moves.
+
+```dart
+// Auto-detect SMC on candle series
+final smc = SmartMoneyConcepts.calculate(candles);
+
+// Toggle SMC directly on controller
+controller.toggleSMC();
+
+// Or enable directly on ImChart with zero boilerplate
+ImChart.simple(
+  candles: myCandles,
+  showSMC: true,
+);
+```
+
+---
+
+### 8. Stochastic Oscillator (`StochasticIndicator`)
+Classic momentum sub-pane oscillator calculating Fast %K and Slow %D lines with 80 (Overbought) and 20 (Oversold) bands:
+
+```dart
+final stoch = StochasticIndicator(
+  kPeriod: 14,
+  kSmooth: 3,
+  dPeriod: 3,
+);
+controller.toggleIndicator(stoch);
+```
+
+---
+
+### 9. Parabolic SAR (`ParabolicSarIndicator`)
+Stop-and-Reverse trend-following overlay plotting trailing dots above and below candles with acceleration factor step `0.02` up to `0.20`:
+
+```dart
+final psar = ParabolicSarIndicator(accelerationStep: 0.02, maxAcceleration: 0.2);
+controller.toggleIndicator(psar);
+```
+
+---
+
+### 10. Chandelier Exit (`ChandelierExitIndicator`)
+Wilder's ATR-based trailing stop overlay designed by Chuck LeBeau:
+
+```dart
+final chandelier = ChandelierExitIndicator(period: 22, multiplier: 3.0);
+controller.toggleIndicator(chandelier);
+```
+
+---
+
+### 11. Average True Range (`ATRIndicator`), Williams %R, CCI & Ichimoku
+- **ATR 14**: Sub-pane volatility oscillator based on smoothed True Range.
+- **Williams %R**: Momentum oscillator bounded from -100 to 0 with -20 / -80 levels.
+- **CCI 20**: Commodity Channel Index measuring statistical deviations.
+- **Ichimoku Cloud**: Tenkan-sen (9), Kijun-sen (26), Senkou Span A & B (52).
+
+```dart
+controller.toggleIndicator(ATRIndicator(period: 14));
+controller.toggleIndicator(WilliamsRIndicator(period: 14));
+controller.toggleIndicator(CCIIndicator(period: 20));
+controller.toggleIndicator(IchimokuIndicator());
+```
+
+---
+
 ## ✍️ Authoring Custom Technical Indicators
 
 Creating a custom indicator in `im_charts` is straightforward. Simply extend `Indicator` and implement `calculate(List<Candle> candles)`.

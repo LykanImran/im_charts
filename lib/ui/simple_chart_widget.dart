@@ -57,6 +57,7 @@ class ImChart extends StatefulWidget {
   final bool showDrawingToolbar;
   final bool showVolume;
   final bool showVolumeProfile;
+  final bool showSMC;
   final bool showWatermark;
   final bool showCountdownTimer;
   final bool enableChartTrading;
@@ -87,6 +88,7 @@ class ImChart extends StatefulWidget {
     this.showDrawingToolbar = false,
     this.showVolume = true,
     this.showVolumeProfile = false,
+    this.showSMC = false,
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
@@ -115,6 +117,7 @@ class ImChart extends StatefulWidget {
     this.showDrawingToolbar = false,
     this.showVolume = true,
     this.showVolumeProfile = false,
+    this.showSMC = false,
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
@@ -145,6 +148,7 @@ class ImChart extends StatefulWidget {
     this.showDrawingToolbar = false,
     this.showVolume = true,
     this.showVolumeProfile = false,
+    this.showSMC = false,
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
@@ -190,6 +194,7 @@ class _ImChartState extends State<ImChart> {
 
     ctrl.showVolume = widget.showVolume;
     ctrl.showVolumeProfile = widget.showVolumeProfile;
+    ctrl.showSMC = widget.showSMC;
     ctrl.showWatermark = widget.showWatermark;
     ctrl.showCountdownTimer = widget.showCountdownTimer;
 
@@ -238,6 +243,9 @@ class _ImChartState extends State<ImChart> {
       }
       if (widget.showVolumeProfile != oldWidget.showVolumeProfile) {
         _internalController?.showVolumeProfile = widget.showVolumeProfile;
+      }
+      if (widget.showSMC != oldWidget.showSMC) {
+        _internalController?.showSMC = widget.showSMC;
       }
       if (widget.candleStyle != oldWidget.candleStyle) {
         _internalController?.setCandleStyle(widget.candleStyle);

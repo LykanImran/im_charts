@@ -167,10 +167,10 @@ class ShowcaseHubScreen extends StatelessWidget {
                             'The complete TradingView-grade trading setup with 2-row toolbars: Symbol search (⌘K), Interval selector, Candle styles, Technical indicators dropdown, Real-time telemetry, and Settings modal.',
                         icon: Icons.dashboard_customize,
                         bullets: [
+                          '⭐ Smart Money Concepts (FVG, BOS, OB)',
+                          '⭐ Viral Indicators (Stochastic, SAR, ATR...)',
                           'Row 1 Primary Tools & Search',
                           'Row 2 Floating Telemetry Strip',
-                          'Volume & Multi-pane Indicators',
-                          'Trackpad Pinch-to-Zoom & Pan',
                         ],
                         onTap: () => onSelectMode(1),
                       ),

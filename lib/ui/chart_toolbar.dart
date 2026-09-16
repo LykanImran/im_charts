@@ -3,11 +3,18 @@ import '../core/models/candle_style.dart';
 import '../core/models/timeframe.dart';
 import '../core/utils/chart_exporter.dart';
 import '../engine/chart_controller.dart';
+import '../engine/indicators/atr.dart';
 import '../engine/indicators/bollinger_bands.dart';
+import '../engine/indicators/cci.dart';
+import '../engine/indicators/chandelier_exit.dart';
 import '../engine/indicators/ema.dart';
+import '../engine/indicators/ichimoku.dart';
 import '../engine/indicators/macd.dart';
+import '../engine/indicators/parabolic_sar.dart';
 import '../engine/indicators/rsi.dart';
+import '../engine/indicators/stochastic.dart';
 import '../engine/indicators/vwap.dart';
+import '../engine/indicators/williams_r.dart';
 import 'chart_save_status_badge.dart';
 import 'chart_settings_modal.dart';
 import 'formula_editor_modal.dart';
@@ -574,7 +581,9 @@ class _ChartToolbarState extends State<ChartToolbar>
     dynamic theme,
     bool isDark,
   ) {
-    final activeCount = controller.activeIndicators.length;
+    final activeCount = controller.activeIndicators.length +
+        (controller.showVolumeProfile ? 1 : 0) +
+        (controller.showSMC ? 1 : 0);
 
     return PopupMenuButton<String>(
       tooltip: 'Technical Indicators',
@@ -586,18 +595,104 @@ class _ChartToolbarState extends State<ChartToolbar>
       ),
       itemBuilder: (context) {
         return [
-          PopupMenuItem<String>(
-            enabled: false,
-            height: 24,
-            child: Text(
-              'OVERLAYS & OSCILLATORS',
-              style: TextStyle(
-                color: theme.axisTextColor,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-              ),
-            ),
+          // 1. STARRED & VIRAL SECTION
+          _buildCategoryHeader(
+            title: '⭐ VIRAL & POPULAR',
+            theme: theme,
+            icon: Icons.whatshot_rounded,
+            iconColor: const Color(0xFFFF9100),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Smart Money Concepts (SMC: FVG, BOS, OB)',
+            color: const Color(0xFF00E676),
+            isActive: controller.showSMC,
+            onTap: () => controller.toggleSMC(),
+            theme: theme,
+            isDark: isDark,
+            isStarred: true,
+            badgeText: 'VIRAL',
+            badgeColor: const Color(0xFF00E676),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Supertrend (10, 3.0)',
+            color: const Color(0xFF00E676),
+            isActive: controller.showSupertrend,
+            onTap: () => controller.toggleSupertrend(),
+            theme: theme,
+            isDark: isDark,
+            isStarred: true,
+            badgeText: 'HOT',
+            badgeColor: const Color(0xFFFF9100),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Volume Profile (VRVP)',
+            color: const Color(0xFFFF1744),
+            isActive: controller.showVolumeProfile,
+            onTap: () => controller.toggleVolumeProfile(),
+            theme: theme,
+            isDark: isDark,
+            isStarred: true,
+            badgeText: 'PRO',
+            badgeColor: const Color(0xFFFF1744),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Stochastic Oscillator (14, 3, 3)',
+            color: const Color(0xFFFF6D00),
+            isActive: controller.isIndicatorActive('STOCH_14_3_3'),
+            onTap: () => controller.toggleIndicator(StochasticIndicator()),
+            theme: theme,
+            isDark: isDark,
+            isStarred: true,
+            badgeText: 'POPULAR',
+            badgeColor: const Color(0xFFFF6D00),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Chandelier Exit (22, 3.0 Trailing Stop)',
+            color: const Color(0xFF00E5FF),
+            isActive: controller.isIndicatorActive('CHANDELIER_22_3.0'),
+            onTap: () => controller.toggleIndicator(ChandelierExitIndicator()),
+            theme: theme,
+            isDark: isDark,
+            isStarred: true,
+            badgeText: 'HOT',
+            badgeColor: const Color(0xFF00E5FF),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'VWAP (Intraday Benchmark)',
+            color: const Color(0xFFAB47BC),
+            isActive: controller.isIndicatorActive('VWAP'),
+            onTap: () => controller.toggleIndicator(VWAPIndicator()),
+            theme: theme,
+            isDark: isDark,
+            isStarred: true,
+            badgeText: 'HOT',
+            badgeColor: const Color(0xFFAB47BC),
+          ),
+
+          const PopupMenuDivider(height: 8),
+
+          // 2. TREND & OVERLAYS SECTION
+          _buildCategoryHeader(
+            title: 'TREND & OVERLAYS',
+            theme: theme,
+            icon: Icons.timeline_rounded,
+            iconColor: const Color(0xFF2962FF),
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Parabolic SAR (0.02, 0.2)',
+            color: const Color(0xFFFFD600),
+            isActive: controller.isIndicatorActive('PSAR_0.02_0.2'),
+            onTap: () => controller.toggleIndicator(ParabolicSarIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Ichimoku Cloud (9, 26, 52)',
+            color: const Color(0xFF00E676),
+            isActive: controller.isIndicatorActive('ICHIMOKU_9_26_52'),
+            onTap: () => controller.toggleIndicator(IchimokuIndicator()),
+            theme: theme,
+            isDark: isDark,
           ),
           _buildIndicatorMenuItem(
             label: 'EMA 20 (Trend Fast)',
@@ -606,22 +701,6 @@ class _ChartToolbarState extends State<ChartToolbar>
             onTap: () => controller.toggleIndicator(
               EMAIndicator(period: 20, color: const Color(0xFF2962FF)),
             ),
-            theme: theme,
-            isDark: isDark,
-          ),
-          _buildIndicatorMenuItem(
-            label: 'SMA 20 (Simple Moving Average)',
-            color: const Color(0xFFFFB300),
-            isActive: controller.isIndicatorActive('SMA_20'),
-            onTap: () => controller.toggleSma(),
-            theme: theme,
-            isDark: isDark,
-          ),
-          _buildIndicatorMenuItem(
-            label: 'Supertrend (10, 3.0)',
-            color: const Color(0xFF00E676),
-            isActive: controller.showSupertrend,
-            onTap: () => controller.toggleSupertrend(),
             theme: theme,
             isDark: isDark,
           ),
@@ -636,6 +715,14 @@ class _ChartToolbarState extends State<ChartToolbar>
             isDark: isDark,
           ),
           _buildIndicatorMenuItem(
+            label: 'SMA 20 (Simple Moving Average)',
+            color: const Color(0xFFFFB300),
+            isActive: controller.isIndicatorActive('SMA_20'),
+            onTap: () => controller.toggleSma(),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
             label: 'Bollinger Bands (20, 2)',
             color: const Color(0xFFFF9800),
             isActive: controller.isIndicatorActive('BB_20_2.0'),
@@ -643,13 +730,15 @@ class _ChartToolbarState extends State<ChartToolbar>
             theme: theme,
             isDark: isDark,
           ),
-          _buildIndicatorMenuItem(
-            label: 'VWAP (Intraday Benchmark)',
-            color: const Color(0xFFAB47BC),
-            isActive: controller.isIndicatorActive('VWAP'),
-            onTap: () => controller.toggleIndicator(VWAPIndicator()),
+
+          const PopupMenuDivider(height: 8),
+
+          // 3. MOMENTUM & OSCILLATORS SECTION
+          _buildCategoryHeader(
+            title: 'MOMENTUM & OSCILLATORS',
             theme: theme,
-            isDark: isDark,
+            icon: Icons.speed_rounded,
+            iconColor: const Color(0xFF7E57C2),
           ),
           _buildIndicatorMenuItem(
             label: 'RSI 14 (Momentum Sub-pane)',
@@ -668,14 +757,33 @@ class _ChartToolbarState extends State<ChartToolbar>
             isDark: isDark,
           ),
           _buildIndicatorMenuItem(
-            label: 'Volume Profile (VRVP)',
-            color: const Color(0xFFFF1744),
-            isActive: controller.showVolumeProfile,
-            onTap: () => controller.toggleVolumeProfile(),
+            label: 'ATR 14 (Average True Range)',
+            color: const Color(0xFF00E5FF),
+            isActive: controller.isIndicatorActive('ATR_14'),
+            onTap: () => controller.toggleIndicator(ATRIndicator()),
             theme: theme,
             isDark: isDark,
           ),
-          const PopupMenuDivider(height: 1),
+          _buildIndicatorMenuItem(
+            label: 'Williams %R (14 Overbought/Oversold)',
+            color: const Color(0xFFAB47BC),
+            isActive: controller.isIndicatorActive('WILLR_14'),
+            onTap: () => controller.toggleIndicator(WilliamsRIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'CCI 20 (Commodity Channel Index)',
+            color: const Color(0xFF00B0FF),
+            isActive: controller.isIndicatorActive('CCI_20'),
+            onTap: () => controller.toggleIndicator(CCIIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+
+          const PopupMenuDivider(height: 8),
+
+          // 4. CUSTOM FORMULAS
           PopupMenuItem<String>(
             value: '__pine_formula__',
             height: 38,
@@ -758,6 +866,35 @@ class _ChartToolbarState extends State<ChartToolbar>
     );
   }
 
+  PopupMenuItem<String> _buildCategoryHeader({
+    required String title,
+    required dynamic theme,
+    IconData? icon,
+    Color? iconColor,
+  }) {
+    return PopupMenuItem<String>(
+      enabled: false,
+      height: 24,
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: iconColor ?? const Color(0xFFFFB300)),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            title,
+            style: TextStyle(
+              color: iconColor ?? theme.axisTextColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   PopupMenuItem<String> _buildIndicatorMenuItem({
     required String label,
     required Color color,
@@ -765,18 +902,31 @@ class _ChartToolbarState extends State<ChartToolbar>
     required VoidCallback onTap,
     required dynamic theme,
     required bool isDark,
+    bool isStarred = false,
+    String? badgeText,
+    Color? badgeColor,
   }) {
     return PopupMenuItem<String>(
       onTap: onTap,
       height: 38,
       child: Row(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 10),
+          if (isStarred)
+            const Padding(
+              padding: EdgeInsets.only(right: 6),
+              child: Icon(
+                Icons.star_rounded,
+                size: 15,
+                color: Color(0xFFFFB300),
+              ),
+            )
+          else
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(right: 7),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
           Expanded(
             child: Text(
               label,
@@ -785,10 +935,34 @@ class _ChartToolbarState extends State<ChartToolbar>
                     ? (isDark ? Colors.white : Colors.black87)
                     : theme.axisTextColor,
                 fontSize: 12,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isActive || isStarred ? FontWeight.bold : FontWeight.normal,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (badgeText != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: (badgeColor ?? const Color(0xFFFF9100)).withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: (badgeColor ?? const Color(0xFFFF9100)).withValues(alpha: 0.6),
+                  width: 0.8,
+                ),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(
+                  color: badgeColor ?? const Color(0xFFFF9100),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
           Icon(
             isActive ? Icons.check_box : Icons.check_box_outline_blank,
             size: 18,

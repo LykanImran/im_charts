@@ -12,6 +12,7 @@ import '../core/models/timeframe.dart';
 import '../engine/indicators/indicator_result.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
+import '../engine/indicators/smart_money_concepts.dart';
 import '../engine/indicators/volume_profile.dart';
 import 'pane.dart';
 import 'renderers/alert_renderer.dart';
@@ -23,6 +24,7 @@ import 'renderers/drawing_renderer.dart';
 import 'renderers/grid_renderer.dart';
 import 'renderers/indicator_renderer.dart';
 import 'renderers/order_renderer.dart';
+import 'renderers/smc_renderer.dart';
 import 'renderers/volume_profile_renderer.dart';
 import 'renderers/volume_renderer.dart';
 
@@ -45,6 +47,8 @@ class ChartPainter extends CustomPainter {
   final bool showVolume;
   final bool showVolumeProfile;
   final VolumeProfile? volumeProfile;
+  final bool showSMC;
+  final SmartMoneyConcepts? smc;
   final bool showGrid;
   final bool showWatermark;
   final bool showCountdownTimer;
@@ -59,6 +63,7 @@ class ChartPainter extends CustomPainter {
   final CandleRenderer _candleRenderer;
   final VolumeRenderer _volumeRenderer;
   final VolumeProfileRenderer _volumeProfileRenderer;
+  final SMCRenderer _smcRenderer;
   final IndicatorRenderer _indicatorRenderer;
   final CurrentPriceRenderer _currentPriceRenderer;
   final AxisRenderer _axisRenderer;
@@ -85,6 +90,8 @@ class ChartPainter extends CustomPainter {
     this.showVolume = true,
     this.showVolumeProfile = false,
     this.volumeProfile,
+    this.showSMC = false,
+    this.smc,
     this.showGrid = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
@@ -98,6 +105,7 @@ class ChartPainter extends CustomPainter {
         _candleRenderer = CandleRenderer(theme),
         _volumeRenderer = VolumeRenderer(theme),
         _volumeProfileRenderer = VolumeProfileRenderer(theme),
+        _smcRenderer = SMCRenderer(theme),
         _indicatorRenderer = IndicatorRenderer(theme),
         _currentPriceRenderer = CurrentPriceRenderer(theme),
         _axisRenderer = AxisRenderer(theme),
@@ -210,6 +218,17 @@ class ChartPainter extends CustomPainter {
         bounds: layout.mainPaneBounds,
         indicators: overlayIndicators,
         visible: visible,
+        priceRange: priceRange,
+        converter: converter,
+      );
+    }
+
+    // 7b. Draw Smart Money Concepts (FVG, Order Blocks, BOS, CHoCH)
+    if (showSMC && smc != null) {
+      _smcRenderer.drawSMC(
+        canvas: canvas,
+        bounds: layout.mainPaneBounds,
+        smc: smc!,
         priceRange: priceRange,
         converter: converter,
       );

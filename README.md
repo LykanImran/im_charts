@@ -52,9 +52,12 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
 - **🕯️ 6 Candlestick Presentation Styles**:
   - Standard Candlesticks, Hollow Candles, Heikin Ashi, Line Chart, Area Mountain Chart, and Western OHLC Tick Bars.
 - **📈 Integrated Technical Indicators & Volume Profile**:
+  - **⭐ Smart Money Concepts (SMC)**: Institutional price action engine auto-detecting **Fair Value Gaps (FVG)** with 50% Consequent Encroachment (CE) dashed midlines and mitigation tracking, **Break of Structure (BOS)** and **Change of Character (CHoCH)** fractal swing breaks, and institutional **Order Blocks (OB Demand/Supply)** directly on the Skia/Impeller canvas.
+  - **⭐ Viral & High-Demand Indicators**: **Stochastic Oscillator** (14, 3, 3), **Parabolic SAR** (0.02, 0.2), **Chandelier Exit** (ATR trailing stop), **Average True Range (ATR 14)**, **Williams %R**, **Commodity Channel Index (CCI 20)**, and **Ichimoku Cloud** (9, 26, 52).
+  - **⭐ Categorized & Starred Indicator Menu**: Indicators organized by `⭐ VIRAL & POPULAR`, `TREND & OVERLAYS`, `MOMENTUM & OSCILLATORS`, and `CUSTOM FORMULAS` with gold star badges and vibrant tags (`VIRAL`, `HOT`, `PRO`, `POPULAR`).
   - **Overlays**: Exponential Moving Averages (EMA 20, EMA 50), Simple Moving Average (SMA 20), **Supertrend Indicator** (ATR-based trend bands with green/red buy/sell directional shifts), Bollinger Bands (20, 2), Volume Weighted Average Price (**VWAP** with intraday session boundary reset and $\pm 2.0\sigma$ standard deviation volatility envelope bands).
   - **Visible Range Volume Profile (VRVP)**: Real-time volume profile over currently visible bars with Point of Control (POC), 70% Value Area High (VAH) and Value Area Low (VAL) dashed bounds, and color-coded buy/sell horizontal volume bars.
-  - **Stacked Multi-SubPanes**: Simultaneously run multiple oscillators (e.g. **RSI 14** and **MACD 12, 26, 9**) stacked below the chart, each with auto-scaled coordinate spaces, dynamic zero-baseline histograms, and individual close buttons.
+  - **Stacked Multi-SubPanes**: Simultaneously run multiple oscillators (e.g. **RSI 14**, **MACD 12, 26, 9**, **Stochastic**, **ATR**, **Williams %R**) stacked below the chart, each with auto-scaled coordinate spaces, dynamic zero-baseline histograms, and individual close buttons.
   - **Volume**: Real-time auto-scaled volume histogram.
 - **↩️ Undo / Redo History Stack (`Ctrl+Z` / `Ctrl+Y` / `⌘Z` / `⌘Shift+Z`)**:
   - Full transactional history for drawings (creation, movement, resizing, color/width changes, and deletion).

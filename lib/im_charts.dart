@@ -39,20 +39,29 @@ export 'engine/formula/formula_evaluator.dart';
 export 'engine/formula/formula_indicator.dart';
 export 'engine/formula/formula_lexer.dart';
 export 'engine/formula/formula_parser.dart';
+export 'engine/indicators/atr.dart';
 export 'engine/indicators/bollinger_bands.dart';
+export 'engine/indicators/cci.dart';
+export 'engine/indicators/chandelier_exit.dart';
 export 'engine/indicators/ema.dart';
+export 'engine/indicators/ichimoku.dart';
 export 'engine/indicators/indicator.dart';
 export 'engine/indicators/indicator_result.dart';
 export 'engine/indicators/macd.dart';
+export 'engine/indicators/parabolic_sar.dart';
 export 'engine/indicators/rsi.dart';
 export 'engine/indicators/sma.dart';
+export 'engine/indicators/smart_money_concepts.dart';
+export 'engine/indicators/stochastic.dart';
 export 'engine/indicators/supertrend.dart';
 export 'engine/indicators/volume_profile.dart';
 export 'engine/indicators/vwap.dart';
+export 'engine/indicators/williams_r.dart';
 
 // Renderer & Panes
 export 'renderer/chart_painter.dart';
 export 'renderer/pane.dart';
+export 'renderer/renderers/smc_renderer.dart';
 
 // UI Components
 export 'ui/chart_drawing_toolbar.dart';
