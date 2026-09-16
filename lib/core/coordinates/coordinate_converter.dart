@@ -28,8 +28,7 @@ class CoordinateConverter {
   int xToIndex(double x) {
     if (totalCandles <= 0 || viewport.candleTotalWidth <= 0) return 0;
     final lastIndex = totalCandles - 1;
-    final distanceFromRight =
-        (viewport.viewportWidth -
+    final distanceFromRight = (viewport.viewportWidth -
             viewport.rightMargin +
             viewport.scrollOffset) -
         x;

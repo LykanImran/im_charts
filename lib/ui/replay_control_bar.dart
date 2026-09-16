@@ -127,10 +127,10 @@ class ReplayControlBar extends StatelessWidget {
                   final nextSpeed = current == 1.0
                       ? 2.0
                       : current == 2.0
-                      ? 3.0
-                      : current == 3.0
-                      ? 5.0
-                      : 1.0;
+                          ? 3.0
+                          : current == 3.0
+                              ? 5.0
+                              : 1.0;
                   controller.setReplaySpeed(nextSpeed);
                 },
                 child: Container(

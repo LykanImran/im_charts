@@ -160,8 +160,8 @@ class ChartSettingsModal extends StatelessWidget {
                           color: isSelected
                               ? const Color(0xFF2962FF)
                               : (isDark
-                                    ? const Color(0xFF2A2E39)
-                                    : const Color(0xFFE0E3EB)),
+                                  ? const Color(0xFF2A2E39)
+                                  : const Color(0xFFE0E3EB)),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -181,8 +181,8 @@ class ChartSettingsModal extends StatelessWidget {
                                 color: isSelected
                                     ? Colors.white
                                     : (isDark
-                                          ? Colors.white70
-                                          : Colors.black87),
+                                        ? Colors.white70
+                                        : Colors.black87),
                                 fontSize: 12,
                                 fontWeight: isSelected
                                     ? FontWeight.bold

@@ -1,10 +1,12 @@
 # Im Charts (`im_charts`)
 
+[![Pub Version](https://img.shields.io/pub/v/im_charts.svg)](https://pub.dev/packages/im_charts)
+[![Pub Points](https://img.shields.io/pub/points/im_charts)](https://pub.dev/packages/im_charts/score)
 [![Flutter](https://img.shields.io/badge/Flutter-3.24%2B-blue.svg)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
-[![Platform](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
+[![Platforms](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-71%2F71%20Passed-brightgreen.svg)](test/)
+[![CI](https://github.com/LykanImran/im_charts/actions/workflows/ci.yml/badge.svg)](https://github.com/LykanImran/im_charts/actions)
 [![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_Im_Charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
@@ -27,8 +29,9 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
 | 🏛️ **[Architecture & Internals](doc/architecture.md)** | Skia/Impeller rendering pipeline, coordinate projections, and gesture routing. |
 | 🔌 **[Data Sources & Real-Time Feeds](doc/data_sources.md)** | Connecting WebSockets, REST APIs, Binance, Zerodha Kite, and live tick aggregation. |
 | 🎨 **[Customization & Theming](doc/customization.md)** | Custom themes (`ChartTheme`), candle presentation styles, and layout sizing. |
-| 📈 **[Technical Indicators Guide](doc/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, VWAP, MACD, RSI, Volume Profile VRVP) and writing custom indicators. |
+| 📈 **[Technical Indicators Guide](doc/indicators.md)** | Built-in indicators (EMA, SMA, Supertrend, Bollinger Bands, VWAP, MACD, RSI, Volume Profile VRVP) and writing custom indicators. |
 | 📖 **[API Reference](doc/api_reference.md)** | Detailed documentation for all classes, methods, models, and enums. |
+| 🤝 **[Contributing Guide](CONTRIBUTING.md)** | Development environment setup, running test suites, and PR submission guide. |
 
 ---
 
@@ -40,10 +43,16 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
 - **🕯️ 6 Candlestick Presentation Styles**:
   - Standard Candlesticks, Hollow Candles, Heikin Ashi, Line Chart, Area Mountain Chart, and Western OHLC Tick Bars.
 - **📈 Integrated Technical Indicators & Volume Profile**:
-  - **Overlays**: Exponential Moving Averages (EMA 20, EMA 50), Bollinger Bands (20, 2), Volume Weighted Average Price (**VWAP** with intraday session boundary reset and $\pm 2.0\sigma$ standard deviation volatility envelope bands).
+  - **Overlays**: Exponential Moving Averages (EMA 20, EMA 50), Simple Moving Average (SMA 20), **Supertrend Indicator** (ATR-based trend bands with green/red buy/sell directional shifts), Bollinger Bands (20, 2), Volume Weighted Average Price (**VWAP** with intraday session boundary reset and $\pm 2.0\sigma$ standard deviation volatility envelope bands).
   - **Visible Range Volume Profile (VRVP)**: Real-time volume profile over currently visible bars with Point of Control (POC), 70% Value Area High (VAH) and Value Area Low (VAL) dashed bounds, and color-coded buy/sell horizontal volume bars.
   - **Stacked Multi-SubPanes**: Simultaneously run multiple oscillators (e.g. **RSI 14** and **MACD 12, 26, 9**) stacked below the chart, each with auto-scaled coordinate spaces, dynamic zero-baseline histograms, and individual close buttons.
   - **Volume**: Real-time auto-scaled volume histogram.
+- **↩️ Undo / Redo History Stack (`Ctrl+Z` / `Ctrl+Y` / `⌘Z` / `⌘Shift+Z`)**:
+  - Full transactional history for drawings (creation, movement, resizing, color/width changes, and deletion).
+- **🧲 Magnet Mode (Snap to OHLC)**:
+  - Snap drawing anchors automatically to the nearest candle's Open, High, Low, or Close price wicks and bodies.
+- **💾 JSON Serialization & Cloud Sync**:
+  - Complete `toJson()` and `fromJson()` serialization on `ChartDrawing`, `DrawingPoint`, `ChartAlert`, and `ChartOrder` with `controller.exportDrawingsJson()` and `controller.importDrawingsJson()`.
 - **🔔 Visual Price Alerts (`ChartAlert`)**:
   - Direct canvas amber dashed alert lines with draggable price levels.
   - Ticker alert pill on the vertical price scale (`🔔 ₹...`).
@@ -55,6 +64,8 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
   - **Price Scale Drag**: Stretch and compress price vertically with interactive `AUTO` scale reset badge.
   - **Time Scale Drag**: Dynamic timeframe scaling via bottom time axis drag.
 - **⌨️ Keyboard Shortcuts & Hotkeys**:
+  - `Ctrl + Z` / `⌘ + Z`: Undo last drawing action.
+  - `Ctrl + Y` / `⌘ + Shift + Z`: Redo drawing action.
   - `Alt + H`: Quick-draw Horizontal Ray / Support & Resistance line at cursor.
   - `Alt + T`: Quick-draw Trendline.
   - `Alt + A`: Open instant Alert modal at hovered price.
@@ -68,9 +79,10 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
   - Step forward bar-by-bar or step backward.
   - Automated continuous playback with speed multipliers (`1x`, `2x`, `3x`, `5x`).
   - Floating glassmorphic control bar (`ReplayControlBar`) with instant exit button.
-- **📷 High-DPI Chart Snapshot & Export (`ChartExporter`)**:
+- **📷 High-DPI Chart Snapshot & CSV Export (`ChartExporter`)**:
   - High-resolution 2.0x retina PNG image rendering via `RepaintBoundary`.
   - Built-in preview modal dialog with direct download and clipboard copy capabilities.
+  - `ChartExporter.exportCandlesToCsv(candles)` for algorithmic backtesting data export.
 - **🎯 Direct On-Chart Trading, Orders & Open Positions**:
   - **Hover `+` Button**: Cursor-tracking `+` button rendered right before the vertical price axis.
   - **1-Click Order Execution**: Dropdown menu for Limit Buy, Limit Sell, and Brackets with support for custom consuming UI (`orderMenuBuilder`).
@@ -81,7 +93,7 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
   - **Tabbed Ledger Drawer**: Interactive slide-over ledger tracking pending Orders and active Positions with 1-click cancellations and market exits.
   - **Lifecycle Callbacks**: Comprehensive `onOrderPlaced`, `onOrderModified`, `onOrderCancelled`, `onPositionOpened`, and `onPositionClosed` hooks.
 - **📐 TradingView-Standard Drawing Instruments & Floating Action Bar**:
-  - **8 Analysis Tools**: **Trendline** (with angle/delta badge), **Horizontal Ray** (full-width support/resistance), **Rectangle** (Supply & Demand / SMC order block zone box with translucent fill and corner handles), **Fibonacci Retracement** (golden ratio bands), **Long Position** (interactive target & stop handles), **Short Position**, **Measure Ruler** (ΔPrice, Δ%, bar count), and **Cursor Pointer**.
+  - **10 Analysis Tools**: **Trendline** (with angle/delta badge), **Horizontal Line**, **Horizontal Ray** (infinite right breakout level), **Vertical Line** (time/event marker), **Rectangle** (Supply & Demand / SMC order block zone box with translucent fill and 8 corner/edge resize handles), **Fibonacci Retracement** (golden ratio bands), **Long Position** (interactive target & stop handles), **Short Position**, **Measure Ruler** (ΔPrice, Δ%, bar count), and **Cursor Pointer**.
   - **Dual Creation Gestures**: Supports both **Click-and-Drag** (drag & release) and **Click-Move-Click** (anchor 1 $\rightarrow$ hover $\rightarrow$ anchor 2).
   - **Interactive Anchor Handles**: Selected drawings display circular grab handles to modify individual coordinates or target/stop boundaries.
   - **Drag-to-Move**: Click & drag the body of any drawing to translate it smoothly across candles and price levels.
@@ -100,13 +112,17 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
 
 ### 1. Add Dependency
 
-Add to your `pubspec.yaml`:
+Add to your Flutter project via terminal:
+
+```bash
+flutter pub add im_charts
+```
+
+Or add directly to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  im_charts:
-    git:
-      url: https://github.com/LykanImran/im_charts.git
+  im_charts: ^0.1.0
 ```
 
 ### 2. Run the Turnkey Trading Terminal

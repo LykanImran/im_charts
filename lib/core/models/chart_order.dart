@@ -99,15 +99,54 @@ class ChartOrder {
       type: type ?? this.type,
       price: price ?? this.price,
       quantity: quantity ?? this.quantity,
-      takeProfitPrice: takeProfitPrice != null
-          ? takeProfitPrice()
-          : this.takeProfitPrice,
-      stopLossPrice: stopLossPrice != null
-          ? stopLossPrice()
-          : this.stopLossPrice,
+      takeProfitPrice:
+          takeProfitPrice != null ? takeProfitPrice() : this.takeProfitPrice,
+      stopLossPrice:
+          stopLossPrice != null ? stopLossPrice() : this.stopLossPrice,
       customLabel: customLabel ?? this.customLabel,
       status: status ?? this.status,
       metadata: metadata ?? this.metadata,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'symbol': symbol,
+        'side': side.name,
+        'type': type.name,
+        'price': price,
+        'quantity': quantity,
+        if (takeProfitPrice != null) 'takeProfitPrice': takeProfitPrice,
+        if (stopLossPrice != null) 'stopLossPrice': stopLossPrice,
+        if (customLabel != null) 'customLabel': customLabel,
+        'status': status.name,
+        if (metadata != null) 'metadata': metadata,
+      };
+
+  factory ChartOrder.fromJson(Map<String, dynamic> json) {
+    return ChartOrder(
+      id: json['id'] as String,
+      symbol: json['symbol'] as String,
+      side: OrderSide.values.firstWhere(
+        (s) => s.name == json['side'],
+        orElse: () => OrderSide.buy,
+      ),
+      type: OrderType.values.firstWhere(
+        (t) => t.name == json['type'],
+        orElse: () => OrderType.limit,
+      ),
+      price: (json['price'] as num).toDouble(),
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
+      takeProfitPrice: (json['takeProfitPrice'] as num?)?.toDouble(),
+      stopLossPrice: (json['stopLossPrice'] as num?)?.toDouble(),
+      customLabel: json['customLabel'] as String?,
+      status: OrderStatus.values.firstWhere(
+        (s) => s.name == json['status'],
+        orElse: () => OrderStatus.active,
+      ),
+      metadata: json['metadata'] != null
+          ? Map<String, dynamic>.from(json['metadata'] as Map)
+          : null,
     );
   }
 
@@ -128,14 +167,14 @@ class ChartOrder {
 
   @override
   int get hashCode => Object.hash(
-    id,
-    symbol,
-    side,
-    type,
-    price,
-    quantity,
-    takeProfitPrice,
-    stopLossPrice,
-    status,
-  );
+        id,
+        symbol,
+        side,
+        type,
+        price,
+        quantity,
+        takeProfitPrice,
+        stopLossPrice,
+        status,
+      );
 }

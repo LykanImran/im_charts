@@ -91,13 +91,13 @@ class VolumeProfile {
       final sellFraction = 1.0 - buyFraction;
 
       final startBin = ((cLow - minPrice) / binSize).floor().clamp(
-        0,
-        binCount - 1,
-      );
+            0,
+            binCount - 1,
+          );
       final endBin = ((cHigh - minPrice) / binSize).floor().clamp(
-        0,
-        binCount - 1,
-      );
+            0,
+            binCount - 1,
+          );
 
       final span = endBin - startBin + 1;
       final volPerBin = candle.volume / span;
@@ -151,12 +151,10 @@ class VolumeProfile {
 
     while (currentVaVolume < targetVaVolume &&
         (upperIdx < binCount - 1 || lowerIdx > 0)) {
-      final nextUpperVol = (upperIdx < binCount - 1)
-          ? bins[upperIdx + 1].totalVolume
-          : -1.0;
-      final nextLowerVol = (lowerIdx > 0)
-          ? bins[lowerIdx - 1].totalVolume
-          : -1.0;
+      final nextUpperVol =
+          (upperIdx < binCount - 1) ? bins[upperIdx + 1].totalVolume : -1.0;
+      final nextLowerVol =
+          (lowerIdx > 0) ? bins[lowerIdx - 1].totalVolume : -1.0;
 
       if (nextUpperVol >= nextLowerVol && nextUpperVol >= 0) {
         upperIdx++;

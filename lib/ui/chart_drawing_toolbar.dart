@@ -26,6 +26,8 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
     DrawingTool.pointer,
     DrawingTool.trendline,
     DrawingTool.horizontalLine,
+    DrawingTool.horizontalRay,
+    DrawingTool.verticalLine,
     DrawingTool.rectangle,
     DrawingTool.fibonacci,
     DrawingTool.longPosition,
@@ -95,6 +97,109 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                 padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 child: Divider(color: Color(0xFF2A2E39), height: 1),
               ),
+
+              // Magnet Mode Toggle
+              Tooltip(
+                message: widget.controller.magnetMode
+                    ? 'Magnet Mode: ON (Snap to OHLC)'
+                    : 'Magnet Mode: OFF (Snap to OHLC)',
+                waitDuration: const Duration(milliseconds: 400),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  child: InkWell(
+                    key: const Key('magnet_mode_button'),
+                    onTap: widget.controller.toggleMagnetMode,
+                    borderRadius: BorderRadius.circular(6),
+                    hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.15),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: widget.controller.magnetMode
+                            ? const Color(0xFFFFB300).withValues(alpha: 0.2)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                        border: widget.controller.magnetMode
+                            ? Border.all(
+                                color: const Color(0xFFFFB300), width: 1)
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.gps_fixed,
+                        size: 18,
+                        color: widget.controller.magnetMode
+                            ? const Color(0xFFFFB300)
+                            : const Color(0xFF868993),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // Undo Button
+              Tooltip(
+                message: 'Undo (Ctrl+Z)',
+                waitDuration: const Duration(milliseconds: 400),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  child: InkWell(
+                    key: const Key('undo_drawing_button'),
+                    onTap: widget.controller.canUndo
+                        ? widget.controller.undo
+                        : null,
+                    borderRadius: BorderRadius.circular(6),
+                    hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.15),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.undo,
+                        size: 18,
+                        color: widget.controller.canUndo
+                            ? const Color(0xFFD1D4DC)
+                            : const Color(0xFF4A4E59),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // Redo Button
+              Tooltip(
+                message: 'Redo (Ctrl+Y)',
+                waitDuration: const Duration(milliseconds: 400),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  child: InkWell(
+                    key: const Key('redo_drawing_button'),
+                    onTap: widget.controller.canRedo
+                        ? widget.controller.redo
+                        : null,
+                    borderRadius: BorderRadius.circular(6),
+                    hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.15),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.redo,
+                        size: 18,
+                        color: widget.controller.canRedo
+                            ? const Color(0xFFD1D4DC)
+                            : const Color(0xFF4A4E59),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
 
               // Clear All Drawings Button
               if (hasDrawings)
@@ -171,9 +276,8 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
           key: Key('drawing_tool_${tool.name}'),
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-          hoverColor: isActive
-              ? const Color(0xFF2962FF)
-              : const Color(0xFF2A2E39),
+          hoverColor:
+              isActive ? const Color(0xFF2962FF) : const Color(0xFF2A2E39),
           child: Container(
             width: 34,
             height: 34,

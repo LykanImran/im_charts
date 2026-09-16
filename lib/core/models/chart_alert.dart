@@ -76,6 +76,37 @@ class ChartAlert {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'symbol': symbol,
+        'price': price,
+        'note': note,
+        'condition': condition.name,
+        'createdAt': createdAt.toIso8601String(),
+        'isTriggered': isTriggered,
+        'isActive': isActive,
+        if (triggeredAt != null) 'triggeredAt': triggeredAt!.toIso8601String(),
+      };
+
+  factory ChartAlert.fromJson(Map<String, dynamic> json) {
+    return ChartAlert(
+      id: json['id'] as String,
+      symbol: json['symbol'] as String,
+      price: (json['price'] as num).toDouble(),
+      note: json['note'] as String? ?? 'Price Alert',
+      condition: AlertTriggerCondition.values.firstWhere(
+        (c) => c.name == json['condition'],
+        orElse: () => AlertTriggerCondition.crossing,
+      ),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      isTriggered: json['isTriggered'] as bool? ?? false,
+      isActive: json['isActive'] as bool? ?? true,
+      triggeredAt: json['triggeredAt'] != null
+          ? DateTime.tryParse(json['triggeredAt'] as String)
+          : null,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

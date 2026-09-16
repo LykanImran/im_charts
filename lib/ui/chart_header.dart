@@ -50,9 +50,8 @@ class ChartHeader extends StatelessWidget {
                 vertical: 4.0,
               ),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xCC131722)
-                    : const Color(0xD9FFFFFF),
+                color:
+                    isDark ? const Color(0xCC131722) : const Color(0xD9FFFFFF),
                 borderRadius: BorderRadius.circular(6.0),
                 border: Border.all(
                   color: theme.gridColor.withValues(alpha: 0.5),
@@ -320,8 +319,7 @@ class ChartHeader extends StatelessWidget {
             TextSpan(
               text: value,
               style: TextStyle(
-                color:
-                    valueColor ??
+                color: valueColor ??
                     (isDark
                         ? Colors.white.withValues(alpha: 0.95)
                         : Colors.black87),

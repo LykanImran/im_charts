@@ -9,7 +9,7 @@ class PriceRange {
   final double max;
 
   const PriceRange(this.min, this.max)
-    : assert(max >= min, 'Max price ($max) must be >= Min price ($min)');
+      : assert(max >= min, 'Max price ($max) must be >= Min price ($min)');
 
   /// Empty or default zero price range.
   static const zero = PriceRange(0.0, 1.0);

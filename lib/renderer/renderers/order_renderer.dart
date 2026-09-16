@@ -27,9 +27,8 @@ class OrderRenderer {
         priceRange,
       );
       final isBuy = order.isBuy;
-      final orderColor = isBuy
-          ? const Color(0xFF00E676)
-          : const Color(0xFFFF3B30);
+      final orderColor =
+          isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
 
       // 1. Draw Main Order Line & Badge
       if (orderY >= bounds.top - 20 && orderY <= bounds.bottom + 20) {
@@ -151,9 +150,8 @@ class OrderRenderer {
         priceRange,
       );
       final isLong = pos.isLong;
-      final posColor = isLong
-          ? const Color(0xFF2962FF)
-          : const Color(0xFFE91E63);
+      final posColor =
+          isLong ? const Color(0xFF2962FF) : const Color(0xFFE91E63);
 
       // 1. Draw Solid Position Line & Pill Badge
       if (posY >= bounds.top - 20 && posY <= bounds.bottom + 20) {
@@ -274,9 +272,8 @@ class OrderRenderer {
     final pnl = position.unrealizedPnL(currentPrice);
     final pnlPct = position.unrealizedPnLPercentage(currentPrice);
     final isProfit = pnl >= 0;
-    final pnlColor = isProfit
-        ? const Color(0xFF00E676)
-        : const Color(0xFFFF3B30);
+    final pnlColor =
+        isProfit ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
     final pnlSign = isProfit ? '+' : '';
 
     final textSpan = TextSpan(

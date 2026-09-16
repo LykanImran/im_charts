@@ -42,14 +42,12 @@ class ChartViewport {
     // (lastIndex - i) * candleTotalWidth <= viewportWidth - rightMargin + scrollOffset
     // i >= lastIndex - (viewportWidth - rightMargin + scrollOffset) / candleTotalWidth
 
-    final rawEnd =
-        lastIndex -
+    final rawEnd = lastIndex -
         ((scrollOffset - rightMargin) / candleTotalWidth).floor() +
         1;
     final end = math.max(0, math.min(lastIndex, rawEnd));
 
-    final rawStart =
-        lastIndex -
+    final rawStart = lastIndex -
         ((viewportWidth - rightMargin + scrollOffset) / candleTotalWidth)
             .ceil() -
         1;

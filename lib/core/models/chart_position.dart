@@ -101,12 +101,10 @@ class ChartPosition {
       side: side ?? this.side,
       entryPrice: entryPrice ?? this.entryPrice,
       quantity: quantity ?? this.quantity,
-      takeProfitPrice: takeProfitPrice != null
-          ? takeProfitPrice()
-          : this.takeProfitPrice,
-      stopLossPrice: stopLossPrice != null
-          ? stopLossPrice()
-          : this.stopLossPrice,
+      takeProfitPrice:
+          takeProfitPrice != null ? takeProfitPrice() : this.takeProfitPrice,
+      stopLossPrice:
+          stopLossPrice != null ? stopLossPrice() : this.stopLossPrice,
       openedAt: openedAt ?? this.openedAt,
       customLabel: customLabel ?? this.customLabel,
       metadata: metadata ?? this.metadata,
@@ -129,13 +127,13 @@ class ChartPosition {
 
   @override
   int get hashCode => Object.hash(
-    id,
-    symbol,
-    side,
-    entryPrice,
-    quantity,
-    takeProfitPrice,
-    stopLossPrice,
-    openedAt,
-  );
+        id,
+        symbol,
+        side,
+        entryPrice,
+        quantity,
+        takeProfitPrice,
+        stopLossPrice,
+        openedAt,
+      );
 }

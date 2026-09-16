@@ -94,17 +94,17 @@ class ChartPainter extends CustomPainter {
     this.exchange = 'NSE',
     this.verticalScale = 1.0,
     this.verticalPan = 0.0,
-  }) : _gridRenderer = GridRenderer(theme),
-       _candleRenderer = CandleRenderer(theme),
-       _volumeRenderer = VolumeRenderer(theme),
-       _volumeProfileRenderer = VolumeProfileRenderer(theme),
-       _indicatorRenderer = IndicatorRenderer(theme),
-       _currentPriceRenderer = CurrentPriceRenderer(theme),
-       _axisRenderer = AxisRenderer(theme),
-       _crosshairRenderer = CrosshairRenderer(theme),
-       _orderRenderer = OrderRenderer(theme),
-       _drawingRenderer = DrawingRenderer(theme),
-       _alertRenderer = AlertRenderer(theme);
+  })  : _gridRenderer = GridRenderer(theme),
+        _candleRenderer = CandleRenderer(theme),
+        _volumeRenderer = VolumeRenderer(theme),
+        _volumeProfileRenderer = VolumeProfileRenderer(theme),
+        _indicatorRenderer = IndicatorRenderer(theme),
+        _currentPriceRenderer = CurrentPriceRenderer(theme),
+        _axisRenderer = AxisRenderer(theme),
+        _crosshairRenderer = CrosshairRenderer(theme),
+        _orderRenderer = OrderRenderer(theme),
+        _drawingRenderer = DrawingRenderer(theme),
+        _alertRenderer = AlertRenderer(theme);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -120,8 +120,8 @@ class ChartPainter extends CustomPainter {
     final activeSubPanes = subPaneIndicators.isNotEmpty
         ? subPaneIndicators
         : (subPaneIndicator != null
-              ? [subPaneIndicator!]
-              : <IndicatorResult>[]);
+            ? [subPaneIndicator!]
+            : <IndicatorResult>[]);
 
     // 2. Setup multi-pane layout
     final layout = ChartPaneLayout(

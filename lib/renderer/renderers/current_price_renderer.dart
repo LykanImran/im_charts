@@ -23,9 +23,8 @@ class CurrentPriceRenderer extends BaseRenderer {
 
     if (y < mainBounds.top || y > mainBounds.bottom) return;
 
-    final priceColor = latestCandle.isBullish
-        ? theme.bullishColor
-        : theme.bearishColor;
+    final priceColor =
+        latestCandle.isBullish ? theme.bullishColor : theme.bearishColor;
 
     // 1. Dashed horizontal line across mainBounds
     _drawDashedHorizontalLine(
@@ -171,9 +170,8 @@ class CurrentPriceRenderer extends BaseRenderer {
 
     double currentX = startX;
     while (currentX < endX) {
-      final lineEnd = (currentX + dashWidth < endX)
-          ? currentX + dashWidth
-          : endX;
+      final lineEnd =
+          (currentX + dashWidth < endX) ? currentX + dashWidth : endX;
       canvas.drawLine(Offset(currentX, y), Offset(lineEnd, y), paint);
       currentX += dashWidth + dashSpace;
     }

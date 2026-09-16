@@ -35,6 +35,8 @@ export 'engine/indicators/indicator.dart';
 export 'engine/indicators/indicator_result.dart';
 export 'engine/indicators/macd.dart';
 export 'engine/indicators/rsi.dart';
+export 'engine/indicators/sma.dart';
+export 'engine/indicators/supertrend.dart';
 export 'engine/indicators/volume_profile.dart';
 export 'engine/indicators/vwap.dart';
 

@@ -284,8 +284,8 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                           color: isSelected
                               ? const Color(0xFF2962FF)
                               : (isDark
-                                    ? const Color(0xFF2A2E39)
-                                    : const Color(0xFFE0E3EB)),
+                                  ? const Color(0xFF2A2E39)
+                                  : const Color(0xFFE0E3EB)),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

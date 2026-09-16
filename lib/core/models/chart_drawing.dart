@@ -8,6 +8,8 @@ enum DrawingTool {
   pointer,
   trendline,
   horizontalLine,
+  horizontalRay,
+  verticalLine,
   rectangle,
   fibonacci,
   longPosition,
@@ -24,6 +26,10 @@ extension DrawingToolExtension on DrawingTool {
         return 'Trendline';
       case DrawingTool.horizontalLine:
         return 'Horizontal Line';
+      case DrawingTool.horizontalRay:
+        return 'Horizontal Ray';
+      case DrawingTool.verticalLine:
+        return 'Vertical Line';
       case DrawingTool.rectangle:
         return 'Rectangle';
       case DrawingTool.fibonacci:
@@ -45,6 +51,10 @@ extension DrawingToolExtension on DrawingTool {
         return Icons.trending_up;
       case DrawingTool.horizontalLine:
         return Icons.horizontal_rule;
+      case DrawingTool.horizontalRay:
+        return Icons.arrow_right_alt;
+      case DrawingTool.verticalLine:
+        return Icons.vertical_align_center;
       case DrawingTool.rectangle:
         return Icons.crop_square_outlined;
       case DrawingTool.fibonacci:
@@ -64,6 +74,8 @@ extension DrawingToolExtension on DrawingTool {
       case DrawingTool.pointer:
         return 0;
       case DrawingTool.horizontalLine:
+      case DrawingTool.horizontalRay:
+      case DrawingTool.verticalLine:
       case DrawingTool.longPosition:
       case DrawingTool.shortPosition:
         return 1;
@@ -99,6 +111,22 @@ class DrawingPoint {
       candleIndex: candleIndex ?? this.candleIndex,
       price: price ?? this.price,
       timestamp: timestamp ?? this.timestamp,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'candleIndex': candleIndex,
+        'price': price,
+        if (timestamp != null) 'timestamp': timestamp!.toIso8601String(),
+      };
+
+  factory DrawingPoint.fromJson(Map<String, dynamic> json) {
+    return DrawingPoint(
+      candleIndex: json['candleIndex'] as int,
+      price: (json['price'] as num).toDouble(),
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'] as String)
+          : null,
     );
   }
 }
@@ -144,6 +172,40 @@ class ChartDrawing {
       isLocked: isLocked ?? this.isLocked,
       isSelected: isSelected ?? this.isSelected,
       properties: properties ?? this.properties,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'tool': tool.name,
+        'points': points.map((p) => p.toJson()).toList(),
+        'color': color.toARGB32(),
+        'strokeWidth': strokeWidth,
+        'isLocked': isLocked,
+        'isSelected': isSelected,
+        'properties': properties,
+      };
+
+  factory ChartDrawing.fromJson(Map<String, dynamic> json) {
+    return ChartDrawing(
+      id: json['id'] as String,
+      tool: DrawingTool.values.firstWhere(
+        (t) => t.name == json['tool'],
+        orElse: () => DrawingTool.pointer,
+      ),
+      points: (json['points'] as List<dynamic>?)
+              ?.map((p) => DrawingPoint.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          [],
+      color: json['color'] != null
+          ? Color(json['color'] as int)
+          : const Color(0xFF2962FF),
+      strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ?? 1.8,
+      isLocked: json['isLocked'] as bool? ?? false,
+      isSelected: json['isSelected'] as bool? ?? false,
+      properties: json['properties'] != null
+          ? Map<String, dynamic>.from(json['properties'] as Map)
+          : const {},
     );
   }
 
@@ -212,6 +274,26 @@ class ChartDrawing {
           Offset(bounds.left + 50.0, y),
           Offset(bounds.center.dx, y),
           Offset(bounds.right - 50.0, y),
+        ];
+
+      case DrawingTool.horizontalRay:
+        final x = converter.indexToX(points[0].candleIndex);
+        final y = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
+        return [
+          Offset(x, y),
+          Offset(((x + bounds.right) / 2).clamp(x + 20.0, bounds.right), y),
+        ];
+
+      case DrawingTool.verticalLine:
+        final x = converter.indexToX(points[0].candleIndex);
+        return [
+          Offset(x, bounds.top + 40.0),
+          Offset(x, bounds.center.dy),
+          Offset(x, bounds.bottom - 40.0),
         ];
 
       case DrawingTool.rectangle:
@@ -284,11 +366,9 @@ class ChartDrawing {
         final widthSpan = (properties['widthSpan'] as double?) ?? (40 * 11.0);
         final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
-        final targetPrice =
-            properties['targetPrice'] as double? ??
+        final targetPrice = properties['targetPrice'] as double? ??
             (isLong ? entry.price * 1.015 : entry.price * 0.985);
-        final stopPrice =
-            properties['stopPrice'] as double? ??
+        final stopPrice = properties['stopPrice'] as double? ??
             (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
 
         final targetY = CoordinateConverter.priceToY(
@@ -315,7 +395,11 @@ class ChartDrawing {
   MouseCursor getHandleCursor(int handleIndex) {
     switch (tool) {
       case DrawingTool.horizontalLine:
+      case DrawingTool.horizontalRay:
         return SystemMouseCursors.resizeUpDown;
+
+      case DrawingTool.verticalLine:
+        return SystemMouseCursors.resizeLeftRight;
 
       case DrawingTool.rectangle:
         switch (handleIndex) {
@@ -428,6 +512,23 @@ class ChartDrawing {
             pos.dx >= bounds.left - 10 &&
             pos.dx <= bounds.right + 10;
 
+      case DrawingTool.horizontalRay:
+        final x = converter.indexToX(points[0].candleIndex);
+        final y = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
+        return (pos.dy - y).abs() <= math.max(threshold, 10.0) &&
+            pos.dx >= x - 10 &&
+            pos.dx <= bounds.right + 10;
+
+      case DrawingTool.verticalLine:
+        final x = converter.indexToX(points[0].candleIndex);
+        return (pos.dx - x).abs() <= math.max(threshold, 10.0) &&
+            pos.dy >= bounds.top - 10 &&
+            pos.dy <= bounds.bottom + 10;
+
       case DrawingTool.rectangle:
         if (points.length < 2) return false;
         final x1 = converter.indexToX(points[0].candleIndex);
@@ -482,11 +583,9 @@ class ChartDrawing {
         final widthSpan = (properties['widthSpan'] as double?) ?? (40 * 11.0);
         final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
-        final targetPrice =
-            properties['targetPrice'] as double? ??
+        final targetPrice = properties['targetPrice'] as double? ??
             (isLong ? entry.price * 1.015 : entry.price * 0.985);
-        final stopPrice =
-            properties['stopPrice'] as double? ??
+        final stopPrice = properties['stopPrice'] as double? ??
             (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
 
         final targetY = CoordinateConverter.priceToY(

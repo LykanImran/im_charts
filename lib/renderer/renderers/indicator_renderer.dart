@@ -37,6 +37,23 @@ class IndicatorRenderer extends BaseRenderer {
         );
       }
 
+      // Special rendering for Supertrend indicator (renders bull support and bear resistance)
+      if (indicator.indicatorId.startsWith('SUPERTREND_')) {
+        for (final s in indicator.series) {
+          if (s.id == 'supertrend_bull' || s.id == 'supertrend_bear') {
+            _drawSeriesLine(
+              canvas: canvas,
+              bounds: bounds,
+              series: s,
+              visible: visible,
+              priceRange: priceRange,
+              converter: converter,
+            );
+          }
+        }
+        continue;
+      }
+
       // Draw each series line
       for (final s in indicator.series) {
         _drawSeriesLine(
@@ -61,8 +78,7 @@ class IndicatorRenderer extends BaseRenderer {
     PriceRange? priceRange,
     double candleWidth = 8.0,
   }) {
-    final range =
-        priceRange ??
+    final range = priceRange ??
         PriceRange(indicator.fixedMin ?? 0.0, indicator.fixedMax ?? 100.0);
 
     // Draw horizontal reference levels (e.g. 30, 50, 70 for RSI or 0.0 for MACD)

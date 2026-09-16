@@ -26,9 +26,8 @@ class AlertRenderer {
       if (y < bounds.top || y > bounds.bottom) continue;
 
       final isTriggered = alert.isTriggered;
-      final alertColor = isTriggered
-          ? const Color(0xFF787B86)
-          : const Color(0xFFFFB300);
+      final alertColor =
+          isTriggered ? const Color(0xFF787B86) : const Color(0xFFFFB300);
 
       final linePaint = Paint()
         ..color = alertColor.withValues(alpha: isTriggered ? 0.4 : 0.85)

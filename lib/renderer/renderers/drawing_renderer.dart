@@ -34,6 +34,12 @@ class DrawingRenderer {
         case DrawingTool.horizontalLine:
           _drawHorizontalLine(canvas, bounds, drawing, priceRange);
           break;
+        case DrawingTool.horizontalRay:
+          _drawHorizontalRay(canvas, bounds, drawing, priceRange, converter);
+          break;
+        case DrawingTool.verticalLine:
+          _drawVerticalLine(canvas, bounds, drawing, converter);
+          break;
         case DrawingTool.rectangle:
           _drawRectangle(canvas, bounds, drawing, priceRange, converter);
           break;
@@ -238,6 +244,91 @@ class DrawingRenderer {
     textPainter.paint(canvas, Offset(badgeRect.left + 6, badgeRect.top + 3));
   }
 
+  void _drawHorizontalRay(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    final p = drawing.points.first;
+    final startX = converter.indexToX(p.candleIndex);
+    final y = CoordinateConverter.priceToY(p.price, bounds, priceRange);
+
+    if (y < bounds.top - 10 || y > bounds.bottom + 10) return;
+
+    final linePaint = Paint()
+      ..color = drawing.color
+      ..strokeWidth = drawing.strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    // Ray extends from anchor startX to the right edge of bounds
+    final rayStartX = math.max(bounds.left, startX);
+    canvas.drawLine(Offset(rayStartX, y), Offset(bounds.right, y), linePaint);
+
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(startX, y), drawing.color, radius: 5.0);
+      final midX =
+          ((startX + bounds.right) / 2).clamp(startX + 20.0, bounds.right);
+      _drawHandle(canvas, Offset(midX, y), drawing.color, radius: 4.0);
+    }
+
+    // Right-edge price pill badge
+    final textSpan = TextSpan(
+      text: p.price.toStringAsFixed(2),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+        fontFamily: 'monospace',
+      ),
+    );
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final badgeRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        bounds.right - textPainter.width - 16,
+        y - (textPainter.height / 2) - 3,
+        textPainter.width + 12,
+        textPainter.height + 6,
+      ),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(badgeRect, Paint()..color = drawing.color);
+    textPainter.paint(canvas, Offset(badgeRect.left + 6, badgeRect.top + 3));
+  }
+
+  void _drawVerticalLine(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    CoordinateConverter converter,
+  ) {
+    final p = drawing.points.first;
+    final x = converter.indexToX(p.candleIndex);
+
+    if (x < bounds.left - 10 || x > bounds.right + 10) return;
+
+    final linePaint = Paint()
+      ..color = drawing.color
+      ..strokeWidth = drawing.strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(Offset(x, bounds.top), Offset(x, bounds.bottom), linePaint);
+
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x, bounds.top + 40.0), drawing.color,
+          radius: 4.5);
+      _drawHandle(canvas, Offset(x, bounds.center.dy), drawing.color,
+          radius: 5.5);
+      _drawHandle(canvas, Offset(x, bounds.bottom - 40.0), drawing.color,
+          radius: 4.5);
+    }
+  }
+
   void _drawRectangle(
     Canvas canvas,
     Rect bounds,
@@ -426,11 +517,9 @@ class DrawingRenderer {
     final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
     // Target and Stop prices
-    final targetPrice =
-        drawing.properties['targetPrice'] as double? ??
+    final targetPrice = drawing.properties['targetPrice'] as double? ??
         (isLong ? entry.price * 1.015 : entry.price * 0.985);
-    final stopPrice =
-        drawing.properties['stopPrice'] as double? ??
+    final stopPrice = drawing.properties['stopPrice'] as double? ??
         (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
 
     final targetY = CoordinateConverter.priceToY(
@@ -566,9 +655,8 @@ class DrawingRenderer {
     final boxRect = Rect.fromLTRB(left, top, right, bottom);
 
     final isPositive = p2.price >= p1.price;
-    final boxColor = isPositive
-        ? const Color(0xFF00E676)
-        : const Color(0xFFFF3B30);
+    final boxColor =
+        isPositive ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
 
     // Shaded bounding area
     canvas.drawRect(boxRect, Paint()..color = boxColor.withValues(alpha: 0.12));

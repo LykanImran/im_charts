@@ -67,9 +67,8 @@ class GridRenderer extends BaseRenderer {
   double _calculateNicePriceStep(double span, int targetCount) {
     if (span <= 0) return 1.0;
     final roughStep = span / targetCount;
-    final exponent = math
-        .pow(10, (math.log(roughStep) / math.ln10).floor())
-        .toDouble();
+    final exponent =
+        math.pow(10, (math.log(roughStep) / math.ln10).floor()).toDouble();
     final fraction = roughStep / exponent;
 
     double niceFraction;

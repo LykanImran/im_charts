@@ -37,8 +37,7 @@ class TradingChart extends StatefulWidget {
     double price,
     TradingChartController controller,
     VoidCallback closeMenu,
-  )?
-  orderMenuBuilder;
+  )? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(ChartOrder order)? onOrderModified;
   final void Function(String orderId)? onOrderCancelled;
@@ -112,8 +111,7 @@ class _TradingChartState extends State<TradingChart> {
         _hoverPosition!.dx >= priceAxisLeft && _hoverPosition!.dy < timeAxisTop;
     final isTimeAxis =
         _hoverPosition!.dy >= timeAxisTop && _hoverPosition!.dx < priceAxisLeft;
-    final isCorner =
-        _hoverPosition!.dx >= priceAxisLeft &&
+    final isCorner = _hoverPosition!.dx >= priceAxisLeft &&
         _hoverPosition!.dy >= timeAxisTop;
 
     if (isPriceAxis) {
@@ -230,6 +228,31 @@ class _TradingChartState extends State<TradingChart> {
       } else if (event.logicalKey == LogicalKeyboardKey.keyR) {
         controller.resetView();
         return KeyEventResult.handled;
+      }
+    }
+
+    final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
+    final isShift = HardwareKeyboard.instance.isShiftPressed;
+
+    if (isCtrlOrCmd) {
+      if (event.logicalKey == LogicalKeyboardKey.keyZ) {
+        if (isShift) {
+          if (controller.canRedo) {
+            controller.redo();
+            return KeyEventResult.handled;
+          }
+        } else {
+          if (controller.canUndo) {
+            controller.undo();
+            return KeyEventResult.handled;
+          }
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.keyY) {
+        if (controller.canRedo) {
+          controller.redo();
+          return KeyEventResult.handled;
+        }
       }
     }
 
@@ -429,9 +452,8 @@ class _TradingChartState extends State<TradingChart> {
                           controller.onPan(-dx);
                         } else if (dy.abs() > 0.0) {
                           // Smooth exponential focal zoom based on scroll delta
-                          final zoomFactor = math
-                              .exp(-dy * 0.003)
-                              .clamp(0.7, 1.3);
+                          final zoomFactor =
+                              math.exp(-dy * 0.003).clamp(0.7, 1.3);
                           controller.onZoom(zoomFactor, pos);
                         }
                       }
@@ -470,17 +492,31 @@ class _TradingChartState extends State<TradingChart> {
                                 );
                                 final tool = controller.activeDrawingTool;
 
-                                if (tool == DrawingTool.horizontalLine) {
+                                final rawPoint = DrawingPoint(
+                                  candleIndex: clickedIndex,
+                                  price: clickedPrice,
+                                );
+                                final snappedPoint =
+                                    controller.snapPointToCandle(rawPoint);
+
+                                if (tool == DrawingTool.horizontalLine ||
+                                    tool == DrawingTool.horizontalRay ||
+                                    tool == DrawingTool.verticalLine) {
+                                  final Color drawingColor;
+                                  if (tool == DrawingTool.verticalLine) {
+                                    drawingColor = const Color(0xFFFF9100);
+                                  } else if (tool ==
+                                      DrawingTool.horizontalRay) {
+                                    drawingColor = const Color(0xFF00E676);
+                                  } else {
+                                    drawingColor = const Color(0xFF00E5FF);
+                                  }
+
                                   final drawing = ChartDrawing(
                                     id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
-                                    tool: DrawingTool.horizontalLine,
-                                    points: [
-                                      DrawingPoint(
-                                        candleIndex: clickedIndex,
-                                        price: clickedPrice,
-                                      ),
-                                    ],
-                                    color: const Color(0xFF00E5FF),
+                                    tool: tool,
+                                    points: [snappedPoint],
+                                    color: drawingColor,
                                   );
                                   controller.addDrawing(drawing);
                                   controller.selectDrawing(drawing.id);
@@ -493,23 +529,18 @@ class _TradingChartState extends State<TradingChart> {
                                   final drawing = ChartDrawing(
                                     id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
                                     tool: tool,
-                                    points: [
-                                      DrawingPoint(
-                                        candleIndex: clickedIndex,
-                                        price: clickedPrice,
-                                      ),
-                                    ],
+                                    points: [snappedPoint],
                                     properties: {
                                       'targetPrice': double.parse(
                                         (isLong
-                                                ? clickedPrice * 1.015
-                                                : clickedPrice * 0.985)
+                                                ? snappedPoint.price * 1.015
+                                                : snappedPoint.price * 0.985)
                                             .toStringAsFixed(2),
                                       ),
                                       'stopPrice': double.parse(
                                         (isLong
-                                                ? clickedPrice * 0.9925
-                                                : clickedPrice * 1.0075)
+                                                ? snappedPoint.price * 0.9925
+                                                : snappedPoint.price * 1.0075)
                                             .toStringAsFixed(2),
                                       ),
                                       'widthSpan': 40 * 11.0,
@@ -523,10 +554,7 @@ class _TradingChartState extends State<TradingChart> {
                                   // Multi-point tools (trendline, rectangle, fibonacci, ruler)
                                   if (_drawingAnchorPoint == null) {
                                     setState(() {
-                                      _drawingAnchorPoint = DrawingPoint(
-                                        candleIndex: clickedIndex,
-                                        price: clickedPrice,
-                                      );
+                                      _drawingAnchorPoint = snappedPoint;
                                       _hasDraggedDuringCreation = false;
                                       _drawingDragStartPos = pos;
                                     });
@@ -537,10 +565,7 @@ class _TradingChartState extends State<TradingChart> {
                                       tool: tool,
                                       points: [
                                         _drawingAnchorPoint!,
-                                        DrawingPoint(
-                                          candleIndex: clickedIndex,
-                                          price: clickedPrice,
-                                        ),
+                                        snappedPoint,
                                       ],
                                       color: tool == DrawingTool.rectangle
                                           ? const Color(0xFFFFB300)
@@ -665,8 +690,7 @@ class _TradingChartState extends State<TradingChart> {
                                   // 1. Check if dragging a handle on the selected drawing
                                   final sel = controller.selectedDrawing;
                                   if (sel != null && !sel.isLocked) {
-                                    final handle =
-                                        sel.hitTestHandle(
+                                    final handle = sel.hitTestHandle(
                                           start,
                                           bounds,
                                           priceRange,
@@ -679,10 +703,13 @@ class _TradingChartState extends State<TradingChart> {
                                           converter,
                                         );
                                     if (handle != null) {
+                                      controller.recordDrawingSnapshot();
                                       _draggingHandleIndex = handle;
                                       _draggingDrawingId = sel.id;
                                       if (sel.tool ==
-                                          DrawingTool.horizontalLine) {
+                                              DrawingTool.horizontalLine ||
+                                          sel.tool ==
+                                              DrawingTool.horizontalRay) {
                                         _dragMode =
                                             _ChartDragMode.horizontalLineDrag;
                                       } else {
@@ -717,9 +744,12 @@ class _TradingChartState extends State<TradingChart> {
                                   if (hitDrawing != null) {
                                     controller.selectDrawing(hitDrawing.id);
                                     if (!hitDrawing.isLocked) {
+                                      controller.recordDrawingSnapshot();
                                       _draggingDrawingId = hitDrawing.id;
                                       if (hitDrawing.tool ==
-                                          DrawingTool.horizontalLine) {
+                                              DrawingTool.horizontalLine ||
+                                          hitDrawing.tool ==
+                                              DrawingTool.horizontalRay) {
                                         _dragMode =
                                             _ChartDragMode.horizontalLineDrag;
                                       } else {
@@ -734,22 +764,19 @@ class _TradingChartState extends State<TradingChart> {
                               }
                             },
                             onScaleUpdate: (details) {
-                              final deltaX =
-                                  details.localFocalPoint.dx -
+                              final deltaX = details.localFocalPoint.dx -
                                   _lastFocalPoint.dx;
-                              final deltaY =
-                                  details.localFocalPoint.dy -
+                              final deltaY = details.localFocalPoint.dy -
                                   _lastFocalPoint.dy;
 
                               switch (_dragMode) {
                                 case _ChartDragMode.drawingCreation:
                                   if (_drawingAnchorPoint != null &&
                                       controller.candles.isNotEmpty) {
-                                    final dist =
-                                        (details.localFocalPoint -
-                                                (_drawingDragStartPos ??
-                                                    details.localFocalPoint))
-                                            .distance;
+                                    final dist = (details.localFocalPoint -
+                                            (_drawingDragStartPos ??
+                                                details.localFocalPoint))
+                                        .distance;
                                     if (dist > 8.0) {
                                       _hasDraggedDuringCreation = true;
                                     }
@@ -776,8 +803,7 @@ class _TradingChartState extends State<TradingChart> {
                                             price: hoverPrice,
                                           ),
                                         ],
-                                        color:
-                                            controller.activeDrawingTool ==
+                                        color: controller.activeDrawingTool ==
                                                 DrawingTool.rectangle
                                             ? const Color(
                                                 0xFFFFB300,
@@ -798,22 +824,23 @@ class _TradingChartState extends State<TradingChart> {
                                           .priceAtY(details.localFocalPoint.dy)
                                           .toStringAsFixed(2),
                                     );
-                                    final index = controller.drawings
-                                        .indexWhere(
-                                          (d) => d.id == _draggingDrawingId,
-                                        );
+                                    final index =
+                                        controller.drawings.indexWhere(
+                                      (d) => d.id == _draggingDrawingId,
+                                    );
                                     if (index >= 0) {
                                       final drawing =
                                           controller.drawings[index];
+                                      final raw = DrawingPoint(
+                                        candleIndex:
+                                            drawing.points[0].candleIndex,
+                                        price: newPrice,
+                                      );
+                                      final snapped =
+                                          controller.snapPointToCandle(raw);
                                       controller.updateDrawing(
                                         drawing.copyWith(
-                                          points: [
-                                            DrawingPoint(
-                                              candleIndex:
-                                                  drawing.points[0].candleIndex,
-                                              price: newPrice,
-                                            ),
-                                          ],
+                                          points: [snapped],
                                         ),
                                       );
                                     }
@@ -837,10 +864,10 @@ class _TradingChartState extends State<TradingChart> {
                                           .toStringAsFixed(2),
                                     );
 
-                                    final index = controller.drawings
-                                        .indexWhere(
-                                          (d) => d.id == _draggingDrawingId,
-                                        );
+                                    final index =
+                                        controller.drawings.indexWhere(
+                                      (d) => d.id == _draggingDrawingId,
+                                    );
                                     if (index >= 0) {
                                       final drawing =
                                           controller.drawings[index];
@@ -922,8 +949,7 @@ class _TradingChartState extends State<TradingChart> {
                                             points: [
                                               DrawingPoint(
                                                 candleIndex: drawing
-                                                    .points[0]
-                                                    .candleIndex,
+                                                    .points[0].candleIndex,
                                                 price: newPrice,
                                               ),
                                             ],
@@ -938,13 +964,13 @@ class _TradingChartState extends State<TradingChart> {
                                             drawing.points.length) {
                                           final updatedPoints =
                                               List<DrawingPoint>.from(
-                                                drawing.points,
-                                              );
+                                            drawing.points,
+                                          );
                                           updatedPoints[_draggingHandleIndex!] =
                                               DrawingPoint(
-                                                candleIndex: newIndex,
-                                                price: newPrice,
-                                              );
+                                            candleIndex: newIndex,
+                                            price: newPrice,
+                                          );
                                           controller.updateDrawing(
                                             drawing.copyWith(
                                               points: updatedPoints,
@@ -1087,8 +1113,7 @@ class _TradingChartState extends State<TradingChart> {
                                     id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
                                     tool: controller.activeDrawingTool,
                                     points: controller.previewDrawing!.points,
-                                    color:
-                                        controller.activeDrawingTool ==
+                                    color: controller.activeDrawingTool ==
                                             DrawingTool.rectangle
                                         ? const Color(0xFFFFB300)
                                         : const Color(0xFF2962FF),
@@ -1145,8 +1170,7 @@ class _TradingChartState extends State<TradingChart> {
                               controller.setCrosshairPosition(null);
                             },
                             child: RepaintBoundary(
-                              key:
-                                  widget.repaintBoundaryKey ??
+                              key: widget.repaintBoundaryKey ??
                                   _defaultRepaintKey,
                               child: ClipRect(
                                 child: CustomPaint(
@@ -1174,16 +1198,14 @@ class _TradingChartState extends State<TradingChart> {
                                         controller.showVolumeProfile,
                                     volumeProfile: controller.volumeProfile,
                                     showGrid: controller.showGrid,
-                                    showWatermark:
-                                        widget.showWatermark &&
+                                    showWatermark: widget.showWatermark &&
                                         controller.showWatermark,
                                     showCountdownTimer:
                                         widget.showCountdownTimer &&
-                                        controller.showCountdownTimer,
+                                            controller.showCountdownTimer,
                                     countdownText:
                                         controller.candleCountdownText,
-                                    brandName:
-                                        widget.brandName ??
+                                    brandName: widget.brandName ??
                                         controller.brandName,
                                     symbol: controller.symbol,
                                     exchange: controller.exchange,
@@ -1656,9 +1678,8 @@ class _TradingChartState extends State<TradingChart> {
     final tpY = order.hasTakeProfit
         ? controller.yAtPrice(order.takeProfitPrice!)
         : null;
-    final slY = order.hasStopLoss
-        ? controller.yAtPrice(order.stopLossPrice!)
-        : null;
+    final slY =
+        order.hasStopLoss ? controller.yAtPrice(order.stopLossPrice!) : null;
 
     return [
       // 1. Order Badge Interactive Hitbox (Draggable & Cancel)

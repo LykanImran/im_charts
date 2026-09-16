@@ -2,9 +2,28 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import '../models/candle.dart';
 
-/// Utility class for capturing high-DPI snapshots of the chart canvas.
+/// Utility class for capturing high-DPI snapshots of the chart canvas and exporting data.
 class ChartExporter {
+  /// Exports a list of [Candle] records into standard RFC 4180 CSV format.
+  /// Columns: timestamp,open,high,low,close,volume
+  static String exportCandlesToCsv(
+    List<Candle> candles, {
+    bool includeHeaders = true,
+  }) {
+    final buffer = StringBuffer();
+    if (includeHeaders) {
+      buffer.writeln('timestamp,open,high,low,close,volume');
+    }
+    for (final c in candles) {
+      buffer.writeln(
+        '${c.timestamp.toIso8601String()},${c.open.toStringAsFixed(4)},${c.high.toStringAsFixed(4)},${c.low.toStringAsFixed(4)},${c.close.toStringAsFixed(4)},${c.volume.toStringAsFixed(2)}',
+      );
+    }
+    return buffer.toString();
+  }
+
   /// Captures the widget subtree wrapped in a [RepaintBoundary] as PNG byte data.
   /// [pixelRatio] controls the resolution multiplier (default: 2.0 for retina clarity).
   static Future<Uint8List?> capturePng(
@@ -12,9 +31,8 @@ class ChartExporter {
     double pixelRatio = 2.0,
   }) async {
     try {
-      final boundary =
-          repaintBoundaryKey.currentContext?.findRenderObject()
-              as RenderRepaintBoundary?;
+      final boundary = repaintBoundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (boundary == null) return null;
 
       final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);

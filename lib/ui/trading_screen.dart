@@ -35,8 +35,7 @@ class TradingScreen extends StatefulWidget {
     double price,
     TradingChartController controller,
     VoidCallback closeMenu,
-  )?
-  orderMenuBuilder;
+  )? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(String orderId)? onOrderCancelled;
   final void Function(ChartPosition position)? onPositionClosed;
@@ -135,9 +134,8 @@ class _TradingScreenState extends State<TradingScreen> {
 
         return Theme(
           data: ThemeData(
-            brightness: _controller.isDarkTheme
-                ? Brightness.dark
-                : Brightness.light,
+            brightness:
+                _controller.isDarkTheme ? Brightness.dark : Brightness.light,
             scaffoldBackgroundColor: theme.backgroundColor,
           ),
           child: Scaffold(

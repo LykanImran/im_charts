@@ -1,0 +1,48 @@
+name: Dart & Flutter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies (im_charts)
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze code (im_charts)
+        run: flutter analyze .
+
+      - name: Run automated tests (im_charts)
+        run: flutter test --coverage
+
+      - name: Install dependencies (example)
+        working-directory: example
+        run: flutter pub get
+
+      - name: Analyze code (example)
+        working-directory: example
+        run: flutter analyze .
+
+      - name: Run automated tests (example)
+        working-directory: example
+        run: flutter test
+
+      - name: Dry-run package publishing
+        run: flutter pub publish --dry-run

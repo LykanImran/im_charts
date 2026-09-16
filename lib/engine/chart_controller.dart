@@ -17,7 +17,10 @@ import '../datasource/chart_data_source.dart';
 import 'candle_builder.dart';
 import 'indicators/indicator.dart';
 import 'indicators/indicator_result.dart';
+import 'indicators/sma.dart';
+import 'indicators/supertrend.dart';
 import 'indicators/volume_profile.dart';
+import 'dart:convert';
 
 /// Top-level controller managing chart state, gestures, viewport, indicators, and live data stream.
 class TradingChartController extends ChangeNotifier {
@@ -78,12 +81,20 @@ class TradingChartController extends ChangeNotifier {
   void Function(ChartPosition position)? onPositionOpened;
   void Function(ChartPosition position)? onPositionClosed;
 
-  // Interactive Drawings
+  // Interactive Drawing State
   final List<ChartDrawing> _drawings = [];
-  ChartDrawing? _previewDrawing;
   DrawingTool _activeDrawingTool = DrawingTool.pointer;
+  ChartDrawing? _previewDrawing;
   void Function(ChartDrawing drawing)? onDrawingAdded;
   void Function(String drawingId)? onDrawingRemoved;
+
+  // Undo / Redo History Stack for Drawings
+  final List<List<ChartDrawing>> _undoStack = [];
+  final List<List<ChartDrawing>> _redoStack = [];
+  static const int _maxUndoHistory = 50;
+
+  // Magnet Snapping Mode
+  bool _magnetMode = false;
 
   TradingChartController({
     required String symbol,
@@ -93,13 +104,13 @@ class TradingChartController extends ChangeNotifier {
     Timeframe initialTimeframe = Timeframe.fiveMinutes,
     CandleStyle initialCandleStyle = CandleStyle.candles,
     ChartTheme? theme,
-  }) : _symbol = symbol,
-       _exchange = exchange,
-       _brandName = brandName,
-       _timeframe = initialTimeframe,
-       _candleStyle = initialCandleStyle,
-       theme = theme ?? ChartTheme.dark(),
-       _viewport = const ChartViewport() {
+  })  : _symbol = symbol,
+        _exchange = exchange,
+        _brandName = brandName,
+        _timeframe = initialTimeframe,
+        _candleStyle = initialCandleStyle,
+        theme = theme ?? ChartTheme.dark(),
+        _viewport = const ChartViewport() {
     _candleBuilder = CandleBuilder(timeframe: _timeframe);
     _startCountdownTicker();
   }
@@ -126,8 +137,7 @@ class TradingChartController extends ChangeNotifier {
           math.min(_replayIndex! + 1, _candleBuilder.candles.length),
         )
       : _candleBuilder.candles;
-  Candle? get currentCandle =>
-      (_isReplayMode &&
+  Candle? get currentCandle => (_isReplayMode &&
           _replayIndex != null &&
           _candleBuilder.candles.isNotEmpty)
       ? _candleBuilder.candles[math.min(
@@ -396,8 +406,116 @@ class TradingChartController extends ChangeNotifier {
     }
   }
 
+  // --- Drawing History & Undo / Redo ---
+
+  /// Whether there is a previous drawing state available to undo.
+  bool get canUndo => _undoStack.isNotEmpty;
+
+  /// Whether there is a subsequent drawing state available to redo.
+  bool get canRedo => _redoStack.isNotEmpty;
+
+  /// Records the current state of drawings to the undo stack.
+  void recordDrawingSnapshot() {
+    _undoStack.add(_drawings.map((d) => d.copyWith()).toList());
+    if (_undoStack.length > _maxUndoHistory) {
+      _undoStack.removeAt(0);
+    }
+    _redoStack.clear();
+  }
+
+  /// Restores drawings to the previous historical state.
+  void undo() {
+    if (!canUndo) return;
+    _redoStack.add(_drawings.map((d) => d.copyWith()).toList());
+    _drawings
+      ..clear()
+      ..addAll(_undoStack.removeLast());
+    notifyListeners();
+  }
+
+  /// Reapplies drawings to the next forward state in history.
+  void redo() {
+    if (!canRedo) return;
+    _undoStack.add(_drawings.map((d) => d.copyWith()).toList());
+    _drawings
+      ..clear()
+      ..addAll(_redoStack.removeLast());
+    notifyListeners();
+  }
+
+  // --- Magnet Mode (Snap to OHLC) ---
+
+  /// Whether magnet mode is active (snapping drawing anchors to candle OHLC).
+  bool get magnetMode => _magnetMode;
+
+  /// Toggles magnet snapping mode on or off.
+  void toggleMagnetMode() {
+    _magnetMode = !_magnetMode;
+    notifyListeners();
+  }
+
+  /// Sets magnet snapping mode directly.
+  void setMagnetMode(bool enabled) {
+    if (_magnetMode != enabled) {
+      _magnetMode = enabled;
+      notifyListeners();
+    }
+  }
+
+  /// Snaps a drawing point's price to the closest candle Open, High, Low, or Close
+  /// if magnet mode is enabled and candles exist at or near [rawPoint.candleIndex].
+  DrawingPoint snapPointToCandle(DrawingPoint rawPoint) {
+    if (!_magnetMode) return rawPoint;
+    final candleList = candles;
+    if (candleList.isEmpty) return rawPoint;
+
+    final targetIndex = rawPoint.candleIndex.clamp(0, candleList.length - 1);
+    final c = candleList[targetIndex];
+
+    final ohlc = [c.open, c.high, c.low, c.close];
+    double closest = ohlc[0];
+    double minDiff = (rawPoint.price - closest).abs();
+
+    for (int i = 1; i < ohlc.length; i++) {
+      final diff = (rawPoint.price - ohlc[i]).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = ohlc[i];
+      }
+    }
+
+    return rawPoint.copyWith(price: closest);
+  }
+
+  // --- Drawing JSON Serialization ---
+
+  /// Serializes all current drawings into a JSON string.
+  String exportDrawingsJson() {
+    final list = _drawings.map((d) => d.toJson()).toList();
+    return jsonEncode(list);
+  }
+
+  /// Imports drawings from a JSON string, restoring them onto the chart.
+  void importDrawingsJson(String jsonString) {
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is List) {
+        recordDrawingSnapshot();
+        _drawings
+          ..clear()
+          ..addAll(decoded.map(
+            (item) => ChartDrawing.fromJson(item as Map<String, dynamic>),
+          ));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error importing drawings JSON: $e');
+    }
+  }
+
   /// Adds a new user drawing to the chart canvas.
   void addDrawing(ChartDrawing drawing) {
+    recordDrawingSnapshot();
     _drawings.add(drawing);
     _previewDrawing = null;
     onDrawingAdded?.call(drawing);
@@ -416,8 +534,9 @@ class TradingChartController extends ChangeNotifier {
   /// Removes a drawing from the chart canvas.
   void removeDrawing(String id) {
     final removed = _drawings.where((d) => d.id == id).toList();
-    _drawings.removeWhere((d) => d.id == id);
     if (removed.isNotEmpty) {
+      recordDrawingSnapshot();
+      _drawings.removeWhere((d) => d.id == id);
       onDrawingRemoved?.call(id);
       notifyListeners();
     }
@@ -425,9 +544,12 @@ class TradingChartController extends ChangeNotifier {
 
   /// Clears all drawings from the chart canvas.
   void clearDrawings() {
-    _drawings.clear();
-    _previewDrawing = null;
-    notifyListeners();
+    if (_drawings.isNotEmpty) {
+      recordDrawingSnapshot();
+      _drawings.clear();
+      _previewDrawing = null;
+      notifyListeners();
+    }
   }
 
   /// Updates the live drawing preview while the user is actively drawing.
@@ -518,6 +640,7 @@ class TradingChartController extends ChangeNotifier {
   void setSelectedDrawingColor(Color color) {
     final sel = selectedDrawing;
     if (sel != null && !sel.isLocked) {
+      recordDrawingSnapshot();
       final index = _drawings.indexWhere((d) => d.id == sel.id);
       if (index >= 0) {
         _drawings[index] = _drawings[index].copyWith(color: color);
@@ -530,6 +653,7 @@ class TradingChartController extends ChangeNotifier {
   void setSelectedDrawingStrokeWidth(double strokeWidth) {
     final sel = selectedDrawing;
     if (sel != null && !sel.isLocked) {
+      recordDrawingSnapshot();
       final index = _drawings.indexWhere((d) => d.id == sel.id);
       if (index >= 0) {
         _drawings[index] = _drawings[index].copyWith(strokeWidth: strokeWidth);
@@ -873,16 +997,15 @@ class TradingChartController extends ChangeNotifier {
 
     // Anchor calculation to keep candle under focalPoint.dx stationary
     final focalX = focalPoint.dx;
-    final distFromRight =
-        _viewport.viewportWidth -
+    final distFromRight = _viewport.viewportWidth -
         _viewport.rightMargin -
         focalX +
         _viewport.scrollOffset;
     final newScrollOffset =
         (_viewport.scrollOffset + distFromRight * (ratio - 1.0)).clamp(
-          -120.0,
-          math.max(0.0, candles.length * newTotal).toDouble(),
-        );
+      -120.0,
+      math.max(0.0, candles.length * newTotal).toDouble(),
+    );
 
     _viewport = _viewport.copyWith(
       candleWidth: newWidth,
@@ -1009,6 +1132,25 @@ class TradingChartController extends ChangeNotifier {
   bool isIndicatorActive(String id) {
     return _activeIndicators.any((i) => i.id == id);
   }
+
+  // --- Convenience SMA and Supertrend indicator getters & toggles ---
+
+  /// Whether SMA 20 is currently active on the chart.
+  bool get showSma => isIndicatorActive('SMA_20');
+
+  /// Toggles Simple Moving Average (SMA) on or off.
+  void toggleSma([int period = 20]) =>
+      toggleIndicator(SMAIndicator(period: period));
+
+  /// Whether Supertrend is currently active on the chart.
+  bool get showSupertrend =>
+      _activeIndicators.any((i) => i is SupertrendIndicator);
+
+  /// Toggles Supertrend trend-following indicator on or off.
+  void toggleSupertrend({int period = 10, double multiplier = 3.0}) =>
+      toggleIndicator(
+        SupertrendIndicator(period: period, multiplier: multiplier),
+      );
 
   void _recalculateIndicators() {
     _overlayResults = [];

@@ -22,12 +22,12 @@ class MACDIndicator extends Indicator {
     this.signalPeriod = 9,
     this.macdColor = const Color(0xFF00E5FF),
     this.signalColor = const Color(0xFFFF9100),
-  }) : assert(fastPeriod > 0, 'Fast period must be positive'),
-       assert(
-         slowPeriod > fastPeriod,
-         'Slow period must be greater than fast period',
-       ),
-       assert(signalPeriod > 0, 'Signal period must be positive');
+  })  : assert(fastPeriod > 0, 'Fast period must be positive'),
+        assert(
+          slowPeriod > fastPeriod,
+          'Slow period must be greater than fast period',
+        ),
+        assert(signalPeriod > 0, 'Signal period must be positive');
 
   @override
   String get id => 'MACD_${fastPeriod}_${slowPeriod}_$signalPeriod';

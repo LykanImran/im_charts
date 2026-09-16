@@ -61,9 +61,8 @@ class _ChartToolbarState extends State<ChartToolbar>
         final theme = controller.theme;
         final isDark = controller.isDarkTheme;
 
-        final solidToolbarBg = isDark
-            ? const Color(0xFF131722)
-            : const Color(0xFFFFFFFF);
+        final solidToolbarBg =
+            isDark ? const Color(0xFF131722) : const Color(0xFFFFFFFF);
 
         return Material(
           color: solidToolbarBg,
@@ -516,9 +515,8 @@ class _ChartToolbarState extends State<ChartToolbar>
                           ? const Color(0xFF2962FF)
                           : (isDark ? Colors.white : Colors.black87),
                       fontSize: 12,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -598,6 +596,22 @@ class _ChartToolbarState extends State<ChartToolbar>
             onTap: () => controller.toggleIndicator(
               EMAIndicator(period: 20, color: const Color(0xFF2962FF)),
             ),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'SMA 20 (Simple Moving Average)',
+            color: const Color(0xFFFFB300),
+            isActive: controller.isIndicatorActive('SMA_20'),
+            onTap: () => controller.toggleSma(),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Supertrend (10, 3.0)',
+            color: const Color(0xFF00E676),
+            isActive: controller.showSupertrend,
+            onTap: () => controller.toggleSupertrend(),
             theme: theme,
             isDark: isDark,
           ),
@@ -792,9 +806,8 @@ class _ChartToolbarState extends State<ChartToolbar>
                         icon: Icon(
                           Icons.close,
                           size: 18,
-                          color: isDark
-                              ? const Color(0xFF787B86)
-                              : Colors.black54,
+                          color:
+                              isDark ? const Color(0xFF787B86) : Colors.black54,
                         ),
                         onPressed: () => Navigator.pop(ctx),
                         padding: EdgeInsets.zero,
@@ -864,9 +877,8 @@ class _ChartToolbarState extends State<ChartToolbar>
               color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFECEFF1),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: isDark
-                    ? const Color(0xFF363A45)
-                    : const Color(0xFFCFD8DC),
+                color:
+                    isDark ? const Color(0xFF363A45) : const Color(0xFFCFD8DC),
               ),
             ),
             child: Text(
@@ -885,9 +897,8 @@ class _ChartToolbarState extends State<ChartToolbar>
               description,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: isDark
-                    ? const Color(0xFFB2B5BE)
-                    : const Color(0xFF434651),
+                color:
+                    isDark ? const Color(0xFFB2B5BE) : const Color(0xFF434651),
                 fontSize: 11.5,
               ),
             ),
