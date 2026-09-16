@@ -14,7 +14,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Financial Charting Possibilities'), findsOneWidget);
+    expect(find.text('Im Charts Possibilities & Modes'), findsOneWidget);
+    expect(find.text('Im Charts'), findsOneWidget);
     expect(find.text('Dashboard Hub'), findsOneWidget);
     expect(find.text('Full Terminal'), findsOneWidget);
     expect(find.text('Clean Chart'), findsOneWidget);

@@ -1,19 +1,31 @@
-# API Reference
+# Im Charts API Reference
 
-Comprehensive technical reference for all public classes, methods, models, and enums provided by **`im_charts`**.
+Comprehensive technical reference for all public classes, methods, models, and enums provided by **Im Charts (`im_charts`)**.
+
+---
+
+## 🏷️ Brand Type Aliases
+
+Im Charts provides first-class brand aliases for clean, idiomatic integration:
+
+- **`ImChart`**: Alias for [`TradingChart`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/chart_widget.dart).
+- **`ImTradingScreen`**: Alias for [`TradingScreen`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/trading_screen.dart).
+- **`ImChartsApp`**: Alias for [`TradingApp`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/trading_screen.dart).
+- **`ImChartController`**: Alias for [`TradingChartController`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/engine/chart_controller.dart).
 
 ---
 
 ## 📱 Widgets
 
-### `TradingScreen`
-Top-level turnkey trading terminal widget embedding the primary toolbar, telemetry overlay header, and high-performance chart canvas.
+### `TradingScreen` / `ImTradingScreen`
+Top-level turnkey trading terminal widget embedding the primary toolbar, telemetry overlay header, left drawing tools bar, and high-performance chart canvas.
 
 ```dart
 const TradingScreen({
   super.key,
   String initialSymbol = 'NIFTY 50',
   String initialExchange = 'NSE',
+  String brandName = 'Im Charts',
   ChartDataSource? dataSource,
   Timeframe initialTimeframe = Timeframe.fiveMinutes,
   CandleStyle initialCandleStyle = CandleStyle.candles,
@@ -21,7 +33,7 @@ const TradingScreen({
   TradingChartController? controller,
   bool showToolbar = true,
   bool showHeader = true,
-  bool showDrawingToolbar = false,
+  bool showDrawingToolbar = true,
   bool showWatermark = true,
   bool showCountdownTimer = true,
   bool enableChartTrading = true,
@@ -30,6 +42,7 @@ const TradingScreen({
 
 - `initialSymbol`: Ticker symbol loaded on startup (e.g. `'NIFTY 50'`, `'RELIANCE'`, `'BTCUSDT'`).
 - `initialExchange`: Market exchange designation (`'NSE'`, `'BSE'`, `'NASDAQ'`).
+- `brandName`: Brand name displayed on canvas watermarks and overlays. Defaults to `'Im Charts'`.
 - `dataSource`: Optional data source implementing `ChartDataSource`. Defaults to `MockTradingDataSource`.
 - `initialTimeframe`: Default candlestick interval. Defaults to `Timeframe.fiveMinutes`.
 - `initialCandleStyle`: Default presentation style. Defaults to `CandleStyle.candles`.
@@ -37,7 +50,7 @@ const TradingScreen({
 - `controller`: Optional caller-owned `TradingChartController`. If provided, lifecycle is managed externally.
 - `showToolbar`: Whether to render Row 1 primary toolbar. Default is `true`.
 - `showHeader`: Whether to render Row 2 telemetry overlay header. Default is `true`.
-- `showDrawingToolbar`: Whether to dock the left drawing tools bar. Default is `false`.
+- `showDrawingToolbar`: Whether to dock the left drawing tools bar. Default is `true`.
 - `showWatermark`: Whether to render bold symbol & timeframe background typography. Default is `true`.
 - `showCountdownTimer`: Whether to display the live candle close countdown badge on the price axis. Default is `true`.
 - `enableChartTrading`: Whether to enable interactive order lines, hover `+` button, and brackets. Default is `true`.

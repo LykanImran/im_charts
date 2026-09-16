@@ -30,6 +30,7 @@ class TradingChart extends StatefulWidget {
   final bool enableChartTrading;
   final bool showWatermark;
   final bool showCountdownTimer;
+  final String? brandName;
   final GlobalKey? repaintBoundaryKey;
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
@@ -43,6 +44,7 @@ class TradingChart extends StatefulWidget {
     this.enableChartTrading = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
+    this.brandName,
     this.repaintBoundaryKey,
     this.orderMenuBuilder,
     this.onOrderPlaced,
@@ -873,6 +875,7 @@ class _TradingChartState extends State<TradingChart> {
                                 showWatermark: widget.showWatermark && controller.showWatermark,
                                 showCountdownTimer: widget.showCountdownTimer && controller.showCountdownTimer,
                                 countdownText: controller.candleCountdownText,
+                                brandName: widget.brandName ?? controller.brandName,
                                 symbol: controller.symbol,
                                 exchange: controller.exchange,
                                 verticalScale: controller.verticalScale,

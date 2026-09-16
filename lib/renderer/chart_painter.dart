@@ -49,6 +49,7 @@ class ChartPainter extends CustomPainter {
   final bool showWatermark;
   final bool showCountdownTimer;
   final String? countdownText;
+  final String brandName;
   final String symbol;
   final String exchange;
   final double verticalScale;
@@ -88,6 +89,7 @@ class ChartPainter extends CustomPainter {
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.countdownText,
+    this.brandName = 'Im Charts',
     this.symbol = 'NIFTY 50',
     this.exchange = 'NSE',
     this.verticalScale = 1.0,
@@ -384,6 +386,17 @@ class ChartPainter extends CustomPainter {
     final watermarkColor = theme.axisTextColor.withValues(alpha: 0.045);
     final textSpan = TextSpan(
       children: [
+        if (brandName.isNotEmpty)
+          TextSpan(
+            text: '${brandName.toUpperCase()}\n',
+            style: TextStyle(
+              color: watermarkColor,
+              fontSize: math.min(bounds.width * 0.038, 20.0),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.5,
+              height: 1.3,
+            ),
+          ),
         TextSpan(
           text: '$symbol\n',
           style: TextStyle(
@@ -488,6 +501,7 @@ class ChartPainter extends CustomPainter {
         oldDelegate.volumeProfile != volumeProfile ||
         oldDelegate.previewDrawing != previewDrawing ||
         oldDelegate.showWatermark != showWatermark ||
+        oldDelegate.brandName != brandName ||
         oldDelegate.showCountdownTimer != showCountdownTimer ||
         oldDelegate.countdownText != countdownText ||
         oldDelegate.symbol != symbol ||

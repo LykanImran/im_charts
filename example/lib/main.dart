@@ -76,7 +76,7 @@ class _ExampleAppState extends State<ExampleApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'im_charts Showcase',
+      title: 'Im Charts Showcase',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0E1117),
@@ -163,7 +163,7 @@ class _ExampleAppState extends State<ExampleApp> {
                   ),
                   child: const Center(
                     child: Text(
-                      'im',
+                      'Im',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -175,7 +175,7 @@ class _ExampleAppState extends State<ExampleApp> {
                 ),
                 const SizedBox(width: 6),
                 const Text(
-                  'im_charts',
+                  'Im Charts',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,

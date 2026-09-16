@@ -46,6 +46,7 @@ class TradingChartController extends ChangeNotifier {
   bool _isLoading = true;
   bool _showCountdownTimer = true;
   bool _showWatermark = true;
+  String _brandName;
 
   // Visible Range Volume Profile (VRVP)
   bool _showVolumeProfile = false;
@@ -88,11 +89,13 @@ class TradingChartController extends ChangeNotifier {
     required String symbol,
     required this.dataSource,
     String exchange = 'NSE',
+    String brandName = 'Im Charts',
     Timeframe initialTimeframe = Timeframe.fiveMinutes,
     CandleStyle initialCandleStyle = CandleStyle.candles,
     ChartTheme? theme,
   })  : _symbol = symbol,
         _exchange = exchange,
+        _brandName = brandName,
         _timeframe = initialTimeframe,
         _candleStyle = initialCandleStyle,
         theme = theme ?? ChartTheme.dark(),
@@ -178,6 +181,15 @@ class TradingChartController extends ChangeNotifier {
   set showWatermark(bool val) {
     if (_showWatermark != val) {
       _showWatermark = val;
+      notifyListeners();
+    }
+  }
+
+  /// Brand name displayed in watermarks and institutional overlays (defaults to 'Im Charts').
+  String get brandName => _brandName;
+  set brandName(String val) {
+    if (_brandName != val) {
+      _brandName = val;
       notifyListeners();
     }
   }

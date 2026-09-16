@@ -143,3 +143,22 @@ class MyCustomDashboard extends StatelessWidget {
   }
 }
 ```
+
+---
+
+## 🏷️ Custom Brand Watermarks
+
+Im Charts renders an institutional background canvas watermark behind the candles at 4.5% opacity. You can customize the brand name or set it dynamically:
+
+```dart
+// Option 1: Via TradingScreen / ImTradingScreen
+TradingScreen(
+  initialSymbol: 'NIFTY 50',
+  brandName: 'Im Charts', // Defaults to 'Im Charts'
+  showWatermark: true,
+)
+
+// Option 2: Programmatically via Controller
+controller.brandName = 'Im Charts';
+controller.showWatermark = true;
+```

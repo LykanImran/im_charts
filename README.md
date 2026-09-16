@@ -1,17 +1,17 @@
-# im_charts
+# Im Charts (`im_charts`)
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.24%2B-blue.svg)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
 [![Platform](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-68%2F68%20Passed-brightgreen.svg)](test/)
-[![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_im__charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
+[![Tests](https://img.shields.io/badge/Tests-71%2F71%20Passed-brightgreen.svg)](test/)
+[![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_Im_Charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
 > 
-> Explore all 7 interactive modes directly in your browser without installing anything (Full Institutional Terminal, Direct Chart Trading with Brackets & Positions, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
+> Explore all 8 interactive modes directly in your browser without installing anything (Full Institutional Terminal, Direct Chart Trading with Brackets & Positions, Drawing Engine with 8-Handle Shape Resizing, Clean Headless Canvas, Dual Multi-Chart Grid, Theme Lab, and Embedded Portfolio Card).
 
-An institutional-grade financial charting engine and professional trading terminal for **Flutter**, engineered from the ground up for high-frequency responsiveness on **Impeller** and **Skia**.
+**Im Charts** is an institutional-grade financial charting engine and professional trading terminal for **Flutter**, engineered from the ground up for high-frequency responsiveness on **Impeller** and **Skia**.
 
 Designed to be **100% plug-and-play** out-of-the-box, while remaining **deeply customizable** for brokers, fintech platforms, crypto exchanges, and algorithmic trading interfaces.
 
@@ -23,7 +23,7 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
 
 | Guide | Description |
 | :--- | :--- |
-| 🚀 **[Getting Started](docs/getting_started.md)** | Installation, 3-minute plug & play, and integration patterns. |
+| 🚀 **[Getting Started](docs/getting_started.md)** | Installation, 3-minute plug & play, and integration patterns for Im Charts. |
 | 🏛️ **[Architecture & Internals](docs/architecture.md)** | Skia/Impeller rendering pipeline, coordinate projections, and gesture routing. |
 | 🔌 **[Data Sources & Real-Time Feeds](docs/data_sources.md)** | Connecting WebSockets, REST APIs, Binance, Zerodha Kite, and live tick aggregation. |
 | 🎨 **[Customization & Theming](docs/customization.md)** | Custom themes (`ChartTheme`), candle presentation styles, and layout sizing. |
@@ -89,7 +89,7 @@ Comprehensive guides and architectural deep-dives are located in the [`docs/`](d
   - **Financial Coordinate Anchoring**: Stored in `(candleIndex, price)` to stay mathematically pinned across zoom, pan, and live tick streaming.
 - **⏱️ Live Candle Close Countdown Timer & Watermark**:
   - **Countdown Timer Badge**: Live ticking badge on the vertical price axis showing exact time remaining before the active bar closes (e.g. `04:18`).
-  - **Background Canvas Watermark**: Bold institutional typography (`NIFTY 50 • 5m • NSE`) rendered in the background pane at 4.5% opacity.
+  - **Background Canvas Watermark**: Bold institutional typography featuring brand name (`IM CHARTS • NIFTY 50 • 5m • NSE`) rendered in the background pane at 4.5% opacity.
   - **Price Beacon Pulse Dot**: Radiant pulsing beacon tracking the active candle close price on canvas.
 - **🚀 Skia & Impeller Direct Canvas Rendering**:
   - Zero widget overhead: Entire chart renders via a single, isolated `CustomPainter` with boundary clipping.
@@ -251,6 +251,8 @@ flutter run
 4. **📊 Dual Multi-Chart Grid**: Synchronized side-by-side live charting engines (NIFTY 50 5m vs BANKNIFTY 15m).
 5. **🎨 Custom Themes & Styles Lab**: Live dynamic switching between Cyberpunk, Bloomberg Amber, Dark, and Light themes + 6 candle styles.
 6. **📱 Embedded Analytics Card**: Wealth-tech KPI card embedding a 320px area chart with quick timeframe filters.
+7. **📈 Direct Chart Trading & Brackets**: Limit, Stop & Bracket orders with direct canvas drag-to-modify, SL/TP levels, and position overlay.
+8. **✏️ Drawing Engine & 8-Handle Shape Resizing**: TradingView-standard drawing instruments (Trendlines, Horizontal lines with direct vertical drag, 8-handle Rectangle supply/demand boxes, Fibonacci, Long/Short position boxes, and Measure ruler).
 
 ---
 

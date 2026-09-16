@@ -36,7 +36,7 @@ class ShowcaseHubScreen extends StatelessWidget {
                         Icon(Icons.candlestick_chart, size: 14, color: Color(0xFF2962FF)),
                         SizedBox(width: 6),
                         Text(
-                          'im_charts Showcase v0.1.0',
+                          'Im Charts Studio v0.1.0',
                           style: TextStyle(
                             color: Color(0xFF2962FF),
                             fontSize: 12,
@@ -63,7 +63,7 @@ class ShowcaseHubScreen extends StatelessWidget {
               const SizedBox(height: 14),
 
               const Text(
-                'Financial Charting Possibilities',
+                'Im Charts Possibilities & Modes',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 26,
@@ -73,7 +73,7 @@ class ShowcaseHubScreen extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Explore the common ways to consume and customize im_charts. Tap any mode below to test live interactions.',
+                'Explore the institutional capabilities and integration modes of Im Charts. Tap any mode below to test live interactions.',
                 style: TextStyle(
                   color: Color(0xFF868993),
                   fontSize: 14,
@@ -160,7 +160,7 @@ class ShowcaseHubScreen extends StatelessWidget {
                         tag: 'COMPONENT USAGE',
                         tagColor: const Color(0xFFAB47BC),
                         description:
-                            'Embed im_charts as a compact 320px widget inside an analytics dashboard or portfolio overview card with summary KPIs, Net Worth, and timeframe filters.',
+                            'Embed Im Charts as a compact 320px widget inside an analytics dashboard or portfolio overview card with summary KPIs, Net Worth, and timeframe filters.',
                         icon: Icons.account_balance_wallet_outlined,
                         bullets: [
                           'Embedded in Card with summary stats',

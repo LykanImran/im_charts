@@ -1,5 +1,9 @@
-/// A high-performance financial charting engine and professional trading terminal for Flutter.
+/// Im Charts — A high-performance financial charting engine and professional trading terminal for Flutter.
 library;
+
+import 'engine/chart_controller.dart';
+import 'ui/chart_widget.dart';
+import 'ui/trading_screen.dart';
 
 // Core Models
 export 'core/models/candle.dart';
@@ -48,3 +52,17 @@ export 'ui/chart_widget.dart';
 export 'ui/replay_control_bar.dart';
 export 'ui/symbol_search_modal.dart';
 export 'ui/trading_screen.dart';
+
+// --- Im Charts Brand Type Aliases ---
+
+/// Convenient alias for [TradingChart] under the brand name **Im Charts**.
+typedef ImChart = TradingChart;
+
+/// Convenient alias for [TradingScreen] under the brand name **Im Charts**.
+typedef ImTradingScreen = TradingScreen;
+
+/// Convenient alias for [TradingApp] under the brand name **Im Charts**.
+typedef ImChartsApp = TradingApp;
+
+/// Convenient alias for [TradingChartController] under the brand name **Im Charts**.
+typedef ImChartController = TradingChartController;

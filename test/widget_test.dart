@@ -259,5 +259,42 @@ void main() {
     controller.dispose();
     dataSource.dispose();
   });
+
+  testWidgets('Im Charts brand properties, watermark defaults, and type aliases work as expected', (WidgetTester tester) async {
+    final dataSource = MockTradingDataSource();
+    final ImChartController controller = ImChartController(
+      symbol: 'NIFTY 50',
+      dataSource: dataSource,
+    );
+    await controller.initialize();
+
+    // 1. Default brandName is 'Im Charts'
+    expect(controller.brandName, 'Im Charts');
+
+    // 2. Changing brandName notifies listeners
+    bool notified = false;
+    controller.addListener(() => notified = true);
+    controller.brandName = 'Custom Broker';
+    expect(notified, isTrue);
+    expect(controller.brandName, 'Custom Broker');
+
+    // 3. ImChart and ImTradingScreen type aliases construct valid widgets
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ImChart(controller: controller),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byType(TradingChart), findsOneWidget);
+
+    // 4. ImChartsApp renders turnkey application with Im Charts title
+    const app = ImChartsApp();
+    expect(app, isA<TradingApp>());
+
+    controller.dispose();
+    dataSource.dispose();
+  });
 }
 

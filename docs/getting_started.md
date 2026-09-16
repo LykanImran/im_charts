@@ -1,10 +1,10 @@
-# Getting Started with im_charts
+# Getting Started with Im Charts
 
-Welcome to **`im_charts`** — an institutional-grade financial charting engine and professional trading terminal built specifically for Flutter (Impeller & Skia). 
+Welcome to **Im Charts (`im_charts`)** — an institutional-grade financial charting engine and professional trading terminal built specifically for Flutter (Impeller & Skia). 
 
-`im_charts` is designed from the ground up to be **100% plug-and-play** for rapid integration, while remaining **infinitely customizable** for bespoke trading dashboards, broker terminals, and fintech apps.
+**Im Charts** is designed from the ground up to be **100% plug-and-play** for rapid integration, while remaining **infinitely customizable** for bespoke trading dashboards, broker terminals, and fintech apps.
 
-> 🌐 **Interactive Web Demo**: Try `im_charts` directly in your browser at **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**!
+> 🌐 **Interactive Web Demo**: Try **Im Charts** directly in your browser at **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**!
 
 ---
 

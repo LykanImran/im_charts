@@ -28,6 +28,7 @@ class TradingScreen extends StatefulWidget {
   final bool showDrawingToolbar;
   final bool showWatermark;
   final bool showCountdownTimer;
+  final String? brandName;
   final bool enableChartTrading;
   final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
@@ -48,6 +49,7 @@ class TradingScreen extends StatefulWidget {
     this.showDrawingToolbar = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
+    this.brandName = 'Im Charts',
     this.enableChartTrading = true,
     this.orderMenuBuilder,
     this.onOrderPlaced,
@@ -84,6 +86,7 @@ class _TradingScreenState extends State<TradingScreen> {
         symbol: widget.initialSymbol,
         exchange: widget.initialExchange,
         dataSource: _dataSource!,
+        brandName: widget.brandName ?? 'Im Charts',
         initialTimeframe: widget.initialTimeframe,
         initialCandleStyle: widget.initialCandleStyle,
         theme: widget.initialTheme ?? ChartTheme.dark(),
@@ -104,8 +107,8 @@ class _TradingScreenState extends State<TradingScreen> {
     if (_internalController) {
       _controller.dispose();
     }
-    if (_internalDataSource && _dataSource != null) {
-      _dataSource!.dispose();
+    if (_internalDataSource) {
+      _dataSource?.dispose();
     }
     super.dispose();
   }
@@ -117,30 +120,19 @@ class _TradingScreenState extends State<TradingScreen> {
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
-        final isDark = _controller.isDarkTheme;
+        final theme = _controller.theme;
 
         return Theme(
-          data: isDark
-              ? ThemeData.dark().copyWith(
-                  scaffoldBackgroundColor: const Color(0xFF131722),
-                  colorScheme: const ColorScheme.dark(
-                    primary: Color(0xFF2962FF),
-                    surface: Color(0xFF1E222D),
-                  ),
-                )
-              : ThemeData.light().copyWith(
-                  scaffoldBackgroundColor: Colors.white,
-                  colorScheme: const ColorScheme.light(
-                    primary: Color(0xFF2962FF),
-                    surface: Colors.white,
-                  ),
-                ),
+          data: ThemeData(
+            brightness: _controller.isDarkTheme ? Brightness.dark : Brightness.light,
+            scaffoldBackgroundColor: theme.backgroundColor,
+          ),
           child: Scaffold(
-            backgroundColor: _controller.theme.backgroundColor,
+            backgroundColor: theme.backgroundColor,
             body: SafeArea(
               child: Column(
                 children: [
-                  // Row 1: Primary Toolbar (Search, Interval dropdown, Candles dropdown, Indicators dropdown, Refresh, Theme, Settings, Replay, Snapshot, Shortcuts)
+                  // Row 1: Primary TradingView Toolbar (Search, Intervals, Candle Style, Indicators, Refresh, Theme, Settings)
                   if (widget.showToolbar)
                     ChartToolbar(
                       controller: _controller,
@@ -168,6 +160,7 @@ class _TradingScreenState extends State<TradingScreen> {
                                     enableChartTrading: widget.enableChartTrading,
                                     showWatermark: widget.showWatermark,
                                     showCountdownTimer: widget.showCountdownTimer,
+                                    brandName: widget.brandName,
                                     orderMenuBuilder: widget.orderMenuBuilder,
                                     onOrderPlaced: widget.onOrderPlaced,
                                     onOrderCancelled: widget.onOrderCancelled,
@@ -207,7 +200,7 @@ class TradingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'First Demat Chart Engine',
+      title: 'Im Charts',
       debugShowCheckedModeBanner: false,
       home: TradingScreen(),
     );
