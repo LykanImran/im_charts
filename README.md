@@ -1,13 +1,22 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/LykanImran/im_charts/main/doc/assets/im_charts_banner.jpg" alt="Im Charts - Institutional Financial Charting Engine for Flutter" width="100%" />
+</p>
+
 # Im Charts (`im_charts`)
 
-[![Pub Version](https://img.shields.io/pub/v/im_charts.svg)](https://pub.dev/packages/im_charts)
-[![Pub Points](https://img.shields.io/pub/points/im_charts)](https://pub.dev/packages/im_charts/score)
-[![Flutter](https://img.shields.io/badge/Flutter-3.24%2B-blue.svg)](https://flutter.dev)
-[![Dart](https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg)](https://dart.dev)
-[![Platforms](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg)](https://flutter.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/LykanImran/im_charts/actions/workflows/ci.yml/badge.svg)](https://github.com/LykanImran/im_charts/actions)
-[![Live Web Demo](https://img.shields.io/badge/Live_Web_Demo-Explore_Im_Charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lykanimran.github.io/im_charts/)
+<p align="center">
+  <a href="https://pub.dev/packages/im_charts"><img src="https://img.shields.io/pub/v/im_charts.svg" alt="Pub Version" /></a>
+  <a href="https://pub.dev/packages/im_charts/score"><img src="https://img.shields.io/pub/points/im_charts" alt="Pub Points" /></a>
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.24%2B-blue.svg" alt="Flutter" /></a>
+  <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-3.5%2B-0175C2.svg" alt="Dart" /></a>
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20iOS%20%7C%20Android%20%7C%20Web-4E9A06.svg" alt="Platforms" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/LykanImran/im_charts/actions"><img src="https://github.com/LykanImran/im_charts/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+</p>
+
+<p align="center">
+  <a href="https://lykanimran.github.io/im_charts/"><img src="https://img.shields.io/badge/Live_Web_Demo-Explore_Im_Charts-2962FF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live Web Demo" /></a>
+</p>
 
 > 🌐 **Live Interactive Web Showcase**: **[https://lykanimran.github.io/im_charts/](https://lykanimran.github.io/im_charts/)**
 > 

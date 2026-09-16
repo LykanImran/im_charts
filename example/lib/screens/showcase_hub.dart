@@ -94,7 +94,56 @@ class ShowcaseHubScreen extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
+
+              // Hero Brand Banner
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF2A2E39), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      spreadRadius: -2,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final h = (constraints.maxWidth * 0.28).clamp(120.0, 240.0);
+                      return SizedBox(
+                        width: double.infinity,
+                        height: h,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(
+                              'assets/im_charts_banner.jpg',
+                              fit: BoxFit.cover,
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.6),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
 
               // Grid of Showcase Modes
               LayoutBuilder(
