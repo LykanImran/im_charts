@@ -15,6 +15,7 @@ import '../core/models/tick.dart';
 import '../core/models/timeframe.dart';
 import '../datasource/chart_data_source.dart';
 import 'candle_builder.dart';
+import 'chart_sync_group.dart';
 import 'indicators/indicator.dart';
 import 'indicators/indicator_result.dart';
 import 'indicators/sma.dart';
@@ -50,6 +51,10 @@ class TradingChartController extends ChangeNotifier {
   bool _showCountdownTimer = true;
   bool _showWatermark = true;
   String _brandName;
+
+  ChartSyncGroup? _syncGroup;
+  bool _isDisposed = false;
+  bool _isReceivingSync = false;
 
   // Visible Range Volume Profile (VRVP)
   bool _showVolumeProfile = false;
@@ -235,6 +240,17 @@ class TradingChartController extends ChangeNotifier {
     }
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
+
+  bool get isDisposed => _isDisposed;
+  ChartSyncGroup? get syncGroup => _syncGroup;
+  set syncGroup(ChartSyncGroup? group) {
+    if (_syncGroup == group) return;
+    _syncGroup = group;
+    notifyListeners();
+  }
+
+  void joinSyncGroup(ChartSyncGroup group) => group.register(this);
+  void leaveSyncGroup() => _syncGroup?.unregister(this);
 
   Offset? get crosshairPosition => _showCrosshair ? _crosshairPosition : null;
   bool get showVolume => _showVolume;
@@ -953,6 +969,9 @@ class TradingChartController extends ChangeNotifier {
   void setCrosshairPosition(Offset? position) {
     if (!_showCrosshair) {
       _crosshairPosition = null;
+      if (_syncGroup != null && !_isReceivingSync) {
+        _syncGroup!.clearCrosshair(source: this);
+      }
       return;
     }
     _crosshairPosition = position;
@@ -968,11 +987,69 @@ class TradingChartController extends ChangeNotifier {
     } else {
       _hoveredCandle = null;
     }
+
+    if (_syncGroup != null && !_isReceivingSync) {
+      final hoveredTime = _hoveredCandle?.timestamp;
+      final yRatio = (position != null && _viewport.viewportHeight > 0)
+          ? (position.dy / _viewport.viewportHeight).clamp(0.0, 1.0)
+          : null;
+      _syncGroup!.broadcastCrosshair(
+        source: this,
+        timestamp: hoveredTime,
+        yPriceRatio: yRatio,
+      );
+    }
     notifyListeners();
+  }
+
+  /// Handles crosshair synchronization from another chart in the [ChartSyncGroup].
+  void receiveSyncedCrosshair(DateTime? timestamp, double? yPriceRatio) {
+    if (!_showCrosshair || timestamp == null || candles.isEmpty) {
+      _crosshairPosition = null;
+      _hoveredCandle = null;
+      notifyListeners();
+      return;
+    }
+
+    final timestamps = candles.map((c) => c.timestamp).toList();
+    final matchIdx =
+        ChartSyncGroup.findClosestCandleIndex(timestamps, timestamp);
+    if (matchIdx < 0 || matchIdx >= candles.length) {
+      _crosshairPosition = null;
+      _hoveredCandle = null;
+      notifyListeners();
+      return;
+    }
+
+    _isReceivingSync = true;
+    try {
+      final converter = CoordinateConverter(
+        viewport: _viewport,
+        totalCandles: candles.length,
+      );
+      final targetX = converter.indexToX(matchIdx);
+      final targetY = (yPriceRatio != null && _viewport.viewportHeight > 0)
+          ? (yPriceRatio * _viewport.viewportHeight)
+              .clamp(0.0, _viewport.viewportHeight)
+          : (_viewport.viewportHeight * 0.5);
+
+      _crosshairPosition = Offset(targetX, targetY);
+      _hoveredCandle = candles[matchIdx];
+      notifyListeners();
+    } finally {
+      _isReceivingSync = false;
+    }
   }
 
   /// Horizontal scroll / pan gesture handler.
   void onPan(double deltaX) {
+    _applyPan(deltaX);
+    if (_syncGroup != null && !_isReceivingSync) {
+      _syncGroup!.broadcastPan(source: this, deltaX: deltaX);
+    }
+  }
+
+  void _applyPan(double deltaX) {
     final maxScroll = (candles.length * _viewport.candleTotalWidth).toDouble();
     const minScroll = -120.0; // Allow right margin expansion
     final newOffset = (_viewport.scrollOffset + deltaX)
@@ -983,8 +1060,32 @@ class TradingChartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Handles synchronized horizontal pan from [ChartSyncGroup].
+  void receiveSyncedPan(double deltaX) {
+    _isReceivingSync = true;
+    try {
+      _applyPan(deltaX);
+    } finally {
+      _isReceivingSync = false;
+    }
+  }
+
   /// Focal-point aware horizontal zoom (pinch zoom or mouse wheel).
   void onZoom(double scaleFactor, Offset focalPoint) {
+    _applyZoom(scaleFactor, focalPoint);
+    if (_syncGroup != null &&
+        !_isReceivingSync &&
+        _viewport.viewportWidth > 0) {
+      final ratio = (focalPoint.dx / _viewport.viewportWidth).clamp(0.0, 1.0);
+      _syncGroup!.broadcastZoom(
+        source: this,
+        scaleFactor: scaleFactor,
+        focalPointRatio: ratio,
+      );
+    }
+  }
+
+  void _applyZoom(double scaleFactor, Offset focalPoint) {
     const minWidth = 2.0;
     const maxWidth = 50.0;
     final oldCandleWidth = _viewport.candleWidth;
@@ -1012,6 +1113,20 @@ class TradingChartController extends ChangeNotifier {
       scrollOffset: newScrollOffset,
     );
     notifyListeners();
+  }
+
+  /// Handles synchronized zoom from [ChartSyncGroup].
+  void receiveSyncedZoom(double scaleFactor, double focalPointRatio) {
+    _isReceivingSync = true;
+    try {
+      final focalPoint = Offset(
+        focalPointRatio * _viewport.viewportWidth,
+        _viewport.viewportHeight * 0.5,
+      );
+      _applyZoom(scaleFactor, focalPoint);
+    } finally {
+      _isReceivingSync = false;
+    }
   }
 
   /// Vertical scale drag on price scale (Y-axis zoom).
@@ -1187,6 +1302,8 @@ class TradingChartController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _syncGroup?.unregister(this);
     _countdownTicker?.cancel();
     _tickSubscription?.cancel();
     _replayTimer?.cancel();

@@ -2,7 +2,10 @@
 library;
 
 import 'engine/chart_controller.dart';
+import 'engine/chart_sync_group.dart';
+import 'engine/formula/formula_indicator.dart';
 import 'ui/chart_widget.dart';
+import 'ui/multi_chart_container.dart';
 import 'ui/trading_screen.dart';
 
 // Core Models
@@ -29,6 +32,12 @@ export 'datasource/mock_data_source.dart';
 // Engine & Indicators
 export 'engine/candle_builder.dart';
 export 'engine/chart_controller.dart';
+export 'engine/chart_sync_group.dart';
+export 'engine/formula/formula_ast.dart';
+export 'engine/formula/formula_evaluator.dart';
+export 'engine/formula/formula_indicator.dart';
+export 'engine/formula/formula_lexer.dart';
+export 'engine/formula/formula_parser.dart';
 export 'engine/indicators/bollinger_bands.dart';
 export 'engine/indicators/ema.dart';
 export 'engine/indicators/indicator.dart';
@@ -51,6 +60,8 @@ export 'ui/chart_header.dart';
 export 'ui/chart_settings_modal.dart';
 export 'ui/chart_toolbar.dart';
 export 'ui/chart_widget.dart';
+export 'ui/formula_editor_modal.dart';
+export 'ui/multi_chart_container.dart';
 export 'ui/replay_control_bar.dart';
 export 'ui/symbol_search_modal.dart';
 export 'ui/trading_screen.dart';
@@ -68,3 +79,12 @@ typedef ImChartsApp = TradingApp;
 
 /// Convenient alias for [TradingChartController] under the brand name **Im Charts**.
 typedef ImChartController = TradingChartController;
+
+/// Convenient alias for [MultiChartContainer] under the brand name **Im Charts**.
+typedef ImMultiChart = MultiChartContainer;
+
+/// Convenient alias for [ChartSyncGroup] under the brand name **Im Charts**.
+typedef ImChartSyncGroup = ChartSyncGroup;
+
+/// Convenient alias for [FormulaIndicator] under the brand name **Im Charts**.
+typedef ImFormulaIndicator = FormulaIndicator;

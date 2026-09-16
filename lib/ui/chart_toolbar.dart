@@ -9,6 +9,7 @@ import '../engine/indicators/macd.dart';
 import '../engine/indicators/rsi.dart';
 import '../engine/indicators/vwap.dart';
 import 'chart_settings_modal.dart';
+import 'formula_editor_modal.dart';
 import 'symbol_search_modal.dart';
 
 /// Row 1: Primary Toolbar containing:
@@ -664,6 +665,36 @@ class _ChartToolbarState extends State<ChartToolbar>
             onTap: () => controller.toggleVolumeProfile(),
             theme: theme,
             isDark: isDark,
+          ),
+          const PopupMenuDivider(height: 1),
+          PopupMenuItem<String>(
+            value: '__pine_formula__',
+            height: 38,
+            onTap: () {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                FormulaEditorModal.show(context, controller: controller);
+              });
+            },
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.auto_graph_rounded,
+                  size: 16,
+                  color: Color(0xFF00E5FF),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '+ Custom Pine Formula...',
+                  style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFF00E5FF)
+                        : const Color(0xFF0091EA),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ];
       },
