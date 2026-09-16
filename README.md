@@ -19,16 +19,16 @@ Designed to be **100% plug-and-play** out-of-the-box, while remaining **deeply c
 
 ## 📚 Master Documentation Index
 
-Comprehensive guides and architectural deep-dives are located in the [`docs/`](docs/) directory:
+Comprehensive guides and architectural deep-dives are located in the [`doc/`](doc/) directory:
 
 | Guide | Description |
 | :--- | :--- |
-| 🚀 **[Getting Started](docs/getting_started.md)** | Installation, 3-minute plug & play, and integration patterns for Im Charts. |
-| 🏛️ **[Architecture & Internals](docs/architecture.md)** | Skia/Impeller rendering pipeline, coordinate projections, and gesture routing. |
-| 🔌 **[Data Sources & Real-Time Feeds](docs/data_sources.md)** | Connecting WebSockets, REST APIs, Binance, Zerodha Kite, and live tick aggregation. |
-| 🎨 **[Customization & Theming](docs/customization.md)** | Custom themes (`ChartTheme`), candle presentation styles, and layout sizing. |
-| 📈 **[Technical Indicators Guide](docs/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, VWAP, MACD, RSI, Volume Profile VRVP) and writing custom indicators. |
-| 📖 **[API Reference](docs/api_reference.md)** | Detailed documentation for all classes, methods, models, and enums. |
+| 🚀 **[Getting Started](doc/getting_started.md)** | Installation, 3-minute plug & play, and integration patterns for Im Charts. |
+| 🏛️ **[Architecture & Internals](doc/architecture.md)** | Skia/Impeller rendering pipeline, coordinate projections, and gesture routing. |
+| 🔌 **[Data Sources & Real-Time Feeds](doc/data_sources.md)** | Connecting WebSockets, REST APIs, Binance, Zerodha Kite, and live tick aggregation. |
+| 🎨 **[Customization & Theming](doc/customization.md)** | Custom themes (`ChartTheme`), candle presentation styles, and layout sizing. |
+| 📈 **[Technical Indicators Guide](doc/indicators.md)** | Built-in indicators (EMA, Bollinger Bands, VWAP, MACD, RSI, Volume Profile VRVP) and writing custom indicators. |
+| 📖 **[API Reference](doc/api_reference.md)** | Detailed documentation for all classes, methods, models, and enums. |
 
 ---
 
@@ -111,7 +111,7 @@ dependencies:
 
 ### 2. Run the Turnkey Trading Terminal
 
-Drop [`TradingScreen`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/trading_screen.dart) anywhere in your widget tree:
+Drop `TradingScreen` (or `ImTradingScreen`) anywhere in your widget tree:
 
 ```dart
 import 'package:flutter/material.dart';

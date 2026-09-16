@@ -29,11 +29,7 @@ enum OrderType {
 }
 
 /// Execution status of an order.
-enum OrderStatus {
-  active,
-  filled,
-  cancelled,
-}
+enum OrderStatus { active, filled, cancelled }
 
 /// Represents a trading order displayed on the chart canvas with support
 /// for attached Take Profit (TP) and Stop Loss (SL) brackets.
@@ -103,8 +99,12 @@ class ChartOrder {
       type: type ?? this.type,
       price: price ?? this.price,
       quantity: quantity ?? this.quantity,
-      takeProfitPrice: takeProfitPrice != null ? takeProfitPrice() : this.takeProfitPrice,
-      stopLossPrice: stopLossPrice != null ? stopLossPrice() : this.stopLossPrice,
+      takeProfitPrice: takeProfitPrice != null
+          ? takeProfitPrice()
+          : this.takeProfitPrice,
+      stopLossPrice: stopLossPrice != null
+          ? stopLossPrice()
+          : this.stopLossPrice,
       customLabel: customLabel ?? this.customLabel,
       status: status ?? this.status,
       metadata: metadata ?? this.metadata,
@@ -128,14 +128,14 @@ class ChartOrder {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        symbol,
-        side,
-        type,
-        price,
-        quantity,
-        takeProfitPrice,
-        stopLossPrice,
-        status,
-      );
+    id,
+    symbol,
+    side,
+    type,
+    price,
+    quantity,
+    takeProfitPrice,
+    stopLossPrice,
+    status,
+  );
 }

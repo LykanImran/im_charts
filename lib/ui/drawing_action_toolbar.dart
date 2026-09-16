@@ -97,10 +97,16 @@ class DrawingActionToolbar extends StatelessWidget {
 
                 // Lock / Unlock Toggle
                 Tooltip(
-                  message: currentDrawing.isLocked ? 'Unlock Drawing' : 'Lock Drawing',
+                  message: currentDrawing.isLocked
+                      ? 'Unlock Drawing'
+                      : 'Lock Drawing',
                   child: _buildIconButton(
-                    icon: currentDrawing.isLocked ? Icons.lock : Icons.lock_open_outlined,
-                    color: currentDrawing.isLocked ? const Color(0xFFFF9800) : const Color(0xFF868993),
+                    icon: currentDrawing.isLocked
+                        ? Icons.lock
+                        : Icons.lock_open_outlined,
+                    color: currentDrawing.isLocked
+                        ? const Color(0xFFFF9800)
+                        : const Color(0xFF868993),
                     onTap: controller.toggleSelectedDrawingLocked,
                   ),
                 ),
@@ -152,12 +158,7 @@ class DrawingActionToolbar extends StatelessWidget {
             width: isSelected ? 2.0 : 1.0,
           ),
           boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.6),
-                    blurRadius: 4,
-                  ),
-                ]
+              ? [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 4)]
               : null,
         ),
       ),
@@ -174,7 +175,9 @@ class DrawingActionToolbar extends StatelessWidget {
         height: 22,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2962FF).withValues(alpha: 0.25) : Colors.transparent,
+          color: isSelected
+              ? const Color(0xFF2962FF).withValues(alpha: 0.25)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: isSelected
               ? Border.all(color: const Color(0xFF2962FF), width: 1.0)

@@ -127,16 +127,21 @@ class ReplayControlBar extends StatelessWidget {
                   final nextSpeed = current == 1.0
                       ? 2.0
                       : current == 2.0
-                          ? 3.0
-                          : current == 3.0
-                              ? 5.0
-                              : 1.0;
+                      ? 3.0
+                      : current == 3.0
+                      ? 5.0
+                      : 1.0;
                   controller.setReplaySpeed(nextSpeed);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFECEFF1),
+                    color: isDark
+                        ? const Color(0xFF2A2E39)
+                        : const Color(0xFFECEFF1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

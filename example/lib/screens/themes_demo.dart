@@ -48,7 +48,10 @@ class _ThemesDemoScreenState extends State<ThemesDemoScreen> {
   @override
   void initState() {
     super.initState();
-    _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
+    _dataSource = MockTradingDataSource(
+      initialPrice: 24520.0,
+      volatility: 0.0018,
+    );
     _controller = TradingChartController(
       symbol: 'TCS',
       exchange: 'NSE',
@@ -93,10 +96,18 @@ class _ThemesDemoScreenState extends State<ThemesDemoScreen> {
               children: [
                 // Top Customization Strip
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: currentTheme.backgroundColor,
-                    border: Border(bottom: BorderSide(color: currentTheme.gridColor, width: 1)),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: currentTheme.gridColor,
+                        width: 1,
+                      ),
+                    ),
                   ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -104,7 +115,11 @@ class _ThemesDemoScreenState extends State<ThemesDemoScreen> {
                       children: [
                         const Text(
                           'Theme: ',
-                          style: TextStyle(color: Color(0xFF868993), fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Color(0xFF868993),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         _buildThemeChip('Dark', ChartTheme.dark()),
                         _buildThemeChip('Cyberpunk', _cyberpunkTheme),
@@ -112,12 +127,20 @@ class _ThemesDemoScreenState extends State<ThemesDemoScreen> {
                         _buildThemeChip('Emerald Light', _emeraldLightTheme),
 
                         const SizedBox(width: 16),
-                        Container(width: 1, height: 20, color: currentTheme.gridColor),
+                        Container(
+                          width: 1,
+                          height: 20,
+                          color: currentTheme.gridColor,
+                        ),
                         const SizedBox(width: 16),
 
                         const Text(
                           'Style: ',
-                          style: TextStyle(color: Color(0xFF868993), fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Color(0xFF868993),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         ...CandleStyle.values.map((style) {
                           final isSelected = _controller.candleStyle == style;
@@ -126,22 +149,32 @@ class _ThemesDemoScreenState extends State<ThemesDemoScreen> {
                             child: FilterChip(
                               label: Text(style.shortLabel),
                               selected: isSelected,
-                              onSelected: (_) => _controller.setCandleStyle(style),
+                              onSelected: (_) =>
+                                  _controller.setCandleStyle(style),
                               backgroundColor: Colors.transparent,
                               selectedColor: const Color(0xFF2962FF),
                               labelStyle: TextStyle(
-                                color: isSelected ? Colors.white : currentTheme.axisTextColor,
+                                color: isSelected
+                                    ? Colors.white
+                                    : currentTheme.axisTextColor,
                                 fontSize: 11,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                                 side: BorderSide(
-                                  color: isSelected ? const Color(0xFF2962FF) : currentTheme.gridColor,
+                                  color: isSelected
+                                      ? const Color(0xFF2962FF)
+                                      : currentTheme.gridColor,
                                 ),
                               ),
                               showCheckmark: false,
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
                             ),
                           );
                         }),
@@ -187,7 +220,9 @@ class _ThemesDemoScreenState extends State<ThemesDemoScreen> {
             color: isSelected ? const Color(0xFF2962FF) : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2962FF) : const Color(0xFF2A2E39),
+              color: isSelected
+                  ? const Color(0xFF2962FF)
+                  : const Color(0xFF2A2E39),
               width: 1,
             ),
           ),

@@ -52,7 +52,11 @@ class CrosshairRenderer extends BaseRenderer {
 
     // 3. Price badge on price axis
     if (isInsideMain) {
-      final pointerPrice = CoordinateConverter.yToPrice(y, layout.mainPaneBounds, priceRange);
+      final pointerPrice = CoordinateConverter.yToPrice(
+        y,
+        layout.mainPaneBounds,
+        priceRange,
+      );
       _drawBadge(
         canvas: canvas,
         center: Offset(layout.priceAxisBounds.center.dx, y),
@@ -74,16 +78,24 @@ class CrosshairRenderer extends BaseRenderer {
 
     // 5. Highlight dot on candle close
     if (isInsideMain) {
-      final candleY = CoordinateConverter.priceToY(candle.close, layout.mainPaneBounds, priceRange);
+      final candleY = CoordinateConverter.priceToY(
+        candle.close,
+        layout.mainPaneBounds,
+        priceRange,
+      );
       canvas.drawCircle(
         Offset(snappedX, candleY),
         3.5,
-        Paint()..color = theme.crosshairColor..style = PaintingStyle.fill,
+        Paint()
+          ..color = theme.crosshairColor
+          ..style = PaintingStyle.fill,
       );
       canvas.drawCircle(
         Offset(snappedX, candleY),
         1.5,
-        Paint()..color = Colors.white..style = PaintingStyle.fill,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.fill,
       );
     }
   }
@@ -102,17 +114,24 @@ class CrosshairRenderer extends BaseRenderer {
         fontWeight: FontWeight.w600,
       ),
     );
-    final tp = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+      ..layout();
 
     final badgeWidth = tp.width + 10.0;
     final badgeHeight = tp.height + 6.0;
-    final rect = Rect.fromCenter(center: center, width: badgeWidth, height: badgeHeight);
+    final rect = Rect.fromCenter(
+      center: center,
+      width: badgeWidth,
+      height: badgeHeight,
+    );
 
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(3.0));
-    canvas.drawRRect(rrect, Paint()..color = bgColor..style = PaintingStyle.fill);
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = bgColor
+        ..style = PaintingStyle.fill,
+    );
 
     tp.paint(canvas, Offset(rect.left + 5.0, rect.top + 3.0));
   }
@@ -140,7 +159,9 @@ class CrosshairRenderer extends BaseRenderer {
 
     while (currentDist < distance) {
       final start = p1 + (unit * currentDist);
-      final segmentLength = (currentDist + dashWidth < distance) ? dashWidth : (distance - currentDist);
+      final segmentLength = (currentDist + dashWidth < distance)
+          ? dashWidth
+          : (distance - currentDist);
       final end = start + (unit * segmentLength);
       canvas.drawLine(start, end, paint);
       currentDist += dashWidth + dashSpace;
@@ -149,12 +170,38 @@ class CrosshairRenderer extends BaseRenderer {
 
   String _formatTimestamp(DateTime dt, Timeframe tf) {
     if (tf == Timeframe.oneDay || tf == Timeframe.oneWeek) {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
     } else {
       final h = dt.hour.toString().padLeft(2, '0');
       final m = dt.minute.toString().padLeft(2, '0');
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${dt.day} ${months[dt.month - 1]} $h:$m';
     }
   }

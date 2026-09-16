@@ -1,6 +1,6 @@
 # Data Sources & Real-Time Feeds
 
-`im_charts` is data-agnostic. It can connect to any WebSocket, REST API, or streaming broker feed by implementing the simple **[`ChartDataSource`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/datasource/chart_data_source.dart)** interface.
+`im_charts` is data-agnostic. It can connect to any WebSocket, REST API, or streaming broker feed by implementing the simple **`ChartDataSource`** interface.
 
 ---
 
@@ -175,7 +175,7 @@ class KiteConnectDataSource implements ChartDataSource {
 
 ## ⏱️ Real-Time Tick Aggregation (`CandleBuilder`)
 
-When you stream live ticks (`Stream<Tick>`), `im_charts` automatically aggregates them into live candlesticks via [`CandleBuilder`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/engine/candle_builder.dart):
+When you stream live ticks (`Stream<Tick>`), `im_charts` automatically aggregates them into live candlesticks via `CandleBuilder`:
 
 1. **Intra-candle updates**: When a tick arrives within the active interval, `currentCandle` updates its `high = max(high, tick.price)`, `low = min(low, tick.price)`, `close = tick.price`, and increments `volume`.
 2. **Interval crossing**: When a tick timestamp crosses into the next timeframe window (e.g. at `09:20:00` for a 5-minute candle), `CandleBuilder` finalizes the previous candle, appends it to the immutable history, and spawns a new live candle with `open = tick.price`.
@@ -185,7 +185,7 @@ When you stream live ticks (`Stream<Tick>`), `im_charts` automatically aggregate
 
 ## 🧪 Testing with `MockTradingDataSource`
 
-For development, testing, and widget previews, use the built-in [`MockTradingDataSource`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/datasource/mock_data_source.dart):
+For development, testing, and widget previews, use the built-in `MockTradingDataSource`:
 
 ```dart
 final mockFeed = MockTradingDataSource(

@@ -18,14 +18,21 @@ class CoordinateConverter {
     if (totalCandles <= 0) return 0.0;
     final lastIndex = totalCandles - 1;
     final distanceFromLast = (lastIndex - index) * viewport.candleTotalWidth;
-    return viewport.viewportWidth - viewport.rightMargin - distanceFromLast + viewport.scrollOffset;
+    return viewport.viewportWidth -
+        viewport.rightMargin -
+        distanceFromLast +
+        viewport.scrollOffset;
   }
 
   /// Converts a screen X pixel coordinate to the nearest candle index.
   int xToIndex(double x) {
     if (totalCandles <= 0 || viewport.candleTotalWidth <= 0) return 0;
     final lastIndex = totalCandles - 1;
-    final distanceFromRight = (viewport.viewportWidth - viewport.rightMargin + viewport.scrollOffset) - x;
+    final distanceFromRight =
+        (viewport.viewportWidth -
+            viewport.rightMargin +
+            viewport.scrollOffset) -
+        x;
     final deltaIndex = (distanceFromRight / viewport.candleTotalWidth).round();
     final index = lastIndex - deltaIndex;
     return index.clamp(0, lastIndex);
@@ -35,8 +42,12 @@ class CoordinateConverter {
   double continuousIndexToX(double continuousIndex) {
     if (totalCandles <= 0) return 0.0;
     final lastIndex = totalCandles - 1;
-    final distanceFromLast = (lastIndex - continuousIndex) * viewport.candleTotalWidth;
-    return viewport.viewportWidth - viewport.rightMargin - distanceFromLast + viewport.scrollOffset;
+    final distanceFromLast =
+        (lastIndex - continuousIndex) * viewport.candleTotalWidth;
+    return viewport.viewportWidth -
+        viewport.rightMargin -
+        distanceFromLast +
+        viewport.scrollOffset;
   }
 
   /// Converts a price value to screen Y coordinate within [paneBounds].

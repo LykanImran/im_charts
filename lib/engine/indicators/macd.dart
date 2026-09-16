@@ -22,9 +22,12 @@ class MACDIndicator extends Indicator {
     this.signalPeriod = 9,
     this.macdColor = const Color(0xFF00E5FF),
     this.signalColor = const Color(0xFFFF9100),
-  })  : assert(fastPeriod > 0, 'Fast period must be positive'),
-        assert(slowPeriod > fastPeriod, 'Slow period must be greater than fast period'),
-        assert(signalPeriod > 0, 'Signal period must be positive');
+  }) : assert(fastPeriod > 0, 'Fast period must be positive'),
+       assert(
+         slowPeriod > fastPeriod,
+         'Slow period must be greater than fast period',
+       ),
+       assert(signalPeriod > 0, 'Signal period must be positive');
 
   @override
   String get id => 'MACD_${fastPeriod}_${slowPeriod}_$signalPeriod';
@@ -47,9 +50,26 @@ class MACDIndicator extends Indicator {
         name: name,
         isOverlay: false,
         series: [
-          IndicatorSeries(id: 'histogram', label: 'Hist', color: const Color(0xFF00E676), values: histValues),
-          IndicatorSeries(id: 'macd', label: 'MACD', color: macdColor, strokeWidth: 1.5, values: macdValues),
-          IndicatorSeries(id: 'signal', label: 'Signal', color: signalColor, strokeWidth: 1.5, values: signalValues),
+          IndicatorSeries(
+            id: 'histogram',
+            label: 'Hist',
+            color: const Color(0xFF00E676),
+            values: histValues,
+          ),
+          IndicatorSeries(
+            id: 'macd',
+            label: 'MACD',
+            color: macdColor,
+            strokeWidth: 1.5,
+            values: macdValues,
+          ),
+          IndicatorSeries(
+            id: 'signal',
+            label: 'Signal',
+            color: signalColor,
+            strokeWidth: 1.5,
+            values: signalValues,
+          ),
         ],
         horizontalLevels: const [0.0],
       );
@@ -76,7 +96,8 @@ class MACDIndicator extends Indicator {
       }
     }
 
-    if (macdStartIndex != -1 && (candles.length - macdStartIndex) >= signalPeriod) {
+    if (macdStartIndex != -1 &&
+        (candles.length - macdStartIndex) >= signalPeriod) {
       // SMA of first signalPeriod valid MACD values
       double sum = 0.0;
       for (int i = macdStartIndex; i < macdStartIndex + signalPeriod; i++) {

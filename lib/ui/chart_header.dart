@@ -7,10 +7,7 @@ import '../engine/chart_controller.dart';
 class ChartHeader extends StatelessWidget {
   final TradingChartController controller;
 
-  const ChartHeader({
-    super.key,
-    required this.controller,
-  });
+  const ChartHeader({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +28,8 @@ class ChartHeader extends StatelessWidget {
             controller.symbol.contains('SENSEX') ||
             controller.symbol.contains('BANK')) {
           categoryTag = 'INDEX';
-        } else if (controller.symbol.contains('BTC') || controller.symbol.contains('ETH')) {
+        } else if (controller.symbol.contains('BTC') ||
+            controller.symbol.contains('ETH')) {
           categoryTag = 'CRYPTO';
         }
 
@@ -40,11 +38,21 @@ class ChartHeader extends StatelessWidget {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 10.0, top: 8.0, bottom: 4.0, right: 10.0),
+            padding: const EdgeInsets.only(
+              left: 10.0,
+              top: 8.0,
+              bottom: 4.0,
+              right: 10.0,
+            ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xCC131722) : const Color(0xD9FFFFFF),
+                color: isDark
+                    ? const Color(0xCC131722)
+                    : const Color(0xD9FFFFFF),
                 borderRadius: BorderRadius.circular(6.0),
                 border: Border.all(
                   color: theme.gridColor.withValues(alpha: 0.5),
@@ -86,9 +94,14 @@ class ChartHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+                          color: isDark
+                              ? const Color(0xFF2A2E39)
+                              : const Color(0xFFE0E3EB),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -124,7 +137,10 @@ class ChartHeader extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: changeColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -145,42 +161,96 @@ class ChartHeader extends StatelessWidget {
 
                   // 4. Live / Hovered OHLCV Data Strip
                   if (candle != null) ...[
-                    _buildMetricBadge('O', candle.open.toStringAsFixed(2), theme, isDark),
-                    _buildMetricBadge('H', candle.high.toStringAsFixed(2), theme, isDark),
-                    _buildMetricBadge('L', candle.low.toStringAsFixed(2), theme, isDark),
-                    _buildMetricBadge('C', candle.close.toStringAsFixed(2), theme, isDark, valueColor: changeColor),
-                    _buildMetricBadge('Vol', _formatVolume(candle.volume), theme, isDark),
+                    _buildMetricBadge(
+                      'O',
+                      candle.open.toStringAsFixed(2),
+                      theme,
+                      isDark,
+                    ),
+                    _buildMetricBadge(
+                      'H',
+                      candle.high.toStringAsFixed(2),
+                      theme,
+                      isDark,
+                    ),
+                    _buildMetricBadge(
+                      'L',
+                      candle.low.toStringAsFixed(2),
+                      theme,
+                      isDark,
+                    ),
+                    _buildMetricBadge(
+                      'C',
+                      candle.close.toStringAsFixed(2),
+                      theme,
+                      isDark,
+                      valueColor: changeColor,
+                    ),
+                    _buildMetricBadge(
+                      'Vol',
+                      _formatVolume(candle.volume),
+                      theme,
+                      isDark,
+                    ),
                   ],
 
                   _buildDivider(theme),
 
                   // 5. Quick Viewport Navigation
                   IconButton(
-                    icon: Icon(Icons.zoom_out, size: 16, color: theme.axisTextColor),
+                    icon: Icon(
+                      Icons.zoom_out,
+                      size: 16,
+                      color: theme.axisTextColor,
+                    ),
                     tooltip: 'Zoom Out',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     onPressed: controller.zoomOut,
                   ),
                   IconButton(
-                    icon: Icon(Icons.zoom_in, size: 16, color: theme.axisTextColor),
+                    icon: Icon(
+                      Icons.zoom_in,
+                      size: 16,
+                      color: theme.axisTextColor,
+                    ),
                     tooltip: 'Zoom In',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     onPressed: controller.zoomIn,
                   ),
                   IconButton(
-                    icon: Icon(Icons.center_focus_strong, size: 16, color: theme.axisTextColor),
+                    icon: Icon(
+                      Icons.center_focus_strong,
+                      size: 16,
+                      color: theme.axisTextColor,
+                    ),
                     tooltip: 'Reset Viewport',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     onPressed: controller.resetView,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.last_page, size: 16, color: Color(0xFF00E676)),
+                    icon: const Icon(
+                      Icons.last_page,
+                      size: 16,
+                      color: Color(0xFF00E676),
+                    ),
                     tooltip: 'Scroll to Latest Candle',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     onPressed: controller.scrollToLatest,
                   ),
                 ],
@@ -195,15 +265,15 @@ class ChartHeader extends StatelessWidget {
   Widget _buildDivider(ChartTheme theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0),
-      child: Container(
-        height: 18,
-        width: 1,
-        color: theme.gridColor,
-      ),
+      child: Container(height: 18, width: 1, color: theme.gridColor),
     );
   }
 
-  Widget _buildExchangeBadge(TradingChartController controller, ChartTheme theme, bool isDark) {
+  Widget _buildExchangeBadge(
+    TradingChartController controller,
+    ChartTheme theme,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
@@ -250,7 +320,11 @@ class ChartHeader extends StatelessWidget {
             TextSpan(
               text: value,
               style: TextStyle(
-                color: valueColor ?? (isDark ? Colors.white.withValues(alpha: 0.95) : Colors.black87),
+                color:
+                    valueColor ??
+                    (isDark
+                        ? Colors.white.withValues(alpha: 0.95)
+                        : Colors.black87),
                 fontSize: 11,
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.bold,

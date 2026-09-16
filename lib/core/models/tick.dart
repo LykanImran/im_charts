@@ -7,11 +7,7 @@ class Tick {
   final double price;
   final double volume;
 
-  const Tick({
-    required this.timestamp,
-    required this.price,
-    this.volume = 0.0,
-  });
+  const Tick({required this.timestamp, required this.price, this.volume = 0.0});
 
   @override
   bool operator ==(Object other) =>

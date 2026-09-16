@@ -41,10 +41,24 @@ class DrawingRenderer {
           _drawFibonacci(canvas, bounds, drawing, priceRange, converter);
           break;
         case DrawingTool.longPosition:
-          _drawPositionBox(canvas, bounds, drawing, priceRange, converter, isLong: true);
+          _drawPositionBox(
+            canvas,
+            bounds,
+            drawing,
+            priceRange,
+            converter,
+            isLong: true,
+          );
           break;
         case DrawingTool.shortPosition:
-          _drawPositionBox(canvas, bounds, drawing, priceRange, converter, isLong: false);
+          _drawPositionBox(
+            canvas,
+            bounds,
+            drawing,
+            priceRange,
+            converter,
+            isLong: false,
+          );
           break;
         case DrawingTool.ruler:
           _drawRuler(canvas, bounds, drawing, priceRange, converter);
@@ -53,7 +67,12 @@ class DrawingRenderer {
     }
   }
 
-  void _drawHandle(Canvas canvas, Offset offset, Color color, {double radius = 4.5}) {
+  void _drawHandle(
+    Canvas canvas,
+    Offset offset,
+    Color color, {
+    double radius = 4.5,
+  }) {
     // Subtle shadow
     canvas.drawCircle(
       offset.translate(0, 1),
@@ -61,11 +80,7 @@ class DrawingRenderer {
       Paint()..color = Colors.black45,
     );
     // White center fill
-    canvas.drawCircle(
-      offset,
-      radius,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawCircle(offset, radius, Paint()..color = Colors.white);
     // Colored border
     canvas.drawCircle(
       offset,
@@ -116,16 +131,31 @@ class DrawingRenderer {
 
       final textSpan = TextSpan(
         text: label,
-        style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w600,
+        ),
       );
-      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+        ..layout();
       final mid = Offset((x1 + x2) / 2, (y1 + y2) / 2);
       final pillRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(center: mid.translate(0, -12), width: tp.width + 10, height: tp.height + 4),
+        Rect.fromCenter(
+          center: mid.translate(0, -12),
+          width: tp.width + 10,
+          height: tp.height + 4,
+        ),
         const Radius.circular(3),
       );
       canvas.drawRRect(pillRect, Paint()..color = const Color(0xE61E222D));
-      canvas.drawRRect(pillRect, Paint()..color = drawing.color..strokeWidth = 1.0..style = PaintingStyle.stroke);
+      canvas.drawRRect(
+        pillRect,
+        Paint()
+          ..color = drawing.color
+          ..strokeWidth = 1.0
+          ..style = PaintingStyle.stroke,
+      );
       tp.paint(canvas, Offset(pillRect.left + 5, pillRect.top + 2));
     }
   }
@@ -151,9 +181,24 @@ class DrawingRenderer {
 
     // If selected, draw grab handles and highlight glow
     if (drawing.isSelected || drawing.id == 'preview') {
-      _drawHandle(canvas, Offset(bounds.left + 50.0, y), drawing.color, radius: 4.5);
-      _drawHandle(canvas, Offset(bounds.center.dx, y), drawing.color, radius: 5.5);
-      _drawHandle(canvas, Offset(bounds.right - 50.0, y), drawing.color, radius: 4.5);
+      _drawHandle(
+        canvas,
+        Offset(bounds.left + 50.0, y),
+        drawing.color,
+        radius: 4.5,
+      );
+      _drawHandle(
+        canvas,
+        Offset(bounds.center.dx, y),
+        drawing.color,
+        radius: 5.5,
+      );
+      _drawHandle(
+        canvas,
+        Offset(bounds.right - 50.0, y),
+        drawing.color,
+        radius: 4.5,
+      );
       canvas.drawLine(
         Offset(bounds.left, y),
         Offset(bounds.right, y),
@@ -174,7 +219,10 @@ class DrawingRenderer {
         fontFamily: 'monospace',
       ),
     );
-    final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    )..layout();
 
     final badgeRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(
@@ -247,11 +295,21 @@ class DrawingRenderer {
       final deltaPrice = (p2.price - p1.price).abs();
       final textSpan = TextSpan(
         text: 'Zone: ₹${deltaPrice.toStringAsFixed(2)}',
-        style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9.5,
+          fontWeight: FontWeight.bold,
+        ),
       );
-      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+        ..layout();
       final pillRect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(left + 6, top - tp.height - 6, tp.width + 10, tp.height + 4),
+        Rect.fromLTWH(
+          left + 6,
+          top - tp.height - 6,
+          tp.width + 10,
+          tp.height + 4,
+        ),
         const Radius.circular(3),
       );
       canvas.drawRRect(pillRect, Paint()..color = drawing.color);
@@ -297,7 +355,12 @@ class DrawingRenderer {
 
       // Shaded band between levels
       if (prevY != null && prevColor != null) {
-        final bandRect = Rect.fromLTRB(minX, math.min(prevY, y), maxX, math.max(prevY, y));
+        final bandRect = Rect.fromLTRB(
+          minX,
+          math.min(prevY, y),
+          maxX,
+          math.max(prevY, y),
+        );
         canvas.drawRect(
           bandRect,
           Paint()..color = prevColor.withValues(alpha: 0.06),
@@ -327,7 +390,8 @@ class DrawingRenderer {
             fontFamily: 'monospace',
           ),
         );
-        final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+        final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+          ..layout();
         tp.paint(canvas, Offset(minX + 8, y - tp.height - 2));
       }
     }
@@ -349,20 +413,31 @@ class DrawingRenderer {
     required bool isLong,
   }) {
     final entry = drawing.points.first;
-    final entryY = CoordinateConverter.priceToY(entry.price, bounds, priceRange);
+    final entryY = CoordinateConverter.priceToY(
+      entry.price,
+      bounds,
+      priceRange,
+    );
     final entryX = converter.indexToX(entry.candleIndex);
 
     // Box width spans 40 candles (or to end of chart)
-    final widthSpan = (drawing.properties['widthSpan'] as double?) ?? (40 * 11.0);
+    final widthSpan =
+        (drawing.properties['widthSpan'] as double?) ?? (40 * 11.0);
     final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
     // Target and Stop prices
-    final targetPrice = drawing.properties['targetPrice'] as double? ??
+    final targetPrice =
+        drawing.properties['targetPrice'] as double? ??
         (isLong ? entry.price * 1.015 : entry.price * 0.985);
-    final stopPrice = drawing.properties['stopPrice'] as double? ??
+    final stopPrice =
+        drawing.properties['stopPrice'] as double? ??
         (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
 
-    final targetY = CoordinateConverter.priceToY(targetPrice, bounds, priceRange);
+    final targetY = CoordinateConverter.priceToY(
+      targetPrice,
+      bounds,
+      priceRange,
+    );
     final stopY = CoordinateConverter.priceToY(stopPrice, bounds, priceRange);
 
     final targetDiff = (targetPrice - entry.price).abs();
@@ -420,7 +495,10 @@ class DrawingRenderer {
         fontWeight: FontWeight.bold,
       ),
     );
-    final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    )..layout();
 
     final badgeRect = RRect.fromRectAndRadius(
       Rect.fromCenter(
@@ -443,10 +521,25 @@ class DrawingRenderer {
 
     // If selected, draw grab handles
     if (drawing.isSelected || drawing.id == 'preview') {
-      _drawHandle(canvas, Offset((entryX + rightX) / 2, targetY), const Color(0xFF00E676), radius: 5.0);
-      _drawHandle(canvas, Offset((entryX + rightX) / 2, stopY), const Color(0xFFFF3B30), radius: 5.0);
+      _drawHandle(
+        canvas,
+        Offset((entryX + rightX) / 2, targetY),
+        const Color(0xFF00E676),
+        radius: 5.0,
+      );
+      _drawHandle(
+        canvas,
+        Offset((entryX + rightX) / 2, stopY),
+        const Color(0xFFFF3B30),
+        radius: 5.0,
+      );
       _drawHandle(canvas, Offset(entryX, entryY), Colors.white, radius: 4.5);
-      _drawHandle(canvas, Offset(rightX, entryY), const Color(0xFF2962FF), radius: 4.5);
+      _drawHandle(
+        canvas,
+        Offset(rightX, entryY),
+        const Color(0xFF2962FF),
+        radius: 4.5,
+      );
     }
   }
 
@@ -473,7 +566,9 @@ class DrawingRenderer {
     final boxRect = Rect.fromLTRB(left, top, right, bottom);
 
     final isPositive = p2.price >= p1.price;
-    final boxColor = isPositive ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
+    final boxColor = isPositive
+        ? const Color(0xFF00E676)
+        : const Color(0xFFFF3B30);
 
     // Shaded bounding area
     canvas.drawRect(boxRect, Paint()..color = boxColor.withValues(alpha: 0.12));
@@ -499,13 +594,19 @@ class DrawingRenderer {
     final deltaPct = ((deltaPrice / p1.price) * 100.0).toStringAsFixed(2);
     final barCount = (p2.candleIndex - p1.candleIndex).abs();
     final sign = isPositive ? '+' : '-';
-    final label = '$sign${deltaPrice.toStringAsFixed(2)} ($sign$deltaPct%) • $barCount Bars';
+    final label =
+        '$sign${deltaPrice.toStringAsFixed(2)} ($sign$deltaPct%) • $barCount Bars';
 
     final textSpan = TextSpan(
       text: label,
-      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+      ),
     );
-    final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+      ..layout();
 
     final badgeRect = RRect.fromRectAndRadius(
       Rect.fromCenter(

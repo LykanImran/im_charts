@@ -8,7 +8,8 @@ class PortfolioCardDemoScreen extends StatefulWidget {
   const PortfolioCardDemoScreen({super.key});
 
   @override
-  State<PortfolioCardDemoScreen> createState() => _PortfolioCardDemoScreenState();
+  State<PortfolioCardDemoScreen> createState() =>
+      _PortfolioCardDemoScreenState();
 }
 
 class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
@@ -19,7 +20,10 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
   @override
   void initState() {
     super.initState();
-    _dataSource = MockTradingDataSource(initialPrice: 148250.0, volatility: 0.0012);
+    _dataSource = MockTradingDataSource(
+      initialPrice: 148250.0,
+      volatility: 0.0012,
+    );
     _controller = TradingChartController(
       symbol: 'PORTFOLIO',
       dataSource: _dataSource,
@@ -59,7 +63,11 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFF262C3D), width: 1),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 8)),
+                    BoxShadow(
+                      color: Colors.black45,
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -97,9 +105,14 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                                      color: const Color(
+                                        0xFF00E676,
+                                      ).withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: const Text(
@@ -114,7 +127,10 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
                                   const SizedBox(width: 8),
                                   const Text(
                                     'Past Month',
-                                    style: TextStyle(color: Color(0xFF868993), fontSize: 11),
+                                    style: TextStyle(
+                                      color: Color(0xFF868993),
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -130,30 +146,61 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
-                              children: ['1D', '1W', '1M', '1Y', 'ALL'].map((period) {
+                              children: ['1D', '1W', '1M', '1Y', 'ALL'].map((
+                                period,
+                              ) {
                                 final isSelected = _selectedPeriod == period;
                                 return InkWell(
                                   onTap: () {
                                     setState(() => _selectedPeriod = period);
-                                    if (period == '1D') _controller.setTimeframe(Timeframe.fiveMinutes);
-                                    if (period == '1W') _controller.setTimeframe(Timeframe.fifteenMinutes);
-                                    if (period == '1M') _controller.setTimeframe(Timeframe.oneHour);
-                                    if (period == '1Y') _controller.setTimeframe(Timeframe.oneDay);
-                                    if (period == 'ALL') _controller.setTimeframe(Timeframe.oneWeek);
+                                    if (period == '1D') {
+                                      _controller.setTimeframe(
+                                        Timeframe.fiveMinutes,
+                                      );
+                                    }
+                                    if (period == '1W') {
+                                      _controller.setTimeframe(
+                                        Timeframe.fifteenMinutes,
+                                      );
+                                    }
+                                    if (period == '1M') {
+                                      _controller.setTimeframe(
+                                        Timeframe.oneHour,
+                                      );
+                                    }
+                                    if (period == '1Y') {
+                                      _controller.setTimeframe(
+                                        Timeframe.oneDay,
+                                      );
+                                    }
+                                    if (period == 'ALL') {
+                                      _controller.setTimeframe(
+                                        Timeframe.oneWeek,
+                                      );
+                                    }
                                   },
                                   borderRadius: BorderRadius.circular(6),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? const Color(0xFF2962FF) : Colors.transparent,
+                                      color: isSelected
+                                          ? const Color(0xFF2962FF)
+                                          : Colors.transparent,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       period,
                                       style: TextStyle(
-                                        color: isSelected ? Colors.white : const Color(0xFF868993),
+                                        color: isSelected
+                                            ? Colors.white
+                                            : const Color(0xFF868993),
                                         fontSize: 11,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
                                       ),
                                     ),
                                   ),
@@ -173,7 +220,10 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
 
                     // Card Footer Telemetry
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       decoration: const BoxDecoration(
                         color: Color(0xFF10131C),
                         borderRadius: BorderRadius.only(
@@ -183,19 +233,33 @@ class _PortfolioCardDemoScreenState extends State<PortfolioCardDemoScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.shield_outlined, size: 14, color: Color(0xFF00E676)),
+                          const Icon(
+                            Icons.shield_outlined,
+                            size: 14,
+                            color: Color(0xFF00E676),
+                          ),
                           const SizedBox(width: 6),
                           const Text(
                             'Institutional Real-time Feed Active',
-                            style: TextStyle(color: Color(0xFF868993), fontSize: 11),
+                            style: TextStyle(
+                              color: Color(0xFF868993),
+                              fontSize: 11,
+                            ),
                           ),
                           const Spacer(),
                           TextButton.icon(
                             onPressed: () => _controller.resetView(),
-                            icon: const Icon(Icons.refresh, size: 14, color: Color(0xFF2962FF)),
+                            icon: const Icon(
+                              Icons.refresh,
+                              size: 14,
+                              color: Color(0xFF2962FF),
+                            ),
                             label: const Text(
                               'Reset View',
-                              style: TextStyle(color: Color(0xFF2962FF), fontSize: 11),
+                              style: TextStyle(
+                                color: Color(0xFF2962FF),
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],

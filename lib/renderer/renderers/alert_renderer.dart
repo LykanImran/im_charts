@@ -26,7 +26,9 @@ class AlertRenderer {
       if (y < bounds.top || y > bounds.bottom) continue;
 
       final isTriggered = alert.isTriggered;
-      final alertColor = isTriggered ? const Color(0xFF787B86) : const Color(0xFFFFB300);
+      final alertColor = isTriggered
+          ? const Color(0xFF787B86)
+          : const Color(0xFFFFB300);
 
       final linePaint = Paint()
         ..color = alertColor.withValues(alpha: isTriggered ? 0.4 : 0.85)
@@ -74,7 +76,8 @@ class AlertRenderer {
 
         canvas.drawRRect(
           noteRect,
-          Paint()..color = theme.crosshairBadgeBackground.withValues(alpha: 0.9),
+          Paint()
+            ..color = theme.crosshairBadgeBackground.withValues(alpha: 0.9),
         );
         canvas.drawRRect(
           noteRect,
@@ -121,10 +124,7 @@ class AlertRenderer {
       );
 
       // Badge background
-      canvas.drawRRect(
-        axisBadgeRect,
-        Paint()..color = alertColor,
-      );
+      canvas.drawRRect(axisBadgeRect, Paint()..color = alertColor);
 
       // Price text centered in axis badge
       pricePainter.paint(

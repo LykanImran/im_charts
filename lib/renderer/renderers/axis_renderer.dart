@@ -23,7 +23,9 @@ class AxisRenderer extends BaseRenderer {
     canvas.drawLine(
       Offset(axisBounds.left, axisBounds.top),
       Offset(axisBounds.left, axisBounds.bottom),
-      Paint()..color = theme.axisLineColor..strokeWidth = 1.0,
+      Paint()
+        ..color = theme.axisLineColor
+        ..strokeWidth = 1.0,
     );
 
     if (priceRange.span <= 0 || paneBounds.height <= 0) return;
@@ -38,10 +40,8 @@ class AxisRenderer extends BaseRenderer {
           text: p.toStringAsFixed(2),
           style: theme.axisTextStyle,
         );
-        final tp = TextPainter(
-          text: textSpan,
-          textDirection: TextDirection.ltr,
-        )..layout();
+        final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+          ..layout();
 
         tp.paint(canvas, Offset(axisBounds.left + 6.0, y - (tp.height / 2.0)));
       }
@@ -62,8 +62,13 @@ class AxisRenderer extends BaseRenderer {
     // Draw horizontal divider line
     canvas.drawLine(
       Offset(timeBounds.left, timeBounds.top),
-      Offset(timeBounds.right + 65.0, timeBounds.top), // extend into price axis area
-      Paint()..color = theme.axisLineColor..strokeWidth = 1.0,
+      Offset(
+        timeBounds.right + 65.0,
+        timeBounds.top,
+      ), // extend into price axis area
+      Paint()
+        ..color = theme.axisLineColor
+        ..strokeWidth = 1.0,
     );
 
     if (candles.isEmpty || visible.count <= 0) return;
@@ -71,7 +76,10 @@ class AxisRenderer extends BaseRenderer {
     final candleTotalWidth = viewport.candleTotalWidth;
     if (candleTotalWidth <= 0) return;
 
-    final candlesPerLabel = math.max(1, (minLabelSpacing / candleTotalWidth).round());
+    final candlesPerLabel = math.max(
+      1,
+      (minLabelSpacing / candleTotalWidth).round(),
+    );
     final firstIndex = (visible.start ~/ candlesPerLabel) * candlesPerLabel;
 
     for (int i = firstIndex; i <= visible.end; i += candlesPerLabel) {
@@ -81,14 +89,9 @@ class AxisRenderer extends BaseRenderer {
 
       if (x >= timeBounds.left && x <= timeBounds.right - 30.0) {
         final label = _formatTimestamp(c.timestamp, timeframe);
-        final textSpan = TextSpan(
-          text: label,
-          style: theme.axisTextStyle,
-        );
-        final tp = TextPainter(
-          text: textSpan,
-          textDirection: TextDirection.ltr,
-        )..layout();
+        final textSpan = TextSpan(text: label, style: theme.axisTextStyle);
+        final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+          ..layout();
 
         tp.paint(canvas, Offset(x - (tp.width / 2.0), timeBounds.top + 6.0));
       }
@@ -97,7 +100,20 @@ class AxisRenderer extends BaseRenderer {
 
   String _formatTimestamp(DateTime dt, Timeframe tf) {
     if (tf == Timeframe.oneDay || tf == Timeframe.oneWeek) {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${dt.day} ${months[dt.month - 1]}';
     } else {
       final h = dt.hour.toString().padLeft(2, '0');
@@ -109,7 +125,9 @@ class AxisRenderer extends BaseRenderer {
   double _calculateNicePriceStep(double span, int targetCount) {
     if (span <= 0) return 1.0;
     final roughStep = span / targetCount;
-    final exponent = math.pow(10, (math.log(roughStep) / math.ln10).floor()).toDouble();
+    final exponent = math
+        .pow(10, (math.log(roughStep) / math.ln10).floor())
+        .toDouble();
     final fraction = roughStep / exponent;
 
     double niceFraction;

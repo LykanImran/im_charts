@@ -4,35 +4,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:im_charts/main.dart';
 
 void main() {
-  testWidgets('TradingApp renders Row 1 primary tools and Row 2 symbol telemetry', (WidgetTester tester) async {
-    await tester.pumpWidget(const TradingApp());
-    await tester.pump(const Duration(milliseconds: 50));
-    await tester.pump(const Duration(milliseconds: 100));
+  testWidgets(
+    'TradingApp renders Row 1 primary tools and Row 2 symbol telemetry',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const TradingApp());
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // Row 1: Search trigger
-    expect(find.text('Search symbol...'), findsOneWidget);
+      // Row 1: Search trigger
+      expect(find.text('Search symbol...'), findsOneWidget);
 
-    // Row 1: Interval dropdown showing initial timeframe '5m'
-    expect(find.text('5m'), findsOneWidget);
+      // Row 1: Interval dropdown showing initial timeframe '5m'
+      expect(find.text('5m'), findsOneWidget);
 
-    // Row 1: Candles dropdown showing initial style 'Candles'
-    expect(find.text('Candles'), findsOneWidget);
+      // Row 1: Candles dropdown showing initial style 'Candles'
+      expect(find.text('Candles'), findsOneWidget);
 
-    // Row 1: Indicators dropdown
-    expect(find.text('Indicators'), findsOneWidget);
+      // Row 1: Indicators dropdown
+      expect(find.text('Indicators'), findsOneWidget);
 
-    // Row 1: Refresh and Settings tooltips/icons
-    expect(find.byTooltip('Refresh Chart Data'), findsOneWidget);
-    expect(find.byTooltip('Chart Settings'), findsOneWidget);
+      // Row 1: Refresh and Settings tooltips/icons
+      expect(find.byTooltip('Refresh Chart Data'), findsOneWidget);
+      expect(find.byTooltip('Chart Settings'), findsOneWidget);
 
-    // Row 2: Selected Symbol Name
-    expect(find.text('NIFTY 50'), findsOneWidget);
+      // Row 2: Selected Symbol Name
+      expect(find.text('NIFTY 50'), findsOneWidget);
 
-    // Row 2: Exchange Badge (displays passed exchange)
-    expect(find.text('NSE'), findsOneWidget);
-  });
+      // Row 2: Exchange Badge (displays passed exchange)
+      expect(find.text('NSE'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Interval dropdown opens menu with all timeframes', (WidgetTester tester) async {
+  testWidgets('Interval dropdown opens menu with all timeframes', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -56,7 +61,9 @@ void main() {
     expect(find.text('15m'), findsOneWidget);
   });
 
-  testWidgets('Candles dropdown opens menu and allows style selection', (WidgetTester tester) async {
+  testWidgets('Candles dropdown opens menu and allows style selection', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -80,7 +87,9 @@ void main() {
     expect(find.text('Line'), findsOneWidget);
   });
 
-  testWidgets('Exchange badge displays the passed exchange', (WidgetTester tester) async {
+  testWidgets('Exchange badge displays the passed exchange', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -89,7 +98,9 @@ void main() {
     expect(find.text('NSE'), findsOneWidget);
   });
 
-  testWidgets('Search button opens symbol search dialog and displays symbols', (WidgetTester tester) async {
+  testWidgets('Search button opens symbol search dialog and displays symbols', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -112,7 +123,9 @@ void main() {
     expect(find.text('RELIANCE'), findsOneWidget);
   });
 
-  testWidgets('Dragging price scale engages manual scale and shows AUTO pill', (WidgetTester tester) async {
+  testWidgets('Dragging price scale engages manual scale and shows AUTO pill', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -141,7 +154,9 @@ void main() {
     expect(find.byKey(const Key('auto_scale_pill')), findsNothing);
   });
 
-  testWidgets('Dragging time scale horizontally zooms candle width', (WidgetTester tester) async {
+  testWidgets('Dragging time scale horizontally zooms candle width', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -159,21 +174,26 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('ChartHeader is stacked on top of TradingChart and left aligned', (WidgetTester tester) async {
-    await tester.pumpWidget(const TradingApp());
-    await tester.pump(const Duration(milliseconds: 50));
-    await tester.pump(const Duration(milliseconds: 100));
+  testWidgets(
+    'ChartHeader is stacked on top of TradingChart and left aligned',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const TradingApp());
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // TradingChart occupies full height of the expanded area
-    final chartRect = tester.getRect(find.byType(TradingChart));
-    final headerRect = tester.getRect(find.byType(ChartHeader));
+      // TradingChart occupies full height of the expanded area
+      final chartRect = tester.getRect(find.byType(TradingChart));
+      final headerRect = tester.getRect(find.byType(ChartHeader));
 
-    // Header top matches Chart top because they are stacked
-    expect(headerRect.top, equals(chartRect.top));
-    expect(headerRect.left, equals(chartRect.left));
-  });
+      // Header top matches Chart top because they are stacked
+      expect(headerRect.top, equals(chartRect.top));
+      expect(headerRect.left, equals(chartRect.left));
+    },
+  );
 
-  testWidgets('Trackpad pan zoom event zooms candle width horizontally', (WidgetTester tester) async {
+  testWidgets('Trackpad pan zoom event zooms candle width horizontally', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const TradingApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 100));
@@ -182,11 +202,7 @@ void main() {
     final center = chartRect.center;
 
     // Send PointerPanZoomStartEvent
-    await tester.sendEventToBinding(
-      PointerPanZoomStartEvent(
-        position: center,
-      ),
-    );
+    await tester.sendEventToBinding(PointerPanZoomStartEvent(position: center));
     await tester.pump();
 
     // Send PointerPanZoomUpdateEvent with scale = 1.3 (pinch to zoom in)
@@ -201,100 +217,108 @@ void main() {
     await tester.pumpAndSettle();
 
     // Send PointerPanZoomEndEvent
-    await tester.sendEventToBinding(
-      PointerPanZoomEndEvent(
-        position: center,
-      ),
-    );
+    await tester.sendEventToBinding(PointerPanZoomEndEvent(position: center));
     await tester.pumpAndSettle();
   });
 
-  testWidgets('TradingChart displays active order overlays and supports cancellation', (WidgetTester tester) async {
-    final dataSource = MockTradingDataSource(initialPrice: 24500.0);
-    final controller = TradingChartController(
-      symbol: 'NIFTY 50',
-      exchange: 'NSE',
-      dataSource: dataSource,
-    );
+  testWidgets(
+    'TradingChart displays active order overlays and supports cancellation',
+    (WidgetTester tester) async {
+      final dataSource = MockTradingDataSource(initialPrice: 24500.0);
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: dataSource,
+      );
 
-    await controller.initialize();
+      await controller.initialize();
 
-    final currentPrice = controller.currentCandle?.close ?? 24520.0;
-    final order = ChartOrder(
-      id: 'ord_test_widget',
-      symbol: 'NIFTY 50',
-      side: OrderSide.buy,
-      type: OrderType.limit,
-      price: currentPrice,
-      quantity: 50,
-      takeProfitPrice: currentPrice + 10.0,
-      stopLossPrice: currentPrice - 10.0,
-    );
-    controller.placeOrder(order);
+      final currentPrice = controller.currentCandle?.close ?? 24520.0;
+      final order = ChartOrder(
+        id: 'ord_test_widget',
+        symbol: 'NIFTY 50',
+        side: OrderSide.buy,
+        type: OrderType.limit,
+        price: currentPrice,
+        quantity: 50,
+        takeProfitPrice: currentPrice + 10.0,
+        stopLossPrice: currentPrice - 10.0,
+      );
+      controller.placeOrder(order);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TradingChart(
-            controller: controller,
-            enableChartTrading: true,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TradingChart(
+              controller: controller,
+              enableChartTrading: true,
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
+      );
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify cancel order button key is present
-    expect(find.byKey(const Key('cancel_order_ord_test_widget')), findsOneWidget);
-    expect(find.byKey(const Key('cancel_tp_ord_test_widget')), findsOneWidget);
-    expect(find.byKey(const Key('cancel_sl_ord_test_widget')), findsOneWidget);
+      // Verify cancel order button key is present
+      expect(
+        find.byKey(const Key('cancel_order_ord_test_widget')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('cancel_tp_ord_test_widget')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('cancel_sl_ord_test_widget')),
+        findsOneWidget,
+      );
 
-    // Tap cancel order button
-    await tester.tap(find.byKey(const Key('cancel_order_ord_test_widget')));
-    await tester.pump(const Duration(milliseconds: 50));
+      // Tap cancel order button
+      await tester.tap(find.byKey(const Key('cancel_order_ord_test_widget')));
+      await tester.pump(const Duration(milliseconds: 50));
 
-    // Verify order was cancelled in controller
-    expect(controller.orders.isEmpty, isTrue);
+      // Verify order was cancelled in controller
+      expect(controller.orders.isEmpty, isTrue);
 
-    controller.dispose();
-    dataSource.dispose();
-  });
+      controller.dispose();
+      dataSource.dispose();
+    },
+  );
 
-  testWidgets('Im Charts brand properties, watermark defaults, and type aliases work as expected', (WidgetTester tester) async {
-    final dataSource = MockTradingDataSource();
-    final ImChartController controller = ImChartController(
-      symbol: 'NIFTY 50',
-      dataSource: dataSource,
-    );
-    await controller.initialize();
+  testWidgets(
+    'Im Charts brand properties, watermark defaults, and type aliases work as expected',
+    (WidgetTester tester) async {
+      final dataSource = MockTradingDataSource();
+      final ImChartController controller = ImChartController(
+        symbol: 'NIFTY 50',
+        dataSource: dataSource,
+      );
+      await controller.initialize();
 
-    // 1. Default brandName is 'Im Charts'
-    expect(controller.brandName, 'Im Charts');
+      // 1. Default brandName is 'Im Charts'
+      expect(controller.brandName, 'Im Charts');
 
-    // 2. Changing brandName notifies listeners
-    bool notified = false;
-    controller.addListener(() => notified = true);
-    controller.brandName = 'Custom Broker';
-    expect(notified, isTrue);
-    expect(controller.brandName, 'Custom Broker');
+      // 2. Changing brandName notifies listeners
+      bool notified = false;
+      controller.addListener(() => notified = true);
+      controller.brandName = 'Custom Broker';
+      expect(notified, isTrue);
+      expect(controller.brandName, 'Custom Broker');
 
-    // 3. ImChart and ImTradingScreen type aliases construct valid widgets
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ImChart(controller: controller),
+      // 3. ImChart and ImTradingScreen type aliases construct valid widgets
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ImChart(controller: controller)),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(find.byType(TradingChart), findsOneWidget);
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.byType(TradingChart), findsOneWidget);
 
-    // 4. ImChartsApp renders turnkey application with Im Charts title
-    const app = ImChartsApp();
-    expect(app, isA<TradingApp>());
+      // 4. ImChartsApp renders turnkey application with Im Charts title
+      const app = ImChartsApp();
+      expect(app, isA<TradingApp>());
 
-    controller.dispose();
-    dataSource.dispose();
-  });
+      controller.dispose();
+      dataSource.dispose();
+    },
+  );
 }
-

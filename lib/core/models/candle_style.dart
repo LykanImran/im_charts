@@ -17,21 +17,9 @@ enum CandleStyle {
     shortLabel: 'Heikin Ashi',
     icon: Icons.waterfall_chart,
   ),
-  line(
-    label: 'Line',
-    shortLabel: 'Line',
-    icon: Icons.show_chart,
-  ),
-  area(
-    label: 'Area',
-    shortLabel: 'Area',
-    icon: Icons.area_chart,
-  ),
-  bars(
-    label: 'Bars (OHLC)',
-    shortLabel: 'Bars',
-    icon: Icons.bar_chart,
-  );
+  line(label: 'Line', shortLabel: 'Line', icon: Icons.show_chart),
+  area(label: 'Area', shortLabel: 'Area', icon: Icons.area_chart),
+  bars(label: 'Bars (OHLC)', shortLabel: 'Bars', icon: Icons.bar_chart);
 
   final String label;
   final String shortLabel;

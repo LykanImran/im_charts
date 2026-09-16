@@ -94,17 +94,17 @@ class ChartPainter extends CustomPainter {
     this.exchange = 'NSE',
     this.verticalScale = 1.0,
     this.verticalPan = 0.0,
-  })  : _gridRenderer = GridRenderer(theme),
-        _candleRenderer = CandleRenderer(theme),
-        _volumeRenderer = VolumeRenderer(theme),
-        _volumeProfileRenderer = VolumeProfileRenderer(theme),
-        _indicatorRenderer = IndicatorRenderer(theme),
-        _currentPriceRenderer = CurrentPriceRenderer(theme),
-        _axisRenderer = AxisRenderer(theme),
-        _crosshairRenderer = CrosshairRenderer(theme),
-        _orderRenderer = OrderRenderer(theme),
-        _drawingRenderer = DrawingRenderer(theme),
-        _alertRenderer = AlertRenderer(theme);
+  }) : _gridRenderer = GridRenderer(theme),
+       _candleRenderer = CandleRenderer(theme),
+       _volumeRenderer = VolumeRenderer(theme),
+       _volumeProfileRenderer = VolumeProfileRenderer(theme),
+       _indicatorRenderer = IndicatorRenderer(theme),
+       _currentPriceRenderer = CurrentPriceRenderer(theme),
+       _axisRenderer = AxisRenderer(theme),
+       _crosshairRenderer = CrosshairRenderer(theme),
+       _orderRenderer = OrderRenderer(theme),
+       _drawingRenderer = DrawingRenderer(theme),
+       _alertRenderer = AlertRenderer(theme);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -115,14 +115,13 @@ class ChartPainter extends CustomPainter {
     canvas.clipRect(Offset.zero & size);
 
     // 1. Clear background
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = theme.backgroundColor,
-    );
+    canvas.drawRect(Offset.zero & size, Paint()..color = theme.backgroundColor);
 
     final activeSubPanes = subPaneIndicators.isNotEmpty
         ? subPaneIndicators
-        : (subPaneIndicator != null ? [subPaneIndicator!] : <IndicatorResult>[]);
+        : (subPaneIndicator != null
+              ? [subPaneIndicator!]
+              : <IndicatorResult>[]);
 
     // 2. Setup multi-pane layout
     final layout = ChartPaneLayout(
@@ -241,7 +240,7 @@ class ChartPainter extends CustomPainter {
     // 8b. Draw Interactive Chart Drawings (Trendlines, Fib, Position Boxes, Ruler)
     final allDrawings = [
       ...drawings,
-      ?previewDrawing,
+      if (previewDrawing != null) previewDrawing!,
     ];
     if (allDrawings.isNotEmpty) {
       _drawingRenderer.drawDrawings(
@@ -428,11 +427,17 @@ class ChartPainter extends CustomPainter {
     final center = bounds.center;
     textPainter.paint(
       canvas,
-      Offset(center.dx - (textPainter.width / 2), center.dy - (textPainter.height / 2)),
+      Offset(
+        center.dx - (textPainter.width / 2),
+        center.dy - (textPainter.height / 2),
+      ),
     );
   }
 
-  PriceRange _calculateSubPaneRange(IndicatorResult indicator, VisibleIndices visible) {
+  PriceRange _calculateSubPaneRange(
+    IndicatorResult indicator,
+    VisibleIndices visible,
+  ) {
     if (indicator.fixedMin != null && indicator.fixedMax != null) {
       return PriceRange(indicator.fixedMin!, indicator.fixedMax!);
     }
@@ -453,7 +458,9 @@ class ChartPainter extends CustomPainter {
     }
 
     // Always include zero baseline if horizontalLevels contains 0.0
-    if (indicator.horizontalLevels?.contains(0.0) == true || (minVal < double.infinity && minVal > 0) || (maxVal > -double.infinity && maxVal < 0)) {
+    if (indicator.horizontalLevels?.contains(0.0) == true ||
+        (minVal < double.infinity && minVal > 0) ||
+        (maxVal > -double.infinity && maxVal < 0)) {
       if (minVal > 0) minVal = 0.0;
       if (maxVal < 0) maxVal = 0.0;
     }
@@ -468,7 +475,11 @@ class ChartPainter extends CustomPainter {
     return PriceRange(minVal - padding, maxVal + padding);
   }
 
-  void _drawSubPaneHeader(Canvas canvas, Rect bounds, IndicatorResult indicator) {
+  void _drawSubPaneHeader(
+    Canvas canvas,
+    Rect bounds,
+    IndicatorResult indicator,
+  ) {
     final textPainter = TextPainter(
       text: TextSpan(
         text: indicator.name,
@@ -482,10 +493,7 @@ class ChartPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
 
-    textPainter.paint(
-      canvas,
-      Offset(bounds.left + 8, bounds.top + 4),
-    );
+    textPainter.paint(canvas, Offset(bounds.left + 8, bounds.top + 4));
   }
 
   @override

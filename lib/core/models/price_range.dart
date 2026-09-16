@@ -9,7 +9,7 @@ class PriceRange {
   final double max;
 
   const PriceRange(this.min, this.max)
-      : assert(max >= min, 'Max price ($max) must be >= Min price ($min)');
+    : assert(max >= min, 'Max price ($max) must be >= Min price ($min)');
 
   /// Empty or default zero price range.
   static const zero = PriceRange(0.0, 1.0);
@@ -19,7 +19,10 @@ class PriceRange {
   double get mid => (min + max) / 2.0;
 
   /// Returns a new [PriceRange] with proportional top and bottom padding.
-  PriceRange withPadding({double topPaddingPercent = 0.08, double bottomPaddingPercent = 0.08}) {
+  PriceRange withPadding({
+    double topPaddingPercent = 0.08,
+    double bottomPaddingPercent = 0.08,
+  }) {
     final s = span == 0 ? 1.0 : span;
     final topPad = s * topPaddingPercent;
     final bottomPad = s * bottomPaddingPercent;

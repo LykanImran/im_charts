@@ -28,10 +28,16 @@ enum Timeframe {
       final roundedHour = (dateTime.hour ~/ 4) * 4;
       return DateTime(dateTime.year, dateTime.month, dateTime.day, roundedHour);
     } else if (this == oneHour) {
-      return DateTime(dateTime.year, dateTime.month, dateTime.day, dateTime.hour);
+      return DateTime(
+        dateTime.year,
+        dateTime.month,
+        dateTime.day,
+        dateTime.hour,
+      );
     } else {
       final totalMinutes = dateTime.minute;
-      final roundedMinutes = (totalMinutes ~/ duration.inMinutes) * duration.inMinutes;
+      final roundedMinutes =
+          (totalMinutes ~/ duration.inMinutes) * duration.inMinutes;
       return DateTime(
         dateTime.year,
         dateTime.month,

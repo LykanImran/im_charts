@@ -18,7 +18,10 @@ void main() {
       expect(layout1.hasSubPane, isTrue);
       expect(layout1.subPanesBounds.length, 1);
       expect(layout1.subPaneBounds, isNotNull);
-      expect(layout1.mainPaneBounds.height + layout1.subPanesBounds[0].height, 600 - 24.0);
+      expect(
+        layout1.mainPaneBounds.height + layout1.subPanesBounds[0].height,
+        600 - 24.0,
+      );
 
       // 2 stacked sub-panes (e.g. RSI + MACD)
       final layout2 = ChartPaneLayout(totalSize: size, subPanes: 2);
@@ -32,7 +35,10 @@ void main() {
 
       expect(layout2.subPanesBounds[0].height, closeTo(perSubHeight, 0.1));
       expect(layout2.subPanesBounds[1].height, closeTo(perSubHeight, 0.1));
-      expect(layout2.mainPaneBounds.height, closeTo(totalAvailable - expectedSubTotal, 0.1));
+      expect(
+        layout2.mainPaneBounds.height,
+        closeTo(totalAvailable - expectedSubTotal, 0.1),
+      );
     });
   });
 
@@ -87,7 +93,9 @@ void main() {
   });
 
   group('ReplayControlBar Widget Tests', () {
-    testWidgets('Renders buttons and handles step and play interactions', (WidgetTester tester) async {
+    testWidgets('Renders buttons and handles step and play interactions', (
+      WidgetTester tester,
+    ) async {
       final dataSource = MockTradingDataSource();
       final controller = TradingChartController(
         symbol: 'NIFTY 50',
@@ -99,9 +107,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: ReplayControlBar(controller: controller),
-          ),
+          home: Scaffold(body: ReplayControlBar(controller: controller)),
         ),
       );
       await tester.pump();

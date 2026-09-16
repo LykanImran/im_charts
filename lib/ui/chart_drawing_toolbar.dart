@@ -46,12 +46,18 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
             width: 18,
             decoration: const BoxDecoration(
               color: Color(0xFF131722),
-              border: Border(right: BorderSide(color: Color(0xFF2A2E39), width: 1)),
+              border: Border(
+                right: BorderSide(color: Color(0xFF2A2E39), width: 1),
+              ),
             ),
             child: InkWell(
               onTap: () => setState(() => _isCollapsed = false),
               child: const Center(
-                child: Icon(Icons.chevron_right, size: 14, color: Color(0xFF868993)),
+                child: Icon(
+                  Icons.chevron_right,
+                  size: 14,
+                  color: Color(0xFF868993),
+                ),
               ),
             ),
           );
@@ -61,7 +67,9 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
           width: 44,
           decoration: const BoxDecoration(
             color: Color(0xFF131722),
-            border: Border(right: BorderSide(color: Color(0xFF2A2E39), width: 1)),
+            border: Border(
+              right: BorderSide(color: Color(0xFF2A2E39), width: 1),
+            ),
           ),
           child: Column(
             children: [
@@ -91,7 +99,8 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
               // Clear All Drawings Button
               if (hasDrawings)
                 Tooltip(
-                  message: 'Clear Drawings (${widget.controller.drawings.length})',
+                  message:
+                      'Clear Drawings (${widget.controller.drawings.length})',
                   waitDuration: const Duration(milliseconds: 400),
                   child: Material(
                     color: Colors.transparent,
@@ -100,7 +109,9 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                       key: const Key('clear_drawings_button'),
                       onTap: widget.controller.clearDrawings,
                       borderRadius: BorderRadius.circular(6),
-                      hoverColor: const Color(0xFFFF3B30).withValues(alpha: 0.15),
+                      hoverColor: const Color(
+                        0xFFFF3B30,
+                      ).withValues(alpha: 0.15),
                       child: Container(
                         width: 34,
                         height: 34,
@@ -128,7 +139,11 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                       width: 32,
                       height: 32,
                       alignment: Alignment.center,
-                      child: const Icon(Icons.chevron_left, size: 16, color: Color(0xFF868993)),
+                      child: const Icon(
+                        Icons.chevron_left,
+                        size: 16,
+                        color: Color(0xFF868993),
+                      ),
                     ),
                   ),
                 ),
@@ -156,7 +171,9 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
           key: Key('drawing_tool_${tool.name}'),
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-          hoverColor: isActive ? const Color(0xFF2962FF) : const Color(0xFF2A2E39),
+          hoverColor: isActive
+              ? const Color(0xFF2962FF)
+              : const Color(0xFF2A2E39),
           child: Container(
             width: 34,
             height: 34,

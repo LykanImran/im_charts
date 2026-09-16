@@ -21,9 +21,15 @@ class OrderRenderer {
     if (orders.isEmpty) return;
 
     for (final order in orders) {
-      final orderY = CoordinateConverter.priceToY(order.price, bounds, priceRange);
+      final orderY = CoordinateConverter.priceToY(
+        order.price,
+        bounds,
+        priceRange,
+      );
       final isBuy = order.isBuy;
-      final orderColor = isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
+      final orderColor = isBuy
+          ? const Color(0xFF00E676)
+          : const Color(0xFFFF3B30);
 
       // 1. Draw Main Order Line & Badge
       if (orderY >= bounds.top - 20 && orderY <= bounds.bottom + 20) {
@@ -139,9 +145,15 @@ class OrderRenderer {
     if (positions.isEmpty) return;
 
     for (final pos in positions) {
-      final posY = CoordinateConverter.priceToY(pos.entryPrice, bounds, priceRange);
+      final posY = CoordinateConverter.priceToY(
+        pos.entryPrice,
+        bounds,
+        priceRange,
+      );
       final isLong = pos.isLong;
-      final posColor = isLong ? const Color(0xFF2962FF) : const Color(0xFFE91E63);
+      final posColor = isLong
+          ? const Color(0xFF2962FF)
+          : const Color(0xFFE91E63);
 
       // 1. Draw Solid Position Line & Pill Badge
       if (posY >= bounds.top - 20 && posY <= bounds.bottom + 20) {
@@ -255,12 +267,16 @@ class OrderRenderer {
     required Color color,
   }) {
     final sideText = position.side.label;
-    final qtyText = position.quantity.toStringAsFixed(position.quantity % 1 == 0 ? 0 : 2);
+    final qtyText = position.quantity.toStringAsFixed(
+      position.quantity % 1 == 0 ? 0 : 2,
+    );
     final entryText = position.entryPrice.toStringAsFixed(2);
     final pnl = position.unrealizedPnL(currentPrice);
     final pnlPct = position.unrealizedPnLPercentage(currentPrice);
     final isProfit = pnl >= 0;
-    final pnlColor = isProfit ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
+    final pnlColor = isProfit
+        ? const Color(0xFF00E676)
+        : const Color(0xFFFF3B30);
     final pnlSign = isProfit ? '+' : '';
 
     final textSpan = TextSpan(
@@ -284,7 +300,8 @@ class OrderRenderer {
           ),
         ),
         TextSpan(
-          text: '$pnlSign₹${pnl.abs().toStringAsFixed(2)} ($pnlSign${pnlPct.toStringAsFixed(2)}%)  ',
+          text:
+              '$pnlSign₹${pnl.abs().toStringAsFixed(2)} ($pnlSign${pnlPct.toStringAsFixed(2)}%)  ',
           style: TextStyle(
             color: pnlColor,
             fontSize: 10.5,
@@ -323,10 +340,7 @@ class OrderRenderer {
     );
 
     // Background fill & dynamic glow border
-    canvas.drawRRect(
-      badgeRect,
-      Paint()..color = const Color(0xFF131722),
-    );
+    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF131722));
     canvas.drawRRect(
       badgeRect,
       Paint()
@@ -369,7 +383,9 @@ class OrderRenderer {
     required Color color,
   }) {
     final sideText = order.isBuy ? 'BUY' : 'SELL';
-    final qtyText = order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2);
+    final qtyText = order.quantity.toStringAsFixed(
+      order.quantity % 1 == 0 ? 0 : 2,
+    );
     final priceText = order.price.toStringAsFixed(2);
 
     final textSpan = TextSpan(
@@ -415,10 +431,7 @@ class OrderRenderer {
     );
 
     // Background fill & glow
-    canvas.drawRRect(
-      badgeRect,
-      Paint()..color = const Color(0xFF161A25),
-    );
+    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF161A25));
     canvas.drawRRect(
       badgeRect,
       Paint()
@@ -485,10 +498,7 @@ class OrderRenderer {
       const Radius.circular(4.0),
     );
 
-    canvas.drawRRect(
-      badgeRect,
-      Paint()..color = const Color(0xFF131722),
-    );
+    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF131722));
     canvas.drawRRect(
       badgeRect,
       Paint()

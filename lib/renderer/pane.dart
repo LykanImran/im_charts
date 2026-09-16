@@ -23,24 +23,45 @@ class ChartPaneLayout {
     int? subPanes,
     this.subPaneRatio = 0.25,
   }) : subPaneCount = subPanes ?? (hasSubPane ? 1 : 0) {
-    final chartWidth = (totalSize.width - priceAxisWidth).clamp(10.0, totalSize.width);
-    final availableHeight = (totalSize.height - timeAxisHeight).clamp(10.0, totalSize.height);
+    final chartWidth = (totalSize.width - priceAxisWidth).clamp(
+      10.0,
+      totalSize.width,
+    );
+    final availableHeight = (totalSize.height - timeAxisHeight).clamp(
+      10.0,
+      totalSize.height,
+    );
 
     subPanesBounds = [];
     subPanesPriceAxisBounds = [];
 
     if (subPaneCount <= 0) {
       mainPaneBounds = Rect.fromLTWH(0, 0, chartWidth, availableHeight);
-      priceAxisBounds = Rect.fromLTWH(chartWidth, 0, priceAxisWidth, availableHeight);
+      priceAxisBounds = Rect.fromLTWH(
+        chartWidth,
+        0,
+        priceAxisWidth,
+        availableHeight,
+      );
     } else if (subPaneCount == 1) {
       final subHeight = availableHeight * subPaneRatio;
       final mainHeight = availableHeight - subHeight;
 
       mainPaneBounds = Rect.fromLTWH(0, 0, chartWidth, mainHeight);
-      priceAxisBounds = Rect.fromLTWH(chartWidth, 0, priceAxisWidth, mainHeight);
+      priceAxisBounds = Rect.fromLTWH(
+        chartWidth,
+        0,
+        priceAxisWidth,
+        mainHeight,
+      );
 
       final sBounds = Rect.fromLTWH(0, mainHeight, chartWidth, subHeight);
-      final sAxisBounds = Rect.fromLTWH(chartWidth, mainHeight, priceAxisWidth, subHeight);
+      final sAxisBounds = Rect.fromLTWH(
+        chartWidth,
+        mainHeight,
+        priceAxisWidth,
+        subHeight,
+      );
 
       subPanesBounds.add(sBounds);
       subPanesPriceAxisBounds.add(sAxisBounds);
@@ -53,20 +74,34 @@ class ChartPaneLayout {
       final mainHeight = availableHeight - totalSubHeight;
 
       mainPaneBounds = Rect.fromLTWH(0, 0, chartWidth, mainHeight);
-      priceAxisBounds = Rect.fromLTWH(chartWidth, 0, priceAxisWidth, mainHeight);
+      priceAxisBounds = Rect.fromLTWH(
+        chartWidth,
+        0,
+        priceAxisWidth,
+        mainHeight,
+      );
 
       for (int i = 0; i < subPaneCount; i++) {
         final top = mainHeight + (i * perSubHeight);
         subPanesBounds.add(Rect.fromLTWH(0, top, chartWidth, perSubHeight));
-        subPanesPriceAxisBounds.add(Rect.fromLTWH(chartWidth, top, priceAxisWidth, perSubHeight));
+        subPanesPriceAxisBounds.add(
+          Rect.fromLTWH(chartWidth, top, priceAxisWidth, perSubHeight),
+        );
       }
     }
 
-    timeAxisBounds = Rect.fromLTWH(0, availableHeight, chartWidth, timeAxisHeight);
+    timeAxisBounds = Rect.fromLTWH(
+      0,
+      availableHeight,
+      chartWidth,
+      timeAxisHeight,
+    );
   }
 
   /// Backward-compatible getters for single sub-pane consumers
   bool get hasSubPane => subPaneCount > 0;
-  Rect? get subPaneBounds => subPanesBounds.isNotEmpty ? subPanesBounds.first : null;
-  Rect? get subPanePriceAxisBounds => subPanesPriceAxisBounds.isNotEmpty ? subPanesPriceAxisBounds.first : null;
+  Rect? get subPaneBounds =>
+      subPanesBounds.isNotEmpty ? subPanesBounds.first : null;
+  Rect? get subPanePriceAxisBounds =>
+      subPanesPriceAxisBounds.isNotEmpty ? subPanesPriceAxisBounds.first : null;
 }

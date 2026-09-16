@@ -41,9 +41,24 @@ class BollingerBandsIndicator extends Indicator {
         name: name,
         isOverlay: true,
         series: [
-          IndicatorSeries(id: 'upper', label: 'Upper', color: upperColor, values: upperValues),
-          IndicatorSeries(id: 'middle', label: 'Basis', color: middleColor, values: middleValues),
-          IndicatorSeries(id: 'lower', label: 'Lower', color: lowerColor, values: lowerValues),
+          IndicatorSeries(
+            id: 'upper',
+            label: 'Upper',
+            color: upperColor,
+            values: upperValues,
+          ),
+          IndicatorSeries(
+            id: 'middle',
+            label: 'Basis',
+            color: middleColor,
+            values: middleValues,
+          ),
+          IndicatorSeries(
+            id: 'lower',
+            label: 'Lower',
+            color: lowerColor,
+            values: lowerValues,
+          ),
         ],
       );
     }
@@ -72,9 +87,25 @@ class BollingerBandsIndicator extends Indicator {
       name: name,
       isOverlay: true,
       series: [
-        IndicatorSeries(id: 'upper', label: 'Upper', color: upperColor, values: upperValues),
-        IndicatorSeries(id: 'middle', label: 'Basis', color: middleColor, strokeWidth: 1.2, values: middleValues),
-        IndicatorSeries(id: 'lower', label: 'Lower', color: lowerColor, values: lowerValues),
+        IndicatorSeries(
+          id: 'upper',
+          label: 'Upper',
+          color: upperColor,
+          values: upperValues,
+        ),
+        IndicatorSeries(
+          id: 'middle',
+          label: 'Basis',
+          color: middleColor,
+          strokeWidth: 1.2,
+          values: middleValues,
+        ),
+        IndicatorSeries(
+          id: 'lower',
+          label: 'Lower',
+          color: lowerColor,
+          values: lowerValues,
+        ),
       ],
     );
   }

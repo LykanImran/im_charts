@@ -44,7 +44,13 @@ class VWAPIndicator extends Indicator {
         name: name,
         isOverlay: true,
         series: [
-          IndicatorSeries(id: 'vwap', label: 'VWAP', color: vwapColor, strokeWidth: strokeWidth, values: vwapValues),
+          IndicatorSeries(
+            id: 'vwap',
+            label: 'VWAP',
+            color: vwapColor,
+            strokeWidth: strokeWidth,
+            values: vwapValues,
+          ),
         ],
       );
     }
@@ -56,7 +62,11 @@ class VWAPIndicator extends Indicator {
 
     for (int i = 0; i < candles.length; i++) {
       final candle = candles[i];
-      final candleDate = DateTime(candle.timestamp.year, candle.timestamp.month, candle.timestamp.day);
+      final candleDate = DateTime(
+        candle.timestamp.year,
+        candle.timestamp.month,
+        candle.timestamp.day,
+      );
 
       // Reset at intraday session / day boundaries
       if (lastDate != null && candleDate != lastDate) {

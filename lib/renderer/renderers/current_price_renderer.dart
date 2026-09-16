@@ -23,7 +23,9 @@ class CurrentPriceRenderer extends BaseRenderer {
 
     if (y < mainBounds.top || y > mainBounds.bottom) return;
 
-    final priceColor = latestCandle.isBullish ? theme.bullishColor : theme.bearishColor;
+    final priceColor = latestCandle.isBullish
+        ? theme.bullishColor
+        : theme.bearishColor;
 
     // 1. Dashed horizontal line across mainBounds
     _drawDashedHorizontalLine(
@@ -35,7 +37,9 @@ class CurrentPriceRenderer extends BaseRenderer {
     );
 
     // 2. Glowing Beacon Pulse Dot at latest candle location
-    if (latestCandleX != null && latestCandleX >= mainBounds.left && latestCandleX <= mainBounds.right) {
+    if (latestCandleX != null &&
+        latestCandleX >= mainBounds.left &&
+        latestCandleX <= mainBounds.right) {
       final glowPaint = Paint()
         ..color = priceColor.withValues(alpha: 0.3)
         ..style = PaintingStyle.fill;
@@ -81,7 +85,10 @@ class CurrentPriceRenderer extends BaseRenderer {
       ..color = priceColor
       ..style = PaintingStyle.fill;
 
-    final rrect = RRect.fromRectAndRadius(badgeRect, const Radius.circular(3.0));
+    final rrect = RRect.fromRectAndRadius(
+      badgeRect,
+      const Radius.circular(3.0),
+    );
     canvas.drawRRect(rrect, badgePaint);
 
     textPainter.paint(
@@ -93,7 +100,9 @@ class CurrentPriceRenderer extends BaseRenderer {
     );
 
     // 4. Candle Close Countdown Timer badge directly below the price badge
-    if (showCountdownTimer && countdownText != null && countdownText.isNotEmpty) {
+    if (showCountdownTimer &&
+        countdownText != null &&
+        countdownText.isNotEmpty) {
       final cdSpan = TextSpan(
         text: countdownText,
         style: TextStyle(
@@ -103,7 +112,10 @@ class CurrentPriceRenderer extends BaseRenderer {
           fontFamily: 'monospace',
         ),
       );
-      final cdPainter = TextPainter(text: cdSpan, textDirection: TextDirection.ltr)..layout();
+      final cdPainter = TextPainter(
+        text: cdSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
 
       final cdBadgeHeight = cdPainter.height + 4.0;
       final cdBadgeWidth = axisBounds.width - 6.0;
@@ -125,7 +137,10 @@ class CurrentPriceRenderer extends BaseRenderer {
           ..strokeWidth = 0.8
           ..style = PaintingStyle.stroke;
 
-        final cdRRect = RRect.fromRectAndRadius(cdRect, const Radius.circular(2.5));
+        final cdRRect = RRect.fromRectAndRadius(
+          cdRect,
+          const Radius.circular(2.5),
+        );
         canvas.drawRRect(cdRRect, cdBgPaint);
         canvas.drawRRect(cdRRect, cdBorderPaint);
 
@@ -156,7 +171,9 @@ class CurrentPriceRenderer extends BaseRenderer {
 
     double currentX = startX;
     while (currentX < endX) {
-      final lineEnd = (currentX + dashWidth < endX) ? currentX + dashWidth : endX;
+      final lineEnd = (currentX + dashWidth < endX)
+          ? currentX + dashWidth
+          : endX;
       canvas.drawLine(Offset(currentX, y), Offset(lineEnd, y), paint);
       currentX += dashWidth + dashSpace;
     }

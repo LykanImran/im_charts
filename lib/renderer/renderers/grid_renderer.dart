@@ -41,7 +41,10 @@ class GridRenderer extends BaseRenderer {
     if (totalCandles > 0 && bounds.width > 0) {
       final candleTotalWidth = viewport.candleTotalWidth;
       if (candleTotalWidth > 0) {
-        final candlesPerGrid = math.max(1, (minHorizontalSpacing / candleTotalWidth).round());
+        final candlesPerGrid = math.max(
+          1,
+          (minHorizontalSpacing / candleTotalWidth).round(),
+        );
         final visible = viewport.calculateVisibleIndices(totalCandles);
 
         final firstIndex = (visible.start ~/ candlesPerGrid) * candlesPerGrid;
@@ -64,7 +67,9 @@ class GridRenderer extends BaseRenderer {
   double _calculateNicePriceStep(double span, int targetCount) {
     if (span <= 0) return 1.0;
     final roughStep = span / targetCount;
-    final exponent = math.pow(10, (math.log(roughStep) / math.ln10).floor()).toDouble();
+    final exponent = math
+        .pow(10, (math.log(roughStep) / math.ln10).floor())
+        .toDouble();
     final fraction = roughStep / exponent;
 
     double niceFraction;

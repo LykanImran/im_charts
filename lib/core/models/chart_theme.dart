@@ -139,11 +139,16 @@ class ChartTheme {
       axisTextColor: axisTextColor ?? this.axisTextColor,
       axisLineColor: axisLineColor ?? this.axisLineColor,
       crosshairColor: crosshairColor ?? this.crosshairColor,
-      crosshairBadgeBackground: crosshairBadgeBackground ?? this.crosshairBadgeBackground,
-      crosshairBadgeTextColor: crosshairBadgeTextColor ?? this.crosshairBadgeTextColor,
-      currentPriceLineColor: currentPriceLineColor ?? this.currentPriceLineColor,
-      currentPriceBadgeBackground: currentPriceBadgeBackground ?? this.currentPriceBadgeBackground,
-      currentPriceBadgeTextColor: currentPriceBadgeTextColor ?? this.currentPriceBadgeTextColor,
+      crosshairBadgeBackground:
+          crosshairBadgeBackground ?? this.crosshairBadgeBackground,
+      crosshairBadgeTextColor:
+          crosshairBadgeTextColor ?? this.crosshairBadgeTextColor,
+      currentPriceLineColor:
+          currentPriceLineColor ?? this.currentPriceLineColor,
+      currentPriceBadgeBackground:
+          currentPriceBadgeBackground ?? this.currentPriceBadgeBackground,
+      currentPriceBadgeTextColor:
+          currentPriceBadgeTextColor ?? this.currentPriceBadgeTextColor,
       axisTextStyle: axisTextStyle ?? this.axisTextStyle,
       tooltipTextStyle: tooltipTextStyle ?? this.tooltipTextStyle,
     );

@@ -126,7 +126,7 @@ controller.toggleVolumeProfile();
 
 ## ✍️ Authoring Custom Technical Indicators
 
-Creating a custom indicator in `im_charts` is straightforward. Simply extend [`Indicator`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/engine/indicators/indicator.dart) and implement `calculate(List<Candle> candles)`.
+Creating a custom indicator in `im_charts` is straightforward. Simply extend `Indicator` and implement `calculate(List<Candle> candles)`.
 
 ### Example: Simple Moving Average (SMA) Overlay
 

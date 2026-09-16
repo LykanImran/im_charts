@@ -21,7 +21,10 @@ class _DualChartDemoScreenState extends State<DualChartDemoScreen> {
   void initState() {
     super.initState();
     // Chart 1: NIFTY 50 (5m)
-    _dataSource1 = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
+    _dataSource1 = MockTradingDataSource(
+      initialPrice: 24520.0,
+      volatility: 0.0018,
+    );
     _controller1 = TradingChartController(
       symbol: 'NIFTY 50',
       exchange: 'NSE',
@@ -38,7 +41,10 @@ class _DualChartDemoScreenState extends State<DualChartDemoScreen> {
     });
 
     // Chart 2: BANKNIFTY (15m) with RSI sub-pane
-    _dataSource2 = MockTradingDataSource(initialPrice: 51240.0, volatility: 0.0022);
+    _dataSource2 = MockTradingDataSource(
+      initialPrice: 51240.0,
+      volatility: 0.0022,
+    );
     _controller2 = TradingChartController(
       symbol: 'BANKNIFTY',
       exchange: 'NSE',
@@ -136,7 +142,11 @@ class _DualChartDemoScreenState extends State<DualChartDemoScreen> {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.refresh, size: 14, color: Color(0xFF868993)),
+                icon: const Icon(
+                  Icons.refresh,
+                  size: 14,
+                  color: Color(0xFF868993),
+                ),
                 tooltip: 'Reset Viewport',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
@@ -147,9 +157,7 @@ class _DualChartDemoScreenState extends State<DualChartDemoScreen> {
         ),
 
         // Embedded Canvas Chart
-        Expanded(
-          child: TradingChart(controller: controller),
-        ),
+        Expanded(child: TradingChart(controller: controller)),
       ],
     );
   }

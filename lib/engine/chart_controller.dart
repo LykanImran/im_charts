@@ -93,13 +93,13 @@ class TradingChartController extends ChangeNotifier {
     Timeframe initialTimeframe = Timeframe.fiveMinutes,
     CandleStyle initialCandleStyle = CandleStyle.candles,
     ChartTheme? theme,
-  })  : _symbol = symbol,
-        _exchange = exchange,
-        _brandName = brandName,
-        _timeframe = initialTimeframe,
-        _candleStyle = initialCandleStyle,
-        theme = theme ?? ChartTheme.dark(),
-        _viewport = const ChartViewport() {
+  }) : _symbol = symbol,
+       _exchange = exchange,
+       _brandName = brandName,
+       _timeframe = initialTimeframe,
+       _candleStyle = initialCandleStyle,
+       theme = theme ?? ChartTheme.dark(),
+       _viewport = const ChartViewport() {
     _candleBuilder = CandleBuilder(timeframe: _timeframe);
     _startCountdownTicker();
   }
@@ -121,15 +121,26 @@ class TradingChartController extends ChangeNotifier {
   ChartViewport get viewport => _viewport;
   int get allCandlesCount => _candleBuilder.candles.length;
   List<Candle> get candles => (_isReplayMode && _replayIndex != null)
-      ? _candleBuilder.candles.sublist(0, math.min(_replayIndex! + 1, _candleBuilder.candles.length))
+      ? _candleBuilder.candles.sublist(
+          0,
+          math.min(_replayIndex! + 1, _candleBuilder.candles.length),
+        )
       : _candleBuilder.candles;
-  Candle? get currentCandle => (_isReplayMode && _replayIndex != null && _candleBuilder.candles.isNotEmpty)
-      ? _candleBuilder.candles[math.min(_replayIndex!, _candleBuilder.candles.length - 1)]
+  Candle? get currentCandle =>
+      (_isReplayMode &&
+          _replayIndex != null &&
+          _candleBuilder.candles.isNotEmpty)
+      ? _candleBuilder.candles[math.min(
+          _replayIndex!,
+          _candleBuilder.candles.length - 1,
+        )]
       : _candleBuilder.currentCandle;
   Candle? get hoveredCandle => _hoveredCandle ?? currentCandle;
   List<IndicatorResult> get overlayResults => _overlayResults;
-  List<IndicatorResult> get subPaneResults => List.unmodifiable(_subPaneResults);
-  IndicatorResult? get subPaneResult => _subPaneResults.isNotEmpty ? _subPaneResults.first : null;
+  List<IndicatorResult> get subPaneResults =>
+      List.unmodifiable(_subPaneResults);
+  IndicatorResult? get subPaneResult =>
+      _subPaneResults.isNotEmpty ? _subPaneResults.first : null;
   List<Indicator> get activeIndicators => List.unmodifiable(_activeIndicators);
   List<ChartOrder> get orders => List.unmodifiable(_orders);
   List<ChartPosition> get positions => List.unmodifiable(_positions);
@@ -144,9 +155,11 @@ class TradingChartController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   void toggleVolumeProfile() {
     showVolumeProfile = !_showVolumeProfile;
   }
+
   VolumeProfile? get volumeProfile => _volumeProfile;
 
   bool get isReplayMode => _isReplayMode;
@@ -160,6 +173,7 @@ class TradingChartController extends ChangeNotifier {
     }
     return null;
   }
+
   DrawingTool get activeDrawingTool => _activeDrawingTool;
   set activeDrawingTool(DrawingTool tool) {
     if (_activeDrawingTool != tool) {
@@ -221,7 +235,8 @@ class TradingChartController extends ChangeNotifier {
 
   double get verticalScale => _verticalScale;
   double get verticalPan => _verticalPan;
-  bool get isManualPriceScale => (_verticalScale - 1.0).abs() > 0.001 || _verticalPan.abs() > 0.001;
+  bool get isManualPriceScale =>
+      (_verticalScale - 1.0).abs() > 0.001 || _verticalPan.abs() > 0.001;
 
   /// Visible auto-scaled price range with vertical scale & pan applied.
   PriceRange get currentPriceRange {
@@ -252,14 +267,20 @@ class TradingChartController extends ChangeNotifier {
 
   /// Converts screen Y coordinate inside main pane to financial price.
   double priceAtY(double y) {
-    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(10.0, double.infinity);
+    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(
+      10.0,
+      double.infinity,
+    );
     final bounds = Rect.fromLTWH(0, 0, chartWidth, mainPaneHeight);
     return CoordinateConverter.yToPrice(y, bounds, currentPriceRange);
   }
 
   /// Converts financial price to screen Y coordinate inside main pane.
   double yAtPrice(double price) {
-    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(10.0, double.infinity);
+    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(
+      10.0,
+      double.infinity,
+    );
     final bounds = Rect.fromLTWH(0, 0, chartWidth, mainPaneHeight);
     return CoordinateConverter.priceToY(price, bounds, currentPriceRange);
   }
@@ -295,8 +316,12 @@ class TradingChartController extends ChangeNotifier {
     if (index >= 0) {
       final existing = _orders[index];
       final updated = existing.copyWith(
-        takeProfitPrice: clearTakeProfit ? () => null : (takeProfitPrice != null ? () => takeProfitPrice : null),
-        stopLossPrice: clearStopLoss ? () => null : (stopLossPrice != null ? () => stopLossPrice : null),
+        takeProfitPrice: clearTakeProfit
+            ? () => null
+            : (takeProfitPrice != null ? () => takeProfitPrice : null),
+        stopLossPrice: clearStopLoss
+            ? () => null
+            : (stopLossPrice != null ? () => stopLossPrice : null),
       );
       _orders[index] = updated;
       onOrderModified?.call(updated);
@@ -456,12 +481,15 @@ class TradingChartController extends ChangeNotifier {
       final updatedProps = Map<String, dynamic>.from(drawing.properties);
       if (updatedProps.containsKey('targetPrice')) {
         updatedProps['targetPrice'] = double.parse(
-          ((updatedProps['targetPrice'] as double) + deltaPrice).toStringAsFixed(2),
+          ((updatedProps['targetPrice'] as double) + deltaPrice)
+              .toStringAsFixed(2),
         );
       }
       if (updatedProps.containsKey('stopPrice')) {
         updatedProps['stopPrice'] = double.parse(
-          ((updatedProps['stopPrice'] as double) + deltaPrice).toStringAsFixed(2),
+          ((updatedProps['stopPrice'] as double) + deltaPrice).toStringAsFixed(
+            2,
+          ),
         );
       }
 
@@ -479,7 +507,8 @@ class TradingChartController extends ChangeNotifier {
     if (index >= 0) {
       final drawing = _drawings[index];
       if (drawing.isLocked) return;
-      final mergedProps = Map<String, dynamic>.from(drawing.properties)..addAll(newProperties);
+      final mergedProps = Map<String, dynamic>.from(drawing.properties)
+        ..addAll(newProperties);
       _drawings[index] = drawing.copyWith(properties: mergedProps);
       notifyListeners();
     }
@@ -573,7 +602,10 @@ class TradingChartController extends ChangeNotifier {
     _isReplayMode = true;
     final total = _candleBuilder.candles.length;
     final defaultIndex = total > 40 ? total - 40 : (total ~/ 2);
-    _replayIndex = (startIndex ?? defaultIndex).clamp(1, math.max(1, total - 1));
+    _replayIndex = (startIndex ?? defaultIndex).clamp(
+      1,
+      math.max(1, total - 1),
+    );
     _isReplaying = false;
     _replayTimer?.cancel();
     _recalculateIndicators();
@@ -615,7 +647,8 @@ class TradingChartController extends ChangeNotifier {
     _replayTimer?.cancel();
     final intervalMs = (1000 / _replaySpeed).round().clamp(100, 3000);
     _replayTimer = Timer.periodic(Duration(milliseconds: intervalMs), (_) {
-      if (_replayIndex != null && _replayIndex! < _candleBuilder.candles.length - 1) {
+      if (_replayIndex != null &&
+          _replayIndex! < _candleBuilder.candles.length - 1) {
         _replayIndex = _replayIndex! + 1;
         _recalculateIndicators();
         notifyListeners();
@@ -691,7 +724,9 @@ class TradingChartController extends ChangeNotifier {
   void _checkAlerts(double prevPrice, double currentPrice) {
     for (int i = 0; i < _alerts.length; i++) {
       final alert = _alerts[i];
-      if (alert.isActive && !alert.isTriggered && alert.checkTrigger(currentPrice, prevPrice)) {
+      if (alert.isActive &&
+          !alert.isTriggered &&
+          alert.checkTrigger(currentPrice, prevPrice)) {
         final triggered = alert.copyWith(
           isTriggered: true,
           triggeredAt: DateTime.now(),
@@ -704,7 +739,9 @@ class TradingChartController extends ChangeNotifier {
 
   /// Sets a new symbol and reloads chart data.
   Future<void> setSymbol(String newSymbol, {String? exchange}) async {
-    if (_symbol == newSymbol && (exchange == null || _exchange == exchange)) return;
+    if (_symbol == newSymbol && (exchange == null || _exchange == exchange)) {
+      return;
+    }
     _symbol = newSymbol;
     if (exchange != null) {
       _exchange = exchange;
@@ -779,7 +816,8 @@ class TradingChartController extends ChangeNotifier {
 
   /// Updates viewport canvas dimensions (called by LayoutBuilder in UI).
   void updateDimensions(double width, double height) {
-    if (_viewport.viewportWidth != width || _viewport.viewportHeight != height) {
+    if (_viewport.viewportWidth != width ||
+        _viewport.viewportHeight != height) {
       _viewport = _viewport.copyWith(
         viewportWidth: width,
         viewportHeight: height,
@@ -813,7 +851,9 @@ class TradingChartController extends ChangeNotifier {
   void onPan(double deltaX) {
     final maxScroll = (candles.length * _viewport.candleTotalWidth).toDouble();
     const minScroll = -120.0; // Allow right margin expansion
-    final newOffset = (_viewport.scrollOffset + deltaX).clamp(minScroll, math.max(0.0, maxScroll)).toDouble();
+    final newOffset = (_viewport.scrollOffset + deltaX)
+        .clamp(minScroll, math.max(0.0, maxScroll))
+        .toDouble();
 
     _viewport = _viewport.copyWith(scrollOffset: newOffset);
     notifyListeners();
@@ -833,11 +873,16 @@ class TradingChartController extends ChangeNotifier {
 
     // Anchor calculation to keep candle under focalPoint.dx stationary
     final focalX = focalPoint.dx;
-    final distFromRight = _viewport.viewportWidth - _viewport.rightMargin - focalX + _viewport.scrollOffset;
-    final newScrollOffset = (_viewport.scrollOffset + distFromRight * (ratio - 1.0)).clamp(
-      -120.0,
-      math.max(0.0, candles.length * newTotal).toDouble(),
-    );
+    final distFromRight =
+        _viewport.viewportWidth -
+        _viewport.rightMargin -
+        focalX +
+        _viewport.scrollOffset;
+    final newScrollOffset =
+        (_viewport.scrollOffset + distFromRight * (ratio - 1.0)).clamp(
+          -120.0,
+          math.max(0.0, candles.length * newTotal).toDouble(),
+        );
 
     _viewport = _viewport.copyWith(
       candleWidth: newWidth,
@@ -875,7 +920,10 @@ class TradingChartController extends ChangeNotifier {
     final newTotal = newWidth + _viewport.candleSpacing;
     final ratio = newTotal / oldTotal;
 
-    final newOffset = (_viewport.scrollOffset * ratio).clamp(-120.0, double.infinity);
+    final newOffset = (_viewport.scrollOffset * ratio).clamp(
+      -120.0,
+      double.infinity,
+    );
     _viewport = _viewport.copyWith(
       candleWidth: newWidth,
       scrollOffset: newOffset,
@@ -918,19 +966,13 @@ class TradingChartController extends ChangeNotifier {
 
   /// Resets horizontal time scale back to default.
   void resetTimeScale() {
-    _viewport = _viewport.copyWith(
-      candleWidth: 8.0,
-      scrollOffset: 0.0,
-    );
+    _viewport = _viewport.copyWith(candleWidth: 8.0, scrollOffset: 0.0);
     notifyListeners();
   }
 
   /// Resets both time and price scale to default view.
   void resetView() {
-    _viewport = _viewport.copyWith(
-      candleWidth: 8.0,
-      scrollOffset: 0.0,
-    );
+    _viewport = _viewport.copyWith(candleWidth: 8.0, scrollOffset: 0.0);
     _verticalScale = 1.0;
     _verticalPan = 0.0;
     _crosshairPosition = null;
@@ -952,7 +994,9 @@ class TradingChartController extends ChangeNotifier {
 
   /// Toggles an indicator on or off.
   void toggleIndicator(Indicator indicator) {
-    final existingIndex = _activeIndicators.indexWhere((i) => i.id == indicator.id);
+    final existingIndex = _activeIndicators.indexWhere(
+      (i) => i.id == indicator.id,
+    );
     if (existingIndex >= 0) {
       _activeIndicators.removeAt(existingIndex);
     } else {

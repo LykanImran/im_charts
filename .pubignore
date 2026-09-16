@@ -1,0 +1,22 @@
+# Version control and tooling
+.git/
+.github/
+tool/
+*.log
+.DS_Store
+
+# IDE and cache
+.idea/
+.vscode/
+.dart_tool/
+build/
+
+# Bulky platform runners in example (not needed in package tarball)
+example/build/
+example/macos/
+example/windows/
+example/linux/
+example/ios/
+example/android/
+example/web/
+example/.dart_tool/

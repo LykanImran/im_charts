@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:example/main.dart';
 
 void main() {
-  testWidgets('ExampleApp renders dashboard hub and switches modes', (WidgetTester tester) async {
+  testWidgets('ExampleApp renders dashboard hub and switches modes', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

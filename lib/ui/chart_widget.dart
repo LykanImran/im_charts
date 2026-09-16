@@ -32,7 +32,13 @@ class TradingChart extends StatefulWidget {
   final bool showCountdownTimer;
   final String? brandName;
   final GlobalKey? repaintBoundaryKey;
-  final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
+  final Widget Function(
+    BuildContext context,
+    double price,
+    TradingChartController controller,
+    VoidCallback closeMenu,
+  )?
+  orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(ChartOrder order)? onOrderModified;
   final void Function(String orderId)? onOrderCancelled;
@@ -87,7 +93,8 @@ class _TradingChartState extends State<TradingChart> {
       return SystemMouseCursors.resizeUpDown;
     }
 
-    if (_dragMode == _ChartDragMode.drawingHandle && _draggingDrawingId != null) {
+    if (_dragMode == _ChartDragMode.drawingHandle &&
+        _draggingDrawingId != null) {
       for (final d in widget.controller.drawings) {
         if (d.id == _draggingDrawingId && _draggingHandleIndex != null) {
           return d.getHandleCursor(_draggingHandleIndex!);
@@ -101,9 +108,13 @@ class _TradingChartState extends State<TradingChart> {
     final priceAxisLeft = width - _priceAxisWidth;
     final timeAxisTop = height - _timeAxisHeight;
 
-    final isPriceAxis = _hoverPosition!.dx >= priceAxisLeft && _hoverPosition!.dy < timeAxisTop;
-    final isTimeAxis = _hoverPosition!.dy >= timeAxisTop && _hoverPosition!.dx < priceAxisLeft;
-    final isCorner = _hoverPosition!.dx >= priceAxisLeft && _hoverPosition!.dy >= timeAxisTop;
+    final isPriceAxis =
+        _hoverPosition!.dx >= priceAxisLeft && _hoverPosition!.dy < timeAxisTop;
+    final isTimeAxis =
+        _hoverPosition!.dy >= timeAxisTop && _hoverPosition!.dx < priceAxisLeft;
+    final isCorner =
+        _hoverPosition!.dx >= priceAxisLeft &&
+        _hoverPosition!.dy >= timeAxisTop;
 
     if (isPriceAxis) {
       return SystemMouseCursors.resizeUpDown;
@@ -132,7 +143,12 @@ class _TradingChartState extends State<TradingChart> {
       // 1. Check if hovering over an interactive handle on selected drawing
       final sel = widget.controller.selectedDrawing;
       if (sel != null && !sel.isLocked) {
-        final handle = sel.hitTestHandle(_hoverPosition!, bounds, priceRange, converter);
+        final handle = sel.hitTestHandle(
+          _hoverPosition!,
+          bounds,
+          priceRange,
+          converter,
+        );
         if (handle != null) return sel.getHandleCursor(handle);
         if (sel.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
           return sel.tool == DrawingTool.horizontalLine
@@ -143,7 +159,8 @@ class _TradingChartState extends State<TradingChart> {
 
       // 2. Check if hovering over any horizontal line (always resizeUpDown like TradingView)
       for (final d in widget.controller.drawings) {
-        if (d.tool == DrawingTool.horizontalLine && d.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
+        if (d.tool == DrawingTool.horizontalLine &&
+            d.hitTest(_hoverPosition!, bounds, priceRange, converter)) {
           return SystemMouseCursors.resizeUpDown;
         }
       }
@@ -174,12 +191,19 @@ class _TradingChartState extends State<TradingChart> {
     if (isAlt) {
       if (event.logicalKey == LogicalKeyboardKey.keyH) {
         final price = _hoverPosition != null
-            ? double.parse(controller.priceAtY(_hoverPosition!.dy).toStringAsFixed(2))
+            ? double.parse(
+                controller.priceAtY(_hoverPosition!.dy).toStringAsFixed(2),
+              )
             : (controller.currentCandle?.close ?? 0.0);
         final drawing = ChartDrawing(
           id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
           tool: DrawingTool.horizontalLine,
-          points: [DrawingPoint(candleIndex: controller.candles.length - 1, price: price)],
+          points: [
+            DrawingPoint(
+              candleIndex: controller.candles.length - 1,
+              price: price,
+            ),
+          ],
           color: const Color(0xFF2962FF),
         );
         controller.addDrawing(drawing);
@@ -190,7 +214,9 @@ class _TradingChartState extends State<TradingChart> {
         return KeyEventResult.handled;
       } else if (event.logicalKey == LogicalKeyboardKey.keyA) {
         final price = _hoverPosition != null
-            ? double.parse(controller.priceAtY(_hoverPosition!.dy).toStringAsFixed(2))
+            ? double.parse(
+                controller.priceAtY(_hoverPosition!.dy).toStringAsFixed(2),
+              )
             : (controller.currentCandle?.close ?? 0.0);
         final alert = ChartAlert(
           id: 'alt_${DateTime.now().millisecondsSinceEpoch}',
@@ -207,7 +233,8 @@ class _TradingChartState extends State<TradingChart> {
       }
     }
 
-    if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
+    if (event.logicalKey == LogicalKeyboardKey.delete ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
       if (controller.selectedDrawing != null) {
         controller.deleteSelectedDrawing();
         return KeyEventResult.handled;
@@ -216,7 +243,9 @@ class _TradingChartState extends State<TradingChart> {
       for (final d in selected) {
         controller.removeDrawing(d.id);
       }
-      return selected.isNotEmpty ? KeyEventResult.handled : KeyEventResult.ignored;
+      return selected.isNotEmpty
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
 
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
@@ -227,7 +256,8 @@ class _TradingChartState extends State<TradingChart> {
       controller.onPan(-40.0);
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.equal || event.logicalKey == LogicalKeyboardKey.add) {
+    if (event.logicalKey == LogicalKeyboardKey.equal ||
+        event.logicalKey == LogicalKeyboardKey.add) {
       controller.zoomIn();
       return KeyEventResult.handled;
     }
@@ -270,750 +300,1071 @@ class _TradingChartState extends State<TradingChart> {
           child: ListenableBuilder(
             listenable: controller,
             builder: (context, _) {
-            if (controller.isLoading) {
-              return Container(
-                color: controller.theme.backgroundColor,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2962FF)),
+              if (controller.isLoading) {
+                return Container(
+                  color: controller.theme.backgroundColor,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF2962FF),
+                      ),
+                    ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            final theme = controller.theme;
+              final theme = controller.theme;
 
-            return MouseRegion(
-              cursor: _resolveCursor(width, height),
-              onHover: (event) {
-                final pos = event.localPosition;
-                setState(() => _hoverPosition = pos);
-
-                // Only send crosshair updates when cursor is inside main chart area
-                if (pos.dx < priceAxisLeft && pos.dy < timeAxisTop) {
-                  controller.setCrosshairPosition(pos);
-
-                  // If actively drawing a multi-point tool, update preview
-                  if (controller.activeDrawingTool != DrawingTool.pointer &&
-                      _drawingAnchorPoint != null &&
-                      controller.candles.isNotEmpty) {
-                    final converter = CoordinateConverter(
-                      viewport: controller.viewport,
-                      totalCandles: controller.candles.length,
-                    );
-                    final hoverIndex = converter.xToIndex(pos.dx);
-                    final hoverPrice = double.parse(controller.priceAtY(pos.dy).toStringAsFixed(2));
-                    controller.setPreviewDrawing(ChartDrawing(
-                      id: 'preview',
-                      tool: controller.activeDrawingTool,
-                      points: [
-                        _drawingAnchorPoint!,
-                        DrawingPoint(candleIndex: hoverIndex, price: hoverPrice),
-                      ],
-                      color: const Color(0xFF2962FF).withValues(alpha: 0.8),
-                    ));
-                  }
-                } else {
-                  controller.setCrosshairPosition(null);
-                }
-              },
-              onExit: (_) {
-                setState(() => _hoverPosition = null);
-                controller.setCrosshairPosition(null);
-              },
-              child: Listener(
-                onPointerPanZoomStart: (event) {
-                  _lastTrackpadScale = 1.0;
-                },
-                onPointerPanZoomUpdate: (event) {
+              return MouseRegion(
+                cursor: _resolveCursor(width, height),
+                onHover: (event) {
                   final pos = event.localPosition;
+                  setState(() => _hoverPosition = pos);
 
-                  // Native Trackpad pinch-to-zoom (macOS / Desktop precision trackpads)
-                  if ((event.scale - 1.0).abs() > 0.001) {
-                    final scaleRatio = event.scale / _lastTrackpadScale;
-                    _lastTrackpadScale = event.scale;
+                  // Only send crosshair updates when cursor is inside main chart area
+                  if (pos.dx < priceAxisLeft && pos.dy < timeAxisTop) {
+                    controller.setCrosshairPosition(pos);
 
-                    if (pos.dx >= priceAxisLeft) {
-                      // Pinch over price axis: scale price vertically
-                      if (scaleRatio > 1.0) {
-                        controller.zoomInPrice();
-                      } else {
-                        controller.zoomOutPrice();
-                      }
-                    } else {
-                      // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
-                      controller.onZoom(scaleRatio, pos);
+                    // If actively drawing a multi-point tool, update preview
+                    if (controller.activeDrawingTool != DrawingTool.pointer &&
+                        _drawingAnchorPoint != null &&
+                        controller.candles.isNotEmpty) {
+                      final converter = CoordinateConverter(
+                        viewport: controller.viewport,
+                        totalCandles: controller.candles.length,
+                      );
+                      final hoverIndex = converter.xToIndex(pos.dx);
+                      final hoverPrice = double.parse(
+                        controller.priceAtY(pos.dy).toStringAsFixed(2),
+                      );
+                      controller.setPreviewDrawing(
+                        ChartDrawing(
+                          id: 'preview',
+                          tool: controller.activeDrawingTool,
+                          points: [
+                            _drawingAnchorPoint!,
+                            DrawingPoint(
+                              candleIndex: hoverIndex,
+                              price: hoverPrice,
+                            ),
+                          ],
+                          color: const Color(0xFF2962FF).withValues(alpha: 0.8),
+                        ),
+                      );
                     }
                   } else {
-                    // Native Trackpad 2-finger pan / swipe
-                    if (event.panDelta.dx.abs() > 0.1) {
-                      controller.onPan(event.panDelta.dx);
-                    }
-                    if (controller.isManualPriceScale && event.panDelta.dy.abs() > 0.1) {
-                      controller.onVerticalPan(event.panDelta.dy, timeAxisTop);
-                    }
+                    controller.setCrosshairPosition(null);
                   }
                 },
-                onPointerPanZoomEnd: (event) {
-                  _lastTrackpadScale = 1.0;
+                onExit: (_) {
+                  setState(() => _hoverPosition = null);
+                  controller.setCrosshairPosition(null);
                 },
-                onPointerSignal: (pointerSignal) {
-                  // Desktop / Web mouse wheel & trackpad scroll zoom
-                  if (pointerSignal is PointerScrollEvent) {
-                    final pos = pointerSignal.localPosition;
-                    final dx = pointerSignal.scrollDelta.dx;
-                    final dy = pointerSignal.scrollDelta.dy;
+                child: Listener(
+                  onPointerPanZoomStart: (event) {
+                    _lastTrackpadScale = 1.0;
+                  },
+                  onPointerPanZoomUpdate: (event) {
+                    final pos = event.localPosition;
 
-                    if (pos.dx >= priceAxisLeft) {
-                      // Wheel over price axis -> scale price vertically
-                      if (dy < 0) {
-                        controller.zoomInPrice();
-                      } else if (dy > 0) {
-                        controller.zoomOutPrice();
-                      }
-                    } else if (pos.dy >= timeAxisTop) {
-                      // Wheel over time axis -> scale timeframe horizontally
-                      if (dy < 0 || dx < 0) {
-                        controller.zoomIn();
-                      } else if (dy > 0 || dx > 0) {
-                        controller.zoomOut();
+                    // Native Trackpad pinch-to-zoom (macOS / Desktop precision trackpads)
+                    if ((event.scale - 1.0).abs() > 0.001) {
+                      final scaleRatio = event.scale / _lastTrackpadScale;
+                      _lastTrackpadScale = event.scale;
+
+                      if (pos.dx >= priceAxisLeft) {
+                        // Pinch over price axis: scale price vertically
+                        if (scaleRatio > 1.0) {
+                          controller.zoomInPrice();
+                        } else {
+                          controller.zoomOutPrice();
+                        }
+                      } else {
+                        // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
+                        controller.onZoom(scaleRatio, pos);
                       }
                     } else {
-                      // Over main chart canvas:
-                      // If dominant horizontal trackpad scroll (2-finger swipe)
-                      if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
-                        controller.onPan(-dx);
-                      } else if (dy.abs() > 0.0) {
-                        // Smooth exponential focal zoom based on scroll delta
-                        final zoomFactor = math.exp(-dy * 0.003).clamp(0.7, 1.3);
-                        controller.onZoom(zoomFactor, pos);
+                      // Native Trackpad 2-finger pan / swipe
+                      if (event.panDelta.dx.abs() > 0.1) {
+                        controller.onPan(event.panDelta.dx);
+                      }
+                      if (controller.isManualPriceScale &&
+                          event.panDelta.dy.abs() > 0.1) {
+                        controller.onVerticalPan(
+                          event.panDelta.dy,
+                          timeAxisTop,
+                        );
                       }
                     }
-                  }
-                },
-                child: Stack(
-                  children: [
-                    // Main interactive canvas gesture detector
-                    Positioned.fill(
-                      child: Listener(
-                        behavior: HitTestBehavior.translucent,
-                        onPointerDown: (event) {
-                          _lastTapDownPosition = event.localPosition;
-                        },
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTapDown: (details) {
-                            _lastTapDownPosition = details.localPosition;
-                          final pos = details.localPosition;
+                  },
+                  onPointerPanZoomEnd: (event) {
+                    _lastTrackpadScale = 1.0;
+                  },
+                  onPointerSignal: (pointerSignal) {
+                    // Desktop / Web mouse wheel & trackpad scroll zoom
+                    if (pointerSignal is PointerScrollEvent) {
+                      final pos = pointerSignal.localPosition;
+                      final dx = pointerSignal.scrollDelta.dx;
+                      final dy = pointerSignal.scrollDelta.dy;
 
-                          // Handle drawing tool interaction
-                          if (controller.activeDrawingTool != DrawingTool.pointer &&
-                              pos.dx < priceAxisLeft &&
-                              pos.dy < timeAxisTop &&
-                              controller.candles.isNotEmpty) {
-                            final converter = CoordinateConverter(
-                              viewport: controller.viewport,
-                              totalCandles: controller.candles.length,
-                            );
-                            final clickedIndex = converter.xToIndex(pos.dx);
-                            final clickedPrice = double.parse(controller.priceAtY(pos.dy).toStringAsFixed(2));
-                            final tool = controller.activeDrawingTool;
+                      if (pos.dx >= priceAxisLeft) {
+                        // Wheel over price axis -> scale price vertically
+                        if (dy < 0) {
+                          controller.zoomInPrice();
+                        } else if (dy > 0) {
+                          controller.zoomOutPrice();
+                        }
+                      } else if (pos.dy >= timeAxisTop) {
+                        // Wheel over time axis -> scale timeframe horizontally
+                        if (dy < 0 || dx < 0) {
+                          controller.zoomIn();
+                        } else if (dy > 0 || dx > 0) {
+                          controller.zoomOut();
+                        }
+                      } else {
+                        // Over main chart canvas:
+                        // If dominant horizontal trackpad scroll (2-finger swipe)
+                        if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
+                          controller.onPan(-dx);
+                        } else if (dy.abs() > 0.0) {
+                          // Smooth exponential focal zoom based on scroll delta
+                          final zoomFactor = math
+                              .exp(-dy * 0.003)
+                              .clamp(0.7, 1.3);
+                          controller.onZoom(zoomFactor, pos);
+                        }
+                      }
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      // Main interactive canvas gesture detector
+                      Positioned.fill(
+                        child: Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: (event) {
+                            _lastTapDownPosition = event.localPosition;
+                          },
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (details) {
+                              _lastTapDownPosition = details.localPosition;
+                              final pos = details.localPosition;
 
-                            if (tool == DrawingTool.horizontalLine) {
-                              final drawing = ChartDrawing(
-                                id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
-                                tool: DrawingTool.horizontalLine,
-                                points: [DrawingPoint(candleIndex: clickedIndex, price: clickedPrice)],
-                                color: const Color(0xFF00E5FF),
-                              );
-                              controller.addDrawing(drawing);
-                              controller.selectDrawing(drawing.id);
-                              controller.activeDrawingTool = DrawingTool.pointer;
-                            } else if (tool == DrawingTool.longPosition || tool == DrawingTool.shortPosition) {
-                              final isLong = tool == DrawingTool.longPosition;
-                              final drawing = ChartDrawing(
-                                id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
-                                tool: tool,
-                                points: [DrawingPoint(candleIndex: clickedIndex, price: clickedPrice)],
-                                properties: {
-                                  'targetPrice': double.parse((isLong ? clickedPrice * 1.015 : clickedPrice * 0.985).toStringAsFixed(2)),
-                                  'stopPrice': double.parse((isLong ? clickedPrice * 0.9925 : clickedPrice * 1.0075).toStringAsFixed(2)),
-                                  'widthSpan': 40 * 11.0,
-                                },
-                              );
-                              controller.addDrawing(drawing);
-                              controller.selectDrawing(drawing.id);
-                              controller.activeDrawingTool = DrawingTool.pointer;
-                            } else {
-                              // Multi-point tools (trendline, rectangle, fibonacci, ruler)
-                              if (_drawingAnchorPoint == null) {
-                                setState(() {
-                                  _drawingAnchorPoint = DrawingPoint(candleIndex: clickedIndex, price: clickedPrice);
-                                  _hasDraggedDuringCreation = false;
-                                  _drawingDragStartPos = pos;
-                                });
-                              } else {
-                                // Second click in Click-Move-Click mode!
-                                final drawing = ChartDrawing(
-                                  id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
-                                  tool: tool,
-                                  points: [
-                                    _drawingAnchorPoint!,
-                                    DrawingPoint(candleIndex: clickedIndex, price: clickedPrice),
-                                  ],
-                                  color: tool == DrawingTool.rectangle
-                                      ? const Color(0xFFFFB300)
-                                      : const Color(0xFF2962FF),
-                                );
-                                controller.addDrawing(drawing);
-                                controller.selectDrawing(drawing.id);
-                                setState(() {
-                                  _drawingAnchorPoint = null;
-                                  _hasDraggedDuringCreation = false;
-                                });
-                                controller.setPreviewDrawing(null);
-                                controller.activeDrawingTool = DrawingTool.pointer;
-                              }
-                            }
-                            return;
-                          }
-                        },
-                        onTapUp: (details) {
-                          final pos = details.localPosition;
-                          // If in pointer mode, check if user tapped on a drawing or handle to select it
-                          if (controller.activeDrawingTool == DrawingTool.pointer &&
-                              pos.dx < priceAxisLeft &&
-                              pos.dy < timeAxisTop &&
-                              controller.candles.isNotEmpty) {
-                            final chartWidth = priceAxisLeft;
-                            final chartHeight = controller.mainPaneHeight;
-                            final bounds = Rect.fromLTWH(0, 0, chartWidth, chartHeight);
-                            final converter = CoordinateConverter(
-                              viewport: controller.viewport,
-                              totalCandles: controller.candles.length,
-                            );
-                            final priceRange = controller.currentPriceRange;
-
-                            ChartDrawing? tappedDrawing;
-                            for (final d in controller.drawings.reversed) {
-                              if (d.hitTest(pos, bounds, priceRange, converter)) {
-                                tappedDrawing = d;
-                                break;
-                              }
-                            }
-                            controller.selectDrawing(tappedDrawing?.id);
-                          }
-                        },
-                        onScaleStart: (details) {
-                          final start = details.localFocalPoint;
-                          _lastFocalPoint = start;
-                          _lastScale = 1.0;
-                          _isPinching = false;
-
-                          // If a drawing tool is currently active
-                          if (controller.activeDrawingTool != DrawingTool.pointer) {
-                            _dragMode = _ChartDragMode.drawingCreation;
-                            _drawingDragStartPos = start;
-                            if (_drawingAnchorPoint == null &&
-                                start.dx < priceAxisLeft &&
-                                start.dy < timeAxisTop &&
-                                controller.candles.isNotEmpty) {
-                              final converter = CoordinateConverter(
-                                viewport: controller.viewport,
-                                totalCandles: controller.candles.length,
-                              );
-                              final clickedIndex = converter.xToIndex(start.dx);
-                              final clickedPrice = double.parse(controller.priceAtY(start.dy).toStringAsFixed(2));
-                              _drawingAnchorPoint = DrawingPoint(candleIndex: clickedIndex, price: clickedPrice);
-                              _hasDraggedDuringCreation = false;
-                            }
-                            return;
-                          }
-
-                          // Pointer tool active
-                          if (start.dx >= priceAxisLeft && start.dy < timeAxisTop) {
-                            _dragMode = _ChartDragMode.priceAxis;
-                          } else if (start.dy >= timeAxisTop && start.dx < priceAxisLeft) {
-                            _dragMode = _ChartDragMode.timeAxis;
-                          } else if (start.dx >= priceAxisLeft && start.dy >= timeAxisTop) {
-                            _dragMode = _ChartDragMode.none;
-                            controller.resetView();
-                          } else {
-                            // In main chart canvas
-                            if (controller.candles.isNotEmpty) {
-                              final chartWidth = priceAxisLeft;
-                              final chartHeight = controller.mainPaneHeight;
-                              final bounds = Rect.fromLTWH(0, 0, chartWidth, chartHeight);
-                              final converter = CoordinateConverter(
-                                viewport: controller.viewport,
-                                totalCandles: controller.candles.length,
-                              );
-                              final priceRange = controller.currentPriceRange;
-
-                              // 1. Check if dragging a handle on the selected drawing
-                              final sel = controller.selectedDrawing;
-                              if (sel != null && !sel.isLocked) {
-                                final handle = sel.hitTestHandle(start, bounds, priceRange, converter) ??
-                                    sel.hitTestHandle(_lastTapDownPosition, bounds, priceRange, converter);
-                                if (handle != null) {
-                                  _draggingHandleIndex = handle;
-                                  _draggingDrawingId = sel.id;
-                                  if (sel.tool == DrawingTool.horizontalLine) {
-                                    _dragMode = _ChartDragMode.horizontalLineDrag;
-                                  } else {
-                                    _dragMode = _ChartDragMode.drawingHandle;
-                                  }
-                                  return;
-                                }
-                              }
-
-                              // 2. Check if clicking on any drawing to move it
-                              ChartDrawing? hitDrawing;
-                              for (final d in controller.drawings.reversed) {
-                                if (d.hitTest(start, bounds, priceRange, converter) ||
-                                    d.hitTest(_lastTapDownPosition, bounds, priceRange, converter)) {
-                                  hitDrawing = d;
-                                  break;
-                                }
-                              }
-
-                              if (hitDrawing != null) {
-                                controller.selectDrawing(hitDrawing.id);
-                                if (!hitDrawing.isLocked) {
-                                  _draggingDrawingId = hitDrawing.id;
-                                  if (hitDrawing.tool == DrawingTool.horizontalLine) {
-                                    _dragMode = _ChartDragMode.horizontalLineDrag;
-                                  } else {
-                                    _dragMode = _ChartDragMode.drawingMove;
-                                  }
-                                  return;
-                                }
-                              }
-                            }
-
-                            _dragMode = _ChartDragMode.mainChart;
-                          }
-                        },
-                        onScaleUpdate: (details) {
-                          final deltaX = details.localFocalPoint.dx - _lastFocalPoint.dx;
-                          final deltaY = details.localFocalPoint.dy - _lastFocalPoint.dy;
-
-                          switch (_dragMode) {
-                            case _ChartDragMode.drawingCreation:
-                              if (_drawingAnchorPoint != null && controller.candles.isNotEmpty) {
-                                final dist = (details.localFocalPoint - (_drawingDragStartPos ?? details.localFocalPoint)).distance;
-                                if (dist > 8.0) {
-                                  _hasDraggedDuringCreation = true;
-                                }
+                              // Handle drawing tool interaction
+                              if (controller.activeDrawingTool !=
+                                      DrawingTool.pointer &&
+                                  pos.dx < priceAxisLeft &&
+                                  pos.dy < timeAxisTop &&
+                                  controller.candles.isNotEmpty) {
                                 final converter = CoordinateConverter(
                                   viewport: controller.viewport,
                                   totalCandles: controller.candles.length,
                                 );
-                                final hoverIndex = converter.xToIndex(details.localFocalPoint.dx);
-                                final hoverPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
-                                controller.setPreviewDrawing(ChartDrawing(
-                                  id: 'preview',
-                                  tool: controller.activeDrawingTool,
-                                  points: [
-                                    _drawingAnchorPoint!,
-                                    DrawingPoint(candleIndex: hoverIndex, price: hoverPrice),
-                                  ],
-                                  color: controller.activeDrawingTool == DrawingTool.rectangle
-                                      ? const Color(0xFFFFB300).withValues(alpha: 0.8)
-                                      : const Color(0xFF2962FF).withValues(alpha: 0.8),
-                                ));
-                              }
-                              break;
-
-                            case _ChartDragMode.horizontalLineDrag:
-                              if (_draggingDrawingId != null && controller.candles.isNotEmpty) {
-                                final newPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
-                                final index = controller.drawings.indexWhere((d) => d.id == _draggingDrawingId);
-                                if (index >= 0) {
-                                  final drawing = controller.drawings[index];
-                                  controller.updateDrawing(drawing.copyWith(
-                                    points: [DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice)],
-                                  ));
-                                }
-                              }
-                              break;
-
-                            case _ChartDragMode.drawingHandle:
-                              if (_draggingDrawingId != null && _draggingHandleIndex != null && controller.candles.isNotEmpty) {
-                                final converter = CoordinateConverter(
-                                  viewport: controller.viewport,
-                                  totalCandles: controller.candles.length,
+                                final clickedIndex = converter.xToIndex(pos.dx);
+                                final clickedPrice = double.parse(
+                                  controller
+                                      .priceAtY(pos.dy)
+                                      .toStringAsFixed(2),
                                 );
-                                final newIndex = converter.xToIndex(details.localFocalPoint.dx);
-                                final newPrice = double.parse(controller.priceAtY(details.localFocalPoint.dy).toStringAsFixed(2));
+                                final tool = controller.activeDrawingTool;
 
-                                final index = controller.drawings.indexWhere((d) => d.id == _draggingDrawingId);
-                                if (index >= 0) {
-                                  final drawing = controller.drawings[index];
-                                  if (drawing.isLocked) break;
-
-                                  if (drawing.tool == DrawingTool.rectangle && drawing.points.length >= 2) {
-                                    final p0 = drawing.points[0];
-                                    final p1 = drawing.points[1];
-
-                                    // Canonical boundaries of the rectangle
-                                    var minC = math.min(p0.candleIndex, p1.candleIndex);
-                                    var maxC = math.max(p0.candleIndex, p1.candleIndex);
-                                    var maxP = math.max(p0.price, p1.price); // Top price
-                                    var minP = math.min(p0.price, p1.price); // Bottom price
-
-                                    switch (_draggingHandleIndex) {
-                                      case 0: // Top-Left corner
-                                        minC = newIndex;
-                                        maxP = newPrice;
-                                        break;
-                                      case 1: // Top-Right corner
-                                        maxC = newIndex;
-                                        maxP = newPrice;
-                                        break;
-                                      case 2: // Bottom-Right corner
-                                        maxC = newIndex;
-                                        minP = newPrice;
-                                        break;
-                                      case 3: // Bottom-Left corner
-                                        minC = newIndex;
-                                        minP = newPrice;
-                                        break;
-                                      case 4: // Top Edge
-                                        maxP = newPrice;
-                                        break;
-                                      case 5: // Right Edge
-                                        maxC = newIndex;
-                                        break;
-                                      case 6: // Bottom Edge
-                                        minP = newPrice;
-                                        break;
-                                      case 7: // Left Edge
-                                        minC = newIndex;
-                                        break;
-                                    }
-
-                                    controller.updateDrawing(drawing.copyWith(
+                                if (tool == DrawingTool.horizontalLine) {
+                                  final drawing = ChartDrawing(
+                                    id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                    tool: DrawingTool.horizontalLine,
+                                    points: [
+                                      DrawingPoint(
+                                        candleIndex: clickedIndex,
+                                        price: clickedPrice,
+                                      ),
+                                    ],
+                                    color: const Color(0xFF00E5FF),
+                                  );
+                                  controller.addDrawing(drawing);
+                                  controller.selectDrawing(drawing.id);
+                                  controller.activeDrawingTool =
+                                      DrawingTool.pointer;
+                                } else if (tool == DrawingTool.longPosition ||
+                                    tool == DrawingTool.shortPosition) {
+                                  final isLong =
+                                      tool == DrawingTool.longPosition;
+                                  final drawing = ChartDrawing(
+                                    id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                    tool: tool,
+                                    points: [
+                                      DrawingPoint(
+                                        candleIndex: clickedIndex,
+                                        price: clickedPrice,
+                                      ),
+                                    ],
+                                    properties: {
+                                      'targetPrice': double.parse(
+                                        (isLong
+                                                ? clickedPrice * 1.015
+                                                : clickedPrice * 0.985)
+                                            .toStringAsFixed(2),
+                                      ),
+                                      'stopPrice': double.parse(
+                                        (isLong
+                                                ? clickedPrice * 0.9925
+                                                : clickedPrice * 1.0075)
+                                            .toStringAsFixed(2),
+                                      ),
+                                      'widthSpan': 40 * 11.0,
+                                    },
+                                  );
+                                  controller.addDrawing(drawing);
+                                  controller.selectDrawing(drawing.id);
+                                  controller.activeDrawingTool =
+                                      DrawingTool.pointer;
+                                } else {
+                                  // Multi-point tools (trendline, rectangle, fibonacci, ruler)
+                                  if (_drawingAnchorPoint == null) {
+                                    setState(() {
+                                      _drawingAnchorPoint = DrawingPoint(
+                                        candleIndex: clickedIndex,
+                                        price: clickedPrice,
+                                      );
+                                      _hasDraggedDuringCreation = false;
+                                      _drawingDragStartPos = pos;
+                                    });
+                                  } else {
+                                    // Second click in Click-Move-Click mode!
+                                    final drawing = ChartDrawing(
+                                      id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                      tool: tool,
                                       points: [
-                                        DrawingPoint(candleIndex: minC, price: maxP),
-                                        DrawingPoint(candleIndex: maxC, price: minP),
+                                        _drawingAnchorPoint!,
+                                        DrawingPoint(
+                                          candleIndex: clickedIndex,
+                                          price: clickedPrice,
+                                        ),
                                       ],
-                                    ));
-                                  } else if (drawing.tool == DrawingTool.horizontalLine) {
-                                    controller.updateDrawing(drawing.copyWith(
-                                      points: [DrawingPoint(candleIndex: drawing.points[0].candleIndex, price: newPrice)],
-                                    ));
-                                  } else if (drawing.tool == DrawingTool.trendline ||
-                                      drawing.tool == DrawingTool.ruler ||
-                                      drawing.tool == DrawingTool.fibonacci) {
-                                    if (_draggingHandleIndex! < drawing.points.length) {
-                                      final updatedPoints = List<DrawingPoint>.from(drawing.points);
-                                      updatedPoints[_draggingHandleIndex!] = DrawingPoint(candleIndex: newIndex, price: newPrice);
-                                      controller.updateDrawing(drawing.copyWith(points: updatedPoints));
-                                    }
-                                  } else if (drawing.tool == DrawingTool.longPosition ||
-                                      drawing.tool == DrawingTool.shortPosition) {
-                                    final entryX = converter.indexToX(drawing.points[0].candleIndex);
-                                    if (_draggingHandleIndex == 0) {
-                                      controller.updateDrawingProperties(drawing.id, {'targetPrice': newPrice});
-                                    } else if (_draggingHandleIndex == 1) {
-                                      controller.updateDrawingProperties(drawing.id, {'stopPrice': newPrice});
-                                    } else if (_draggingHandleIndex == 2) {
-                                      controller.updateDrawingPoint(drawing.id, 0, DrawingPoint(candleIndex: newIndex, price: newPrice));
-                                    } else if (_draggingHandleIndex == 3) {
-                                      final span = (details.localFocalPoint.dx - entryX).clamp(50.0, 1500.0);
-                                      controller.updateDrawingProperties(drawing.id, {'widthSpan': span});
-                                    }
+                                      color: tool == DrawingTool.rectangle
+                                          ? const Color(0xFFFFB300)
+                                          : const Color(0xFF2962FF),
+                                    );
+                                    controller.addDrawing(drawing);
+                                    controller.selectDrawing(drawing.id);
+                                    setState(() {
+                                      _drawingAnchorPoint = null;
+                                      _hasDraggedDuringCreation = false;
+                                    });
+                                    controller.setPreviewDrawing(null);
+                                    controller.activeDrawingTool =
+                                        DrawingTool.pointer;
                                   }
                                 }
+                                return;
                               }
-                              break;
-
-                            case _ChartDragMode.drawingMove:
-                              if (_draggingDrawingId != null && controller.candles.isNotEmpty) {
+                            },
+                            onTapUp: (details) {
+                              final pos = details.localPosition;
+                              // If in pointer mode, check if user tapped on a drawing or handle to select it
+                              if (controller.activeDrawingTool ==
+                                      DrawingTool.pointer &&
+                                  pos.dx < priceAxisLeft &&
+                                  pos.dy < timeAxisTop &&
+                                  controller.candles.isNotEmpty) {
+                                final chartWidth = priceAxisLeft;
+                                final chartHeight = controller.mainPaneHeight;
+                                final bounds = Rect.fromLTWH(
+                                  0,
+                                  0,
+                                  chartWidth,
+                                  chartHeight,
+                                );
                                 final converter = CoordinateConverter(
                                   viewport: controller.viewport,
                                   totalCandles: controller.candles.length,
                                 );
-                                final prevIndex = converter.xToIndex(_lastFocalPoint.dx);
-                                final currIndex = converter.xToIndex(details.localFocalPoint.dx);
-                                final deltaCandles = currIndex - prevIndex;
+                                final priceRange = controller.currentPriceRange;
 
-                                final prevPrice = controller.priceAtY(_lastFocalPoint.dy);
-                                final currPrice = controller.priceAtY(details.localFocalPoint.dy);
-                                final deltaPrice = currPrice - prevPrice;
-
-                                if (deltaCandles != 0 || deltaPrice.abs() > 0.001) {
-                                  controller.translateDrawing(_draggingDrawingId!, deltaCandles, deltaPrice);
+                                ChartDrawing? tappedDrawing;
+                                for (final d in controller.drawings.reversed) {
+                                  if (d.hitTest(
+                                    pos,
+                                    bounds,
+                                    priceRange,
+                                    converter,
+                                  )) {
+                                    tappedDrawing = d;
+                                    break;
+                                  }
                                 }
+                                controller.selectDrawing(tappedDrawing?.id);
                               }
-                              break;
+                            },
+                            onScaleStart: (details) {
+                              final start = details.localFocalPoint;
+                              _lastFocalPoint = start;
+                              _lastScale = 1.0;
+                              _isPinching = false;
 
-                            case _ChartDragMode.priceAxis:
-                              if (deltaY.abs() > 0.05) {
-                                controller.onVerticalScale(deltaY);
+                              // If a drawing tool is currently active
+                              if (controller.activeDrawingTool !=
+                                  DrawingTool.pointer) {
+                                _dragMode = _ChartDragMode.drawingCreation;
+                                _drawingDragStartPos = start;
+                                if (_drawingAnchorPoint == null &&
+                                    start.dx < priceAxisLeft &&
+                                    start.dy < timeAxisTop &&
+                                    controller.candles.isNotEmpty) {
+                                  final converter = CoordinateConverter(
+                                    viewport: controller.viewport,
+                                    totalCandles: controller.candles.length,
+                                  );
+                                  final clickedIndex = converter.xToIndex(
+                                    start.dx,
+                                  );
+                                  final clickedPrice = double.parse(
+                                    controller
+                                        .priceAtY(start.dy)
+                                        .toStringAsFixed(2),
+                                  );
+                                  _drawingAnchorPoint = DrawingPoint(
+                                    candleIndex: clickedIndex,
+                                    price: clickedPrice,
+                                  );
+                                  _hasDraggedDuringCreation = false;
+                                }
+                                return;
                               }
-                              break;
 
-                            case _ChartDragMode.timeAxis:
-                              if (deltaX.abs() > 0.05) {
-                                controller.onTimeScale(deltaX);
-                              }
-                              break;
-
-                            case _ChartDragMode.mainChart:
-                              if (details.pointerCount >= 2 ||
-                                  _isPinching ||
-                                  (details.scale - 1.0).abs() > 0.01) {
-                                _isPinching = true;
-                                final scaleRatio = details.scale / _lastScale;
-                                controller.onZoom(scaleRatio, details.localFocalPoint);
-                                _lastScale = details.scale;
+                              // Pointer tool active
+                              if (start.dx >= priceAxisLeft &&
+                                  start.dy < timeAxisTop) {
+                                _dragMode = _ChartDragMode.priceAxis;
+                              } else if (start.dy >= timeAxisTop &&
+                                  start.dx < priceAxisLeft) {
+                                _dragMode = _ChartDragMode.timeAxis;
+                              } else if (start.dx >= priceAxisLeft &&
+                                  start.dy >= timeAxisTop) {
+                                _dragMode = _ChartDragMode.none;
+                                controller.resetView();
                               } else {
-                                if (deltaX.abs() > 0.1) {
-                                  controller.onPan(deltaX);
+                                // In main chart canvas
+                                if (controller.candles.isNotEmpty) {
+                                  final chartWidth = priceAxisLeft;
+                                  final chartHeight = controller.mainPaneHeight;
+                                  final bounds = Rect.fromLTWH(
+                                    0,
+                                    0,
+                                    chartWidth,
+                                    chartHeight,
+                                  );
+                                  final converter = CoordinateConverter(
+                                    viewport: controller.viewport,
+                                    totalCandles: controller.candles.length,
+                                  );
+                                  final priceRange =
+                                      controller.currentPriceRange;
+
+                                  // 1. Check if dragging a handle on the selected drawing
+                                  final sel = controller.selectedDrawing;
+                                  if (sel != null && !sel.isLocked) {
+                                    final handle =
+                                        sel.hitTestHandle(
+                                          start,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                        ) ??
+                                        sel.hitTestHandle(
+                                          _lastTapDownPosition,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                        );
+                                    if (handle != null) {
+                                      _draggingHandleIndex = handle;
+                                      _draggingDrawingId = sel.id;
+                                      if (sel.tool ==
+                                          DrawingTool.horizontalLine) {
+                                        _dragMode =
+                                            _ChartDragMode.horizontalLineDrag;
+                                      } else {
+                                        _dragMode =
+                                            _ChartDragMode.drawingHandle;
+                                      }
+                                      return;
+                                    }
+                                  }
+
+                                  // 2. Check if clicking on any drawing to move it
+                                  ChartDrawing? hitDrawing;
+                                  for (final d
+                                      in controller.drawings.reversed) {
+                                    if (d.hitTest(
+                                          start,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                        ) ||
+                                        d.hitTest(
+                                          _lastTapDownPosition,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                        )) {
+                                      hitDrawing = d;
+                                      break;
+                                    }
+                                  }
+
+                                  if (hitDrawing != null) {
+                                    controller.selectDrawing(hitDrawing.id);
+                                    if (!hitDrawing.isLocked) {
+                                      _draggingDrawingId = hitDrawing.id;
+                                      if (hitDrawing.tool ==
+                                          DrawingTool.horizontalLine) {
+                                        _dragMode =
+                                            _ChartDragMode.horizontalLineDrag;
+                                      } else {
+                                        _dragMode = _ChartDragMode.drawingMove;
+                                      }
+                                      return;
+                                    }
+                                  }
                                 }
-                                if (controller.isManualPriceScale && deltaY.abs() > 0.1) {
-                                  controller.onVerticalPan(deltaY, timeAxisTop);
-                                }
-                                if (details.localFocalPoint.dx < priceAxisLeft &&
-                                    details.localFocalPoint.dy < timeAxisTop) {
-                                  controller.setCrosshairPosition(details.localFocalPoint);
+
+                                _dragMode = _ChartDragMode.mainChart;
+                              }
+                            },
+                            onScaleUpdate: (details) {
+                              final deltaX =
+                                  details.localFocalPoint.dx -
+                                  _lastFocalPoint.dx;
+                              final deltaY =
+                                  details.localFocalPoint.dy -
+                                  _lastFocalPoint.dy;
+
+                              switch (_dragMode) {
+                                case _ChartDragMode.drawingCreation:
+                                  if (_drawingAnchorPoint != null &&
+                                      controller.candles.isNotEmpty) {
+                                    final dist =
+                                        (details.localFocalPoint -
+                                                (_drawingDragStartPos ??
+                                                    details.localFocalPoint))
+                                            .distance;
+                                    if (dist > 8.0) {
+                                      _hasDraggedDuringCreation = true;
+                                    }
+                                    final converter = CoordinateConverter(
+                                      viewport: controller.viewport,
+                                      totalCandles: controller.candles.length,
+                                    );
+                                    final hoverIndex = converter.xToIndex(
+                                      details.localFocalPoint.dx,
+                                    );
+                                    final hoverPrice = double.parse(
+                                      controller
+                                          .priceAtY(details.localFocalPoint.dy)
+                                          .toStringAsFixed(2),
+                                    );
+                                    controller.setPreviewDrawing(
+                                      ChartDrawing(
+                                        id: 'preview',
+                                        tool: controller.activeDrawingTool,
+                                        points: [
+                                          _drawingAnchorPoint!,
+                                          DrawingPoint(
+                                            candleIndex: hoverIndex,
+                                            price: hoverPrice,
+                                          ),
+                                        ],
+                                        color:
+                                            controller.activeDrawingTool ==
+                                                DrawingTool.rectangle
+                                            ? const Color(
+                                                0xFFFFB300,
+                                              ).withValues(alpha: 0.8)
+                                            : const Color(
+                                                0xFF2962FF,
+                                              ).withValues(alpha: 0.8),
+                                      ),
+                                    );
+                                  }
+                                  break;
+
+                                case _ChartDragMode.horizontalLineDrag:
+                                  if (_draggingDrawingId != null &&
+                                      controller.candles.isNotEmpty) {
+                                    final newPrice = double.parse(
+                                      controller
+                                          .priceAtY(details.localFocalPoint.dy)
+                                          .toStringAsFixed(2),
+                                    );
+                                    final index = controller.drawings
+                                        .indexWhere(
+                                          (d) => d.id == _draggingDrawingId,
+                                        );
+                                    if (index >= 0) {
+                                      final drawing =
+                                          controller.drawings[index];
+                                      controller.updateDrawing(
+                                        drawing.copyWith(
+                                          points: [
+                                            DrawingPoint(
+                                              candleIndex:
+                                                  drawing.points[0].candleIndex,
+                                              price: newPrice,
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  break;
+
+                                case _ChartDragMode.drawingHandle:
+                                  if (_draggingDrawingId != null &&
+                                      _draggingHandleIndex != null &&
+                                      controller.candles.isNotEmpty) {
+                                    final converter = CoordinateConverter(
+                                      viewport: controller.viewport,
+                                      totalCandles: controller.candles.length,
+                                    );
+                                    final newIndex = converter.xToIndex(
+                                      details.localFocalPoint.dx,
+                                    );
+                                    final newPrice = double.parse(
+                                      controller
+                                          .priceAtY(details.localFocalPoint.dy)
+                                          .toStringAsFixed(2),
+                                    );
+
+                                    final index = controller.drawings
+                                        .indexWhere(
+                                          (d) => d.id == _draggingDrawingId,
+                                        );
+                                    if (index >= 0) {
+                                      final drawing =
+                                          controller.drawings[index];
+                                      if (drawing.isLocked) break;
+
+                                      if (drawing.tool ==
+                                              DrawingTool.rectangle &&
+                                          drawing.points.length >= 2) {
+                                        final p0 = drawing.points[0];
+                                        final p1 = drawing.points[1];
+
+                                        // Canonical boundaries of the rectangle
+                                        var minC = math.min(
+                                          p0.candleIndex,
+                                          p1.candleIndex,
+                                        );
+                                        var maxC = math.max(
+                                          p0.candleIndex,
+                                          p1.candleIndex,
+                                        );
+                                        var maxP = math.max(
+                                          p0.price,
+                                          p1.price,
+                                        ); // Top price
+                                        var minP = math.min(
+                                          p0.price,
+                                          p1.price,
+                                        ); // Bottom price
+
+                                        switch (_draggingHandleIndex) {
+                                          case 0: // Top-Left corner
+                                            minC = newIndex;
+                                            maxP = newPrice;
+                                            break;
+                                          case 1: // Top-Right corner
+                                            maxC = newIndex;
+                                            maxP = newPrice;
+                                            break;
+                                          case 2: // Bottom-Right corner
+                                            maxC = newIndex;
+                                            minP = newPrice;
+                                            break;
+                                          case 3: // Bottom-Left corner
+                                            minC = newIndex;
+                                            minP = newPrice;
+                                            break;
+                                          case 4: // Top Edge
+                                            maxP = newPrice;
+                                            break;
+                                          case 5: // Right Edge
+                                            maxC = newIndex;
+                                            break;
+                                          case 6: // Bottom Edge
+                                            minP = newPrice;
+                                            break;
+                                          case 7: // Left Edge
+                                            minC = newIndex;
+                                            break;
+                                        }
+
+                                        controller.updateDrawing(
+                                          drawing.copyWith(
+                                            points: [
+                                              DrawingPoint(
+                                                candleIndex: minC,
+                                                price: maxP,
+                                              ),
+                                              DrawingPoint(
+                                                candleIndex: maxC,
+                                                price: minP,
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      } else if (drawing.tool ==
+                                          DrawingTool.horizontalLine) {
+                                        controller.updateDrawing(
+                                          drawing.copyWith(
+                                            points: [
+                                              DrawingPoint(
+                                                candleIndex: drawing
+                                                    .points[0]
+                                                    .candleIndex,
+                                                price: newPrice,
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      } else if (drawing.tool ==
+                                              DrawingTool.trendline ||
+                                          drawing.tool == DrawingTool.ruler ||
+                                          drawing.tool ==
+                                              DrawingTool.fibonacci) {
+                                        if (_draggingHandleIndex! <
+                                            drawing.points.length) {
+                                          final updatedPoints =
+                                              List<DrawingPoint>.from(
+                                                drawing.points,
+                                              );
+                                          updatedPoints[_draggingHandleIndex!] =
+                                              DrawingPoint(
+                                                candleIndex: newIndex,
+                                                price: newPrice,
+                                              );
+                                          controller.updateDrawing(
+                                            drawing.copyWith(
+                                              points: updatedPoints,
+                                            ),
+                                          );
+                                        }
+                                      } else if (drawing.tool ==
+                                              DrawingTool.longPosition ||
+                                          drawing.tool ==
+                                              DrawingTool.shortPosition) {
+                                        final entryX = converter.indexToX(
+                                          drawing.points[0].candleIndex,
+                                        );
+                                        if (_draggingHandleIndex == 0) {
+                                          controller.updateDrawingProperties(
+                                            drawing.id,
+                                            {'targetPrice': newPrice},
+                                          );
+                                        } else if (_draggingHandleIndex == 1) {
+                                          controller.updateDrawingProperties(
+                                            drawing.id,
+                                            {'stopPrice': newPrice},
+                                          );
+                                        } else if (_draggingHandleIndex == 2) {
+                                          controller.updateDrawingPoint(
+                                            drawing.id,
+                                            0,
+                                            DrawingPoint(
+                                              candleIndex: newIndex,
+                                              price: newPrice,
+                                            ),
+                                          );
+                                        } else if (_draggingHandleIndex == 3) {
+                                          final span =
+                                              (details.localFocalPoint.dx -
+                                                      entryX)
+                                                  .clamp(50.0, 1500.0);
+                                          controller.updateDrawingProperties(
+                                            drawing.id,
+                                            {'widthSpan': span},
+                                          );
+                                        }
+                                      }
+                                    }
+                                  }
+                                  break;
+
+                                case _ChartDragMode.drawingMove:
+                                  if (_draggingDrawingId != null &&
+                                      controller.candles.isNotEmpty) {
+                                    final converter = CoordinateConverter(
+                                      viewport: controller.viewport,
+                                      totalCandles: controller.candles.length,
+                                    );
+                                    final prevIndex = converter.xToIndex(
+                                      _lastFocalPoint.dx,
+                                    );
+                                    final currIndex = converter.xToIndex(
+                                      details.localFocalPoint.dx,
+                                    );
+                                    final deltaCandles = currIndex - prevIndex;
+
+                                    final prevPrice = controller.priceAtY(
+                                      _lastFocalPoint.dy,
+                                    );
+                                    final currPrice = controller.priceAtY(
+                                      details.localFocalPoint.dy,
+                                    );
+                                    final deltaPrice = currPrice - prevPrice;
+
+                                    if (deltaCandles != 0 ||
+                                        deltaPrice.abs() > 0.001) {
+                                      controller.translateDrawing(
+                                        _draggingDrawingId!,
+                                        deltaCandles,
+                                        deltaPrice,
+                                      );
+                                    }
+                                  }
+                                  break;
+
+                                case _ChartDragMode.priceAxis:
+                                  if (deltaY.abs() > 0.05) {
+                                    controller.onVerticalScale(deltaY);
+                                  }
+                                  break;
+
+                                case _ChartDragMode.timeAxis:
+                                  if (deltaX.abs() > 0.05) {
+                                    controller.onTimeScale(deltaX);
+                                  }
+                                  break;
+
+                                case _ChartDragMode.mainChart:
+                                  if (details.pointerCount >= 2 ||
+                                      _isPinching ||
+                                      (details.scale - 1.0).abs() > 0.01) {
+                                    _isPinching = true;
+                                    final scaleRatio =
+                                        details.scale / _lastScale;
+                                    controller.onZoom(
+                                      scaleRatio,
+                                      details.localFocalPoint,
+                                    );
+                                    _lastScale = details.scale;
+                                  } else {
+                                    if (deltaX.abs() > 0.1) {
+                                      controller.onPan(deltaX);
+                                    }
+                                    if (controller.isManualPriceScale &&
+                                        deltaY.abs() > 0.1) {
+                                      controller.onVerticalPan(
+                                        deltaY,
+                                        timeAxisTop,
+                                      );
+                                    }
+                                    if (details.localFocalPoint.dx <
+                                            priceAxisLeft &&
+                                        details.localFocalPoint.dy <
+                                            timeAxisTop) {
+                                      controller.setCrosshairPosition(
+                                        details.localFocalPoint,
+                                      );
+                                    }
+                                  }
+                                  break;
+
+                                case _ChartDragMode.none:
+                                  break;
+                              }
+
+                              _lastFocalPoint = details.localFocalPoint;
+                            },
+                            onScaleEnd: (_) {
+                              if (_dragMode == _ChartDragMode.drawingCreation) {
+                                if (_hasDraggedDuringCreation &&
+                                    _drawingAnchorPoint != null &&
+                                    controller.previewDrawing != null) {
+                                  final completed = ChartDrawing(
+                                    id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
+                                    tool: controller.activeDrawingTool,
+                                    points: controller.previewDrawing!.points,
+                                    color:
+                                        controller.activeDrawingTool ==
+                                            DrawingTool.rectangle
+                                        ? const Color(0xFFFFB300)
+                                        : const Color(0xFF2962FF),
+                                  );
+                                  controller.addDrawing(completed);
+                                  controller.selectDrawing(completed.id);
+                                  controller.setPreviewDrawing(null);
+                                  setState(() {
+                                    _drawingAnchorPoint = null;
+                                    _hasDraggedDuringCreation = false;
+                                  });
+                                  controller.activeDrawingTool =
+                                      DrawingTool.pointer;
                                 }
                               }
-                              break;
 
-                            case _ChartDragMode.none:
-                              break;
-                          }
-
-                          _lastFocalPoint = details.localFocalPoint;
-                        },
-                        onScaleEnd: (_) {
-                          if (_dragMode == _ChartDragMode.drawingCreation) {
-                            if (_hasDraggedDuringCreation &&
-                                _drawingAnchorPoint != null &&
-                                controller.previewDrawing != null) {
-                              final completed = ChartDrawing(
-                                id: 'draw_${DateTime.now().millisecondsSinceEpoch}',
-                                tool: controller.activeDrawingTool,
-                                points: controller.previewDrawing!.points,
-                                color: controller.activeDrawingTool == DrawingTool.rectangle
-                                    ? const Color(0xFFFFB300)
-                                    : const Color(0xFF2962FF),
-                              );
-                              controller.addDrawing(completed);
-                              controller.selectDrawing(completed.id);
-                              controller.setPreviewDrawing(null);
-                              setState(() {
-                                _drawingAnchorPoint = null;
-                                _hasDraggedDuringCreation = false;
-                              });
-                              controller.activeDrawingTool = DrawingTool.pointer;
-                            }
-                          }
-
-                          _draggingHandleIndex = null;
-                          _draggingDrawingId = null;
-                          _dragMode = _ChartDragMode.none;
-                          _isPinching = false;
-                          _lastScale = 1.0;
-                        },
-                        onDoubleTap: () {
-                          // Zone-aware double-tap reset (TradingView behavior)
-                          if (_lastTapDownPosition.dx >= priceAxisLeft) {
-                            // Double tap on price scale -> reset auto-scale
-                            controller.resetPriceScale();
-                          } else if (_lastTapDownPosition.dy >= timeAxisTop) {
-                            // Double tap on time scale -> reset timeframe zoom
-                            controller.resetTimeScale();
-                          } else {
-                            // Double tap on main chart -> reset complete view
-                            controller.resetView();
-                          }
-                        },
-                        onLongPressStart: (details) {
-                          if (details.localPosition.dx < priceAxisLeft &&
-                              details.localPosition.dy < timeAxisTop) {
-                            controller.setCrosshairPosition(details.localPosition);
-                          }
-                        },
-                        onLongPressMoveUpdate: (details) {
-                          if (details.localPosition.dx < priceAxisLeft &&
-                              details.localPosition.dy < timeAxisTop) {
-                            controller.setCrosshairPosition(details.localPosition);
-                          }
-                        },
-                        onLongPressEnd: (_) {
-                          controller.setCrosshairPosition(null);
-                        },
-                        child: RepaintBoundary(
-                          key: widget.repaintBoundaryKey ?? _defaultRepaintKey,
-                          child: ClipRect(
-                            child: CustomPaint(
-                              size: Size(width, height),
-                              painter: ChartPainter(
-                                candles: controller.candles,
-                                viewport: controller.viewport,
-                                theme: controller.theme,
-                                timeframe: controller.timeframe,
-                                candleStyle: controller.candleStyle,
-                                overlayIndicators: controller.overlayResults,
-                                subPaneIndicator: controller.subPaneResult,
-                                subPaneIndicators: controller.subPaneResults,
-                                orders: controller.orders,
-                                positions: controller.positions,
-                                drawings: controller.drawings,
-                                alerts: controller.alerts,
-                                previewDrawing: controller.previewDrawing,
-                                crosshairPosition: controller.crosshairPosition,
-                                showVolume: controller.showVolume,
-                                showVolumeProfile: controller.showVolumeProfile,
-                                volumeProfile: controller.volumeProfile,
-                                showGrid: controller.showGrid,
-                                showWatermark: widget.showWatermark && controller.showWatermark,
-                                showCountdownTimer: widget.showCountdownTimer && controller.showCountdownTimer,
-                                countdownText: controller.candleCountdownText,
-                                brandName: widget.brandName ?? controller.brandName,
-                                symbol: controller.symbol,
-                                exchange: controller.exchange,
-                                verticalScale: controller.verticalScale,
-                                verticalPan: controller.verticalPan,
+                              _draggingHandleIndex = null;
+                              _draggingDrawingId = null;
+                              _dragMode = _ChartDragMode.none;
+                              _isPinching = false;
+                              _lastScale = 1.0;
+                            },
+                            onDoubleTap: () {
+                              // Zone-aware double-tap reset (TradingView behavior)
+                              if (_lastTapDownPosition.dx >= priceAxisLeft) {
+                                // Double tap on price scale -> reset auto-scale
+                                controller.resetPriceScale();
+                              } else if (_lastTapDownPosition.dy >=
+                                  timeAxisTop) {
+                                // Double tap on time scale -> reset timeframe zoom
+                                controller.resetTimeScale();
+                              } else {
+                                // Double tap on main chart -> reset complete view
+                                controller.resetView();
+                              }
+                            },
+                            onLongPressStart: (details) {
+                              if (details.localPosition.dx < priceAxisLeft &&
+                                  details.localPosition.dy < timeAxisTop) {
+                                controller.setCrosshairPosition(
+                                  details.localPosition,
+                                );
+                              }
+                            },
+                            onLongPressMoveUpdate: (details) {
+                              if (details.localPosition.dx < priceAxisLeft &&
+                                  details.localPosition.dy < timeAxisTop) {
+                                controller.setCrosshairPosition(
+                                  details.localPosition,
+                                );
+                              }
+                            },
+                            onLongPressEnd: (_) {
+                              controller.setCrosshairPosition(null);
+                            },
+                            child: RepaintBoundary(
+                              key:
+                                  widget.repaintBoundaryKey ??
+                                  _defaultRepaintKey,
+                              child: ClipRect(
+                                child: CustomPaint(
+                                  size: Size(width, height),
+                                  painter: ChartPainter(
+                                    candles: controller.candles,
+                                    viewport: controller.viewport,
+                                    theme: controller.theme,
+                                    timeframe: controller.timeframe,
+                                    candleStyle: controller.candleStyle,
+                                    overlayIndicators:
+                                        controller.overlayResults,
+                                    subPaneIndicator: controller.subPaneResult,
+                                    subPaneIndicators:
+                                        controller.subPaneResults,
+                                    orders: controller.orders,
+                                    positions: controller.positions,
+                                    drawings: controller.drawings,
+                                    alerts: controller.alerts,
+                                    previewDrawing: controller.previewDrawing,
+                                    crosshairPosition:
+                                        controller.crosshairPosition,
+                                    showVolume: controller.showVolume,
+                                    showVolumeProfile:
+                                        controller.showVolumeProfile,
+                                    volumeProfile: controller.volumeProfile,
+                                    showGrid: controller.showGrid,
+                                    showWatermark:
+                                        widget.showWatermark &&
+                                        controller.showWatermark,
+                                    showCountdownTimer:
+                                        widget.showCountdownTimer &&
+                                        controller.showCountdownTimer,
+                                    countdownText:
+                                        controller.candleCountdownText,
+                                    brandName:
+                                        widget.brandName ??
+                                        controller.brandName,
+                                    symbol: controller.symbol,
+                                    exchange: controller.exchange,
+                                    verticalScale: controller.verticalScale,
+                                    verticalPan: controller.verticalPan,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    ),
 
-                    // Interactive Order Badges & Hitboxes (Draggable & Cancel)
-                    if (widget.enableChartTrading && controller.orders.isNotEmpty) ...[
-                      for (final order in controller.orders)
-                        ..._buildOrderInteractiveWidgets(context, controller, order, timeAxisTop),
-                    ],
+                      // Interactive Order Badges & Hitboxes (Draggable & Cancel)
+                      if (widget.enableChartTrading &&
+                          controller.orders.isNotEmpty) ...[
+                        for (final order in controller.orders)
+                          ..._buildOrderInteractiveWidgets(
+                            context,
+                            controller,
+                            order,
+                            timeAxisTop,
+                          ),
+                      ],
 
-                    // Interactive Position Badges & Close Hitboxes
-                    if (widget.enableChartTrading && controller.positions.isNotEmpty) ...[
-                      for (final position in controller.positions)
-                        ..._buildPositionInteractiveWidgets(context, controller, position, timeAxisTop),
-                    ],
+                      // Interactive Position Badges & Close Hitboxes
+                      if (widget.enableChartTrading &&
+                          controller.positions.isNotEmpty) ...[
+                        for (final position in controller.positions)
+                          ..._buildPositionInteractiveWidgets(
+                            context,
+                            controller,
+                            position,
+                            timeAxisTop,
+                          ),
+                      ],
 
-                    // Hover '+' button on the right side of the canvas (before vertical price axis)
-                    if (widget.enableChartTrading &&
-                        _hoverPosition != null &&
-                        _hoverPosition!.dx < priceAxisLeft &&
-                        _hoverPosition!.dy < timeAxisTop &&
-                        _hoverPosition!.dy >= 0) ...[
-                      Positioned(
-                        right: _priceAxisWidth + 2,
-                        top: (_hoverPosition!.dy - 11).clamp(2.0, timeAxisTop - 24.0),
-                        child: _buildPlusOrderButton(context, controller, _hoverPosition!.dy),
-                      ),
-                    ],
-
-                    // Floating Replay Control Bar
-                    if (controller.isReplayMode)
-                      Positioned(
-                        bottom: _timeAxisHeight + 10,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: ReplayControlBar(controller: controller),
+                      // Hover '+' button on the right side of the canvas (before vertical price axis)
+                      if (widget.enableChartTrading &&
+                          _hoverPosition != null &&
+                          _hoverPosition!.dx < priceAxisLeft &&
+                          _hoverPosition!.dy < timeAxisTop &&
+                          _hoverPosition!.dy >= 0) ...[
+                        Positioned(
+                          right: _priceAxisWidth + 2,
+                          top: (_hoverPosition!.dy - 11).clamp(
+                            2.0,
+                            timeAxisTop - 24.0,
+                          ),
+                          child: _buildPlusOrderButton(
+                            context,
+                            controller,
+                            _hoverPosition!.dy,
+                          ),
                         ),
-                      ),
+                      ],
 
-                    // Floating Drawing Action Bar (when a drawing is selected)
-                    if (controller.selectedDrawing != null)
-                      Positioned(
-                        top: 14,
-                        left: 16,
-                        child: _buildDrawingActionBar(context, controller, controller.selectedDrawing!),
-                      ),
+                      // Floating Replay Control Bar
+                      if (controller.isReplayMode)
+                        Positioned(
+                          bottom: _timeAxisHeight + 10,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: ReplayControlBar(controller: controller),
+                          ),
+                        ),
 
-                    // TradingView-style "Auto" Scale Pill in the bottom right of the price axis
-                    if (controller.isManualPriceScale)
-                      Positioned(
-                        right: 4,
-                        bottom: _timeAxisHeight + 6,
-                        child: GestureDetector(
-                          key: const Key('auto_scale_pill'),
-                          onTap: controller.resetPriceScale,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2962FF),
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.auto_mode, size: 10, color: Colors.white),
-                                SizedBox(width: 3),
-                                Text(
-                                  'AUTO',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
+                      // Floating Drawing Action Bar (when a drawing is selected)
+                      if (controller.selectedDrawing != null)
+                        Positioned(
+                          top: 14,
+                          left: 16,
+                          child: _buildDrawingActionBar(
+                            context,
+                            controller,
+                            controller.selectedDrawing!,
+                          ),
+                        ),
+
+                      // TradingView-style "Auto" Scale Pill in the bottom right of the price axis
+                      if (controller.isManualPriceScale)
+                        Positioned(
+                          right: 4,
+                          bottom: _timeAxisHeight + 6,
+                          child: GestureDetector(
+                            key: const Key('auto_scale_pill'),
+                            onTap: controller.resetPriceScale,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2962FF),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.3),
+                                    blurRadius: 4,
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.auto_mode,
+                                    size: 10,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'AUTO',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
 
-                    // Bottom-right corner reset button (at X/Y intersection)
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      width: _priceAxisWidth,
-                      height: _timeAxisHeight,
-                      child: GestureDetector(
-                        onTap: controller.resetView,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: theme.backgroundColor,
-                            border: Border(
-                              top: BorderSide(color: theme.gridColor, width: 0.8),
-                              left: BorderSide(color: theme.gridColor, width: 0.8),
+                      // Bottom-right corner reset button (at X/Y intersection)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        width: _priceAxisWidth,
+                        height: _timeAxisHeight,
+                        child: GestureDetector(
+                          onTap: controller.resetView,
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: theme.backgroundColor,
+                              border: Border(
+                                top: BorderSide(
+                                  color: theme.gridColor,
+                                  width: 0.8,
+                                ),
+                                left: BorderSide(
+                                  color: theme.gridColor,
+                                  width: 0.8,
+                                ),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            controller.isManualPriceScale ? 'RESET' : 'AUTO',
-                            style: TextStyle(
-                              color: controller.isManualPriceScale
-                                  ? const Color(0xFF2962FF)
-                                  : theme.axisTextColor.withValues(alpha: 0.6),
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                            child: Text(
+                              controller.isManualPriceScale ? 'RESET' : 'AUTO',
+                              style: TextStyle(
+                                color: controller.isManualPriceScale
+                                    ? const Color(0xFF2962FF)
+                                    : theme.axisTextColor.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-      );
-    },
-  );
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
-  Widget _buildPlusOrderButton(BuildContext context, TradingChartController controller, double y) {
+  Widget _buildPlusOrderButton(
+    BuildContext context,
+    TradingChartController controller,
+    double y,
+  ) {
     final price = controller.priceAtY(y);
 
     return Material(
@@ -1041,11 +1392,7 @@ class _TradingChartState extends State<TradingChart> {
               ],
             ),
             child: const Center(
-              child: Icon(
-                Icons.add,
-                size: 14,
-                color: Colors.white,
-              ),
+              child: Icon(Icons.add, size: 14, color: Colors.white),
             ),
           ),
         ),
@@ -1053,13 +1400,23 @@ class _TradingChartState extends State<TradingChart> {
     );
   }
 
-  void _openOrderMenu(BuildContext context, TradingChartController controller, double y, double price) {
+  void _openOrderMenu(
+    BuildContext context,
+    TradingChartController controller,
+    double y,
+    double price,
+  ) {
     final roundedPrice = double.parse(price.toStringAsFixed(2));
 
     if (widget.orderMenuBuilder != null) {
       showDialog(
         context: context,
-        builder: (ctx) => widget.orderMenuBuilder!(ctx, roundedPrice, controller, () => Navigator.of(ctx).pop()),
+        builder: (ctx) => widget.orderMenuBuilder!(
+          ctx,
+          roundedPrice,
+          controller,
+          () => Navigator.of(ctx).pop(),
+        ),
       );
       return;
     }
@@ -1067,7 +1424,9 @@ class _TradingChartState extends State<TradingChart> {
     // Default institutional Order Dropdown Menu
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final buttonPosition = renderBox.localToGlobal(Offset(renderBox.size.width - _priceAxisWidth - 10, y));
+    final buttonPosition = renderBox.localToGlobal(
+      Offset(renderBox.size.width - _priceAxisWidth - 10, y),
+    );
 
     final position = RelativeRect.fromRect(
       Rect.fromLTWH(buttonPosition.dx, buttonPosition.dy, 1, 1),
@@ -1093,12 +1452,19 @@ class _TradingChartState extends State<TradingChart> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(color: Color(0xFF00E676), shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00E676),
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 'Buy 100 Limit @ $roundedPrice',
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -1111,12 +1477,19 @@ class _TradingChartState extends State<TradingChart> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(color: Color(0xFFFF3B30), shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFF3B30),
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 'Sell 100 Limit @ $roundedPrice',
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -1127,11 +1500,19 @@ class _TradingChartState extends State<TradingChart> {
           height: 38,
           child: Row(
             children: [
-              const Icon(Icons.shield_outlined, size: 14, color: Color(0xFF00E5FF)),
+              const Icon(
+                Icons.shield_outlined,
+                size: 14,
+                color: Color(0xFF00E5FF),
+              ),
               const SizedBox(width: 8),
               Text(
                 'Buy + TP (+1.5%) + SL (-1.0%)',
-                style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Color(0xFF00E5FF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1141,11 +1522,19 @@ class _TradingChartState extends State<TradingChart> {
           height: 38,
           child: Row(
             children: [
-              const Icon(Icons.shield_outlined, size: 14, color: Color(0xFFFF9100)),
+              const Icon(
+                Icons.shield_outlined,
+                size: 14,
+                color: Color(0xFFFF9100),
+              ),
               const SizedBox(width: 8),
               Text(
                 'Sell + TP (-1.5%) + SL (+1.0%)',
-                style: const TextStyle(color: Color(0xFFFF9100), fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Color(0xFFFF9100),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1156,11 +1545,19 @@ class _TradingChartState extends State<TradingChart> {
           height: 38,
           child: Row(
             children: [
-              const Icon(Icons.notifications_active_outlined, size: 14, color: Color(0xFFFFB300)),
+              const Icon(
+                Icons.notifications_active_outlined,
+                size: 14,
+                color: Color(0xFFFFB300),
+              ),
               const SizedBox(width: 8),
               Text(
                 'Add Alert @ $roundedPrice',
-                style: const TextStyle(color: Color(0xFFFFB300), fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Color(0xFFFFB300),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1240,7 +1637,9 @@ class _TradingChartState extends State<TradingChart> {
             backgroundColor: const Color(0xFF1E222D),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         );
       }
@@ -1254,8 +1653,12 @@ class _TradingChartState extends State<TradingChart> {
     double timeAxisTop,
   ) {
     final orderY = controller.yAtPrice(order.price);
-    final tpY = order.hasTakeProfit ? controller.yAtPrice(order.takeProfitPrice!) : null;
-    final slY = order.hasStopLoss ? controller.yAtPrice(order.stopLossPrice!) : null;
+    final tpY = order.hasTakeProfit
+        ? controller.yAtPrice(order.takeProfitPrice!)
+        : null;
+    final slY = order.hasStopLoss
+        ? controller.yAtPrice(order.stopLossPrice!)
+        : null;
 
     return [
       // 1. Order Badge Interactive Hitbox (Draggable & Cancel)
@@ -1276,14 +1679,21 @@ class _TradingChartState extends State<TradingChart> {
                     onTap: () => _openBracketMenu(context, controller, order),
                     child: Container(
                       margin: const EdgeInsets.only(right: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF2962FF).withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: const Text(
                         '+Bracket',
-                        style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -1298,8 +1708,13 @@ class _TradingChartState extends State<TradingChart> {
                         behavior: HitTestBehavior.translucent,
                         onVerticalDragUpdate: (details) {
                           final currentY = controller.yAtPrice(order.price);
-                          final newY = (currentY + details.delta.dy).clamp(0.0, timeAxisTop);
-                          final newPrice = double.parse(controller.priceAtY(newY).toStringAsFixed(2));
+                          final newY = (currentY + details.delta.dy).clamp(
+                            0.0,
+                            timeAxisTop,
+                          );
+                          final newPrice = double.parse(
+                            controller.priceAtY(newY).toStringAsFixed(2),
+                          );
                           controller.updateOrderPrice(order.id, newPrice);
                         },
                         child: const SizedBox.expand(),
@@ -1351,10 +1766,20 @@ class _TradingChartState extends State<TradingChart> {
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onVerticalDragUpdate: (details) {
-                          final currentY = controller.yAtPrice(order.takeProfitPrice!);
-                          final newY = (currentY + details.delta.dy).clamp(0.0, timeAxisTop);
-                          final newPrice = double.parse(controller.priceAtY(newY).toStringAsFixed(2));
-                          controller.updateOrderBrackets(order.id, takeProfitPrice: newPrice);
+                          final currentY = controller.yAtPrice(
+                            order.takeProfitPrice!,
+                          );
+                          final newY = (currentY + details.delta.dy).clamp(
+                            0.0,
+                            timeAxisTop,
+                          );
+                          final newPrice = double.parse(
+                            controller.priceAtY(newY).toStringAsFixed(2),
+                          );
+                          controller.updateOrderBrackets(
+                            order.id,
+                            takeProfitPrice: newPrice,
+                          );
                         },
                         child: const SizedBox.expand(),
                       ),
@@ -1369,7 +1794,10 @@ class _TradingChartState extends State<TradingChart> {
                     key: Key('cancel_tp_${order.id}'),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      controller.updateOrderBrackets(order.id, clearTakeProfit: true);
+                      controller.updateOrderBrackets(
+                        order.id,
+                        clearTakeProfit: true,
+                      );
                     },
                     child: Container(
                       width: 22,
@@ -1404,10 +1832,20 @@ class _TradingChartState extends State<TradingChart> {
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onVerticalDragUpdate: (details) {
-                          final currentY = controller.yAtPrice(order.stopLossPrice!);
-                          final newY = (currentY + details.delta.dy).clamp(0.0, timeAxisTop);
-                          final newPrice = double.parse(controller.priceAtY(newY).toStringAsFixed(2));
-                          controller.updateOrderBrackets(order.id, stopLossPrice: newPrice);
+                          final currentY = controller.yAtPrice(
+                            order.stopLossPrice!,
+                          );
+                          final newY = (currentY + details.delta.dy).clamp(
+                            0.0,
+                            timeAxisTop,
+                          );
+                          final newPrice = double.parse(
+                            controller.priceAtY(newY).toStringAsFixed(2),
+                          );
+                          controller.updateOrderBrackets(
+                            order.id,
+                            stopLossPrice: newPrice,
+                          );
                         },
                         child: const SizedBox.expand(),
                       ),
@@ -1422,7 +1860,10 @@ class _TradingChartState extends State<TradingChart> {
                     key: Key('cancel_sl_${order.id}'),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      controller.updateOrderBrackets(order.id, clearStopLoss: true);
+                      controller.updateOrderBrackets(
+                        order.id,
+                        clearStopLoss: true,
+                      );
                     },
                     child: Container(
                       width: 22,
@@ -1439,11 +1880,17 @@ class _TradingChartState extends State<TradingChart> {
     ];
   }
 
-  void _openBracketMenu(BuildContext context, TradingChartController controller, ChartOrder order) {
+  void _openBracketMenu(
+    BuildContext context,
+    TradingChartController controller,
+    ChartOrder order,
+  ) {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final orderY = controller.yAtPrice(order.price);
-    final buttonPosition = renderBox.localToGlobal(Offset(renderBox.size.width - _priceAxisWidth - 60, orderY));
+    final buttonPosition = renderBox.localToGlobal(
+      Offset(renderBox.size.width - _priceAxisWidth - 60, orderY),
+    );
 
     final position = RelativeRect.fromRect(
       Rect.fromLTWH(buttonPosition.dx, buttonPosition.dy, 1, 1),
@@ -1467,7 +1914,10 @@ class _TradingChartState extends State<TradingChart> {
               children: [
                 Icon(Icons.trending_up, size: 14, color: Color(0xFF00E5FF)),
                 SizedBox(width: 8),
-                Text('Add Take Profit (+1.5%)', style: TextStyle(color: Colors.white, fontSize: 12)),
+                Text(
+                  'Add Take Profit (+1.5%)',
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -1479,7 +1929,10 @@ class _TradingChartState extends State<TradingChart> {
               children: [
                 Icon(Icons.trending_down, size: 14, color: Color(0xFFFF9100)),
                 SizedBox(width: 8),
-                Text('Add Stop Loss (-1.0%)', style: TextStyle(color: Colors.white, fontSize: 12)),
+                Text(
+                  'Add Stop Loss (-1.0%)',
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -1491,7 +1944,10 @@ class _TradingChartState extends State<TradingChart> {
             children: [
               Icon(Icons.delete_outline, size: 14, color: Color(0xFFFF3B30)),
               SizedBox(width: 8),
-              Text('Cancel Order', style: TextStyle(color: Color(0xFFFF3B30), fontSize: 12)),
+              Text(
+                'Cancel Order',
+                style: TextStyle(color: Color(0xFFFF3B30), fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -1544,21 +2000,32 @@ class _TradingChartState extends State<TradingChart> {
                       SnackBar(
                         content: Text(
                           'Position closed: ${position.side.label} ${position.quantity.toStringAsFixed(0)} @ ₹${position.entryPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                         backgroundColor: const Color(0xFF1E222D),
                         duration: const Duration(seconds: 2),
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFFF3B30).withValues(alpha: 0.5), width: 0.8),
+                      border: Border.all(
+                        color: const Color(0xFFFF3B30).withValues(alpha: 0.5),
+                        width: 0.8,
+                      ),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1567,7 +2034,11 @@ class _TradingChartState extends State<TradingChart> {
                         SizedBox(width: 2),
                         Text(
                           'Close',
-                          style: TextStyle(color: Color(0xFFFF5252), fontSize: 10, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Color(0xFFFF5252),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -1642,7 +2113,9 @@ class _TradingChartState extends State<TradingChart> {
                     color: color,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: drawing.color == color ? Colors.white : Colors.transparent,
+                      color: drawing.color == color
+                          ? Colors.white
+                          : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -1659,16 +2132,23 @@ class _TradingChartState extends State<TradingChart> {
                 onTap: () => controller.setSelectedDrawingStrokeWidth(w),
                 borderRadius: BorderRadius.circular(4),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
                   margin: const EdgeInsets.symmetric(horizontal: 1),
                   decoration: BoxDecoration(
-                    color: drawing.strokeWidth == w ? const Color(0xFF2962FF) : Colors.transparent,
+                    color: drawing.strokeWidth == w
+                        ? const Color(0xFF2962FF)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     '${w.toInt()}px',
                     style: TextStyle(
-                      color: drawing.strokeWidth == w ? Colors.white : const Color(0xFF868993),
+                      color: drawing.strokeWidth == w
+                          ? Colors.white
+                          : const Color(0xFF868993),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1686,7 +2166,9 @@ class _TradingChartState extends State<TradingChart> {
               icon: Icon(
                 drawing.isLocked ? Icons.lock : Icons.lock_open_outlined,
                 size: 16,
-                color: drawing.isLocked ? const Color(0xFFFFB300) : const Color(0xFF868993),
+                color: drawing.isLocked
+                    ? const Color(0xFFFFB300)
+                    : const Color(0xFF868993),
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -1697,7 +2179,11 @@ class _TradingChartState extends State<TradingChart> {
             IconButton(
               key: Key('delete_drawing_${drawing.id}'),
               tooltip: 'Delete Drawing (Del)',
-              icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFFF3B30)),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 16,
+                color: Color(0xFFFF3B30),
+              ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
               onPressed: controller.deleteSelectedDrawing,

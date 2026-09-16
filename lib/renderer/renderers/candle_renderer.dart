@@ -41,13 +41,37 @@ class CandleRenderer extends BaseRenderer {
 
     switch (candleStyle) {
       case CandleStyle.candles:
-        _drawStandardCandles(canvas, bounds, candles, visible, priceRange, converter, candleWidth);
+        _drawStandardCandles(
+          canvas,
+          bounds,
+          candles,
+          visible,
+          priceRange,
+          converter,
+          candleWidth,
+        );
         break;
       case CandleStyle.hollowCandles:
-        _drawHollowCandles(canvas, bounds, candles, visible, priceRange, converter, candleWidth);
+        _drawHollowCandles(
+          canvas,
+          bounds,
+          candles,
+          visible,
+          priceRange,
+          converter,
+          candleWidth,
+        );
         break;
       case CandleStyle.heikinAshi:
-        _drawHeikinAshiCandles(canvas, bounds, candles, visible, priceRange, converter, candleWidth);
+        _drawHeikinAshiCandles(
+          canvas,
+          bounds,
+          candles,
+          visible,
+          priceRange,
+          converter,
+          candleWidth,
+        );
         break;
       case CandleStyle.line:
         _drawLineChart(canvas, bounds, candles, visible, priceRange, converter);
@@ -56,7 +80,15 @@ class CandleRenderer extends BaseRenderer {
         _drawAreaChart(canvas, bounds, candles, visible, priceRange, converter);
         break;
       case CandleStyle.bars:
-        _drawBarChart(canvas, bounds, candles, visible, priceRange, converter, candleWidth);
+        _drawBarChart(
+          canvas,
+          bounds,
+          candles,
+          visible,
+          priceRange,
+          converter,
+          candleWidth,
+        );
         break;
     }
   }
@@ -217,7 +249,11 @@ class CandleRenderer extends BaseRenderer {
     for (int i = visible.start; i <= visible.end; i++) {
       if (i < 0 || i >= candles.length) continue;
       final x = converter.indexToX(i);
-      final y = CoordinateConverter.priceToY(candles[i].close, bounds, priceRange);
+      final y = CoordinateConverter.priceToY(
+        candles[i].close,
+        bounds,
+        priceRange,
+      );
 
       if (isFirst) {
         path.moveTo(x, y);
@@ -249,7 +285,11 @@ class CandleRenderer extends BaseRenderer {
     for (int i = visible.start; i <= visible.end; i++) {
       if (i < 0 || i >= candles.length) continue;
       final x = converter.indexToX(i);
-      final y = CoordinateConverter.priceToY(candles[i].close, bounds, priceRange);
+      final y = CoordinateConverter.priceToY(
+        candles[i].close,
+        bounds,
+        priceRange,
+      );
 
       if (isFirst) {
         linePath.moveTo(x, y);
@@ -322,7 +362,11 @@ class CandleRenderer extends BaseRenderer {
       canvas.drawLine(Offset(x - halfWidth, yOpen), Offset(x, yOpen), barPaint);
 
       // Right tick (Close)
-      canvas.drawLine(Offset(x, yClose), Offset(x + halfWidth, yClose), barPaint);
+      canvas.drawLine(
+        Offset(x, yClose),
+        Offset(x + halfWidth, yClose),
+        barPaint,
+      );
     }
   }
 }

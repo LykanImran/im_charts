@@ -47,7 +47,8 @@ class ChartAlert {
       case AlertTriggerCondition.crossingDown:
         return previousPrice > price && currentPrice <= price;
       case AlertTriggerCondition.crossing:
-        return (previousPrice - price) * (currentPrice - price) <= 0 && previousPrice != currentPrice;
+        return (previousPrice - price) * (currentPrice - price) <= 0 &&
+            previousPrice != currentPrice;
     }
   }
 

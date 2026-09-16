@@ -13,14 +13,24 @@ void main() {
       const testPrices = [100.0, 125.0, 150.0, 175.5, 200.0];
       for (final price in testPrices) {
         final y = CoordinateConverter.priceToY(price, bounds, range);
-        final reconstructedPrice = CoordinateConverter.yToPrice(y, bounds, range);
+        final reconstructedPrice = CoordinateConverter.yToPrice(
+          y,
+          bounds,
+          range,
+        );
         expect(reconstructedPrice, closeTo(price, 1e-4));
       }
 
       // Max price should map to bounds.top
-      expect(CoordinateConverter.priceToY(200.0, bounds, range), closeTo(bounds.top, 1e-4));
+      expect(
+        CoordinateConverter.priceToY(200.0, bounds, range),
+        closeTo(bounds.top, 1e-4),
+      );
       // Min price should map to bounds.bottom
-      expect(CoordinateConverter.priceToY(100.0, bounds, range), closeTo(bounds.bottom, 1e-4));
+      expect(
+        CoordinateConverter.priceToY(100.0, bounds, range),
+        closeTo(bounds.bottom, 1e-4),
+      );
     });
 
     test('Index to X and X to Index mapping', () {
@@ -33,7 +43,10 @@ void main() {
         rightMargin: 50.0,
       );
       const totalCandles = 100;
-      final converter = CoordinateConverter(viewport: viewport, totalCandles: totalCandles);
+      final converter = CoordinateConverter(
+        viewport: viewport,
+        totalCandles: totalCandles,
+      );
 
       // Latest candle is index 99
       final lastX = converter.indexToX(99);

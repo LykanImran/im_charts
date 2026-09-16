@@ -153,9 +153,15 @@ class ChartDrawing {
     if (l2 == 0) return (p - a).distance;
     final t = math.max(
       0.0,
-      math.min(1.0, ((p.dx - a.dx) * (b.dx - a.dx) + (p.dy - a.dy) * (b.dy - a.dy)) / l2),
+      math.min(
+        1.0,
+        ((p.dx - a.dx) * (b.dx - a.dx) + (p.dy - a.dy) * (b.dy - a.dy)) / l2,
+      ),
     );
-    final projection = Offset(a.dx + t * (b.dx - a.dx), a.dy + t * (b.dy - a.dy));
+    final projection = Offset(
+      a.dx + t * (b.dx - a.dx),
+      a.dy + t * (b.dy - a.dy),
+    );
     return (p - projection).distance;
   }
 
@@ -175,17 +181,33 @@ class ChartDrawing {
       case DrawingTool.ruler:
         if (points.length < 2) {
           final x = converter.indexToX(points[0].candleIndex);
-          final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+          final y = CoordinateConverter.priceToY(
+            points[0].price,
+            bounds,
+            priceRange,
+          );
           return [Offset(x, y)];
         }
         final x1 = converter.indexToX(points[0].candleIndex);
-        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y1 = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         final x2 = converter.indexToX(points[1].candleIndex);
-        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        final y2 = CoordinateConverter.priceToY(
+          points[1].price,
+          bounds,
+          priceRange,
+        );
         return [Offset(x1, y1), Offset(x2, y2)];
 
       case DrawingTool.horizontalLine:
-        final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         return [
           Offset(bounds.left + 50.0, y),
           Offset(bounds.center.dx, y),
@@ -195,13 +217,25 @@ class ChartDrawing {
       case DrawingTool.rectangle:
         if (points.length < 2) {
           final x = converter.indexToX(points[0].candleIndex);
-          final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+          final y = CoordinateConverter.priceToY(
+            points[0].price,
+            bounds,
+            priceRange,
+          );
           return [Offset(x, y)];
         }
         final x1 = converter.indexToX(points[0].candleIndex);
-        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y1 = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         final x2 = converter.indexToX(points[1].candleIndex);
-        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        final y2 = CoordinateConverter.priceToY(
+          points[1].price,
+          bounds,
+          priceRange,
+        );
 
         final left = math.min(x1, x2);
         final right = math.max(x1, x2);
@@ -224,9 +258,17 @@ class ChartDrawing {
       case DrawingTool.fibonacci:
         if (points.length < 2) return const [];
         final x1 = converter.indexToX(points[0].candleIndex);
-        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y1 = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         final x2 = converter.indexToX(points[1].candleIndex);
-        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        final y2 = CoordinateConverter.priceToY(
+          points[1].price,
+          bounds,
+          priceRange,
+        );
         return [Offset(x1, y1), Offset(x2, y2)];
 
       case DrawingTool.longPosition:
@@ -234,17 +276,31 @@ class ChartDrawing {
         final isLong = tool == DrawingTool.longPosition;
         final entry = points.first;
         final entryX = converter.indexToX(entry.candleIndex);
-        final entryY = CoordinateConverter.priceToY(entry.price, bounds, priceRange);
+        final entryY = CoordinateConverter.priceToY(
+          entry.price,
+          bounds,
+          priceRange,
+        );
         final widthSpan = (properties['widthSpan'] as double?) ?? (40 * 11.0);
         final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
-        final targetPrice = properties['targetPrice'] as double? ??
+        final targetPrice =
+            properties['targetPrice'] as double? ??
             (isLong ? entry.price * 1.015 : entry.price * 0.985);
-        final stopPrice = properties['stopPrice'] as double? ??
+        final stopPrice =
+            properties['stopPrice'] as double? ??
             (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
 
-        final targetY = CoordinateConverter.priceToY(targetPrice, bounds, priceRange);
-        final stopY = CoordinateConverter.priceToY(stopPrice, bounds, priceRange);
+        final targetY = CoordinateConverter.priceToY(
+          targetPrice,
+          bounds,
+          priceRange,
+        );
+        final stopY = CoordinateConverter.priceToY(
+          stopPrice,
+          bounds,
+          priceRange,
+        );
 
         return [
           Offset((entryX + rightX) / 2, targetY),
@@ -329,7 +385,14 @@ class ChartDrawing {
   }) {
     if (points.isEmpty) return false;
 
-    if (hitTestHandle(pos, bounds, priceRange, converter, threshold: threshold + 4) != null) {
+    if (hitTestHandle(
+          pos,
+          bounds,
+          priceRange,
+          converter,
+          threshold: threshold + 4,
+        ) !=
+        null) {
       return true;
     }
 
@@ -341,13 +404,26 @@ class ChartDrawing {
       case DrawingTool.ruler:
         if (points.length < 2) return false;
         final x1 = converter.indexToX(points[0].candleIndex);
-        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y1 = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         final x2 = converter.indexToX(points[1].candleIndex);
-        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
-        return distanceToSegment(pos, Offset(x1, y1), Offset(x2, y2)) <= threshold;
+        final y2 = CoordinateConverter.priceToY(
+          points[1].price,
+          bounds,
+          priceRange,
+        );
+        return distanceToSegment(pos, Offset(x1, y1), Offset(x2, y2)) <=
+            threshold;
 
       case DrawingTool.horizontalLine:
-        final y = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         return (pos.dy - y).abs() <= math.max(threshold, 10.0) &&
             pos.dx >= bounds.left - 10 &&
             pos.dx <= bounds.right + 10;
@@ -355,9 +431,17 @@ class ChartDrawing {
       case DrawingTool.rectangle:
         if (points.length < 2) return false;
         final x1 = converter.indexToX(points[0].candleIndex);
-        final y1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final y1 = CoordinateConverter.priceToY(
+          points[0].price,
+          bounds,
+          priceRange,
+        );
         final x2 = converter.indexToX(points[1].candleIndex);
-        final y2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        final y2 = CoordinateConverter.priceToY(
+          points[1].price,
+          bounds,
+          priceRange,
+        );
         final rect = Rect.fromLTRB(
           math.min(x1, x2),
           math.min(y1, y2),
@@ -381,7 +465,11 @@ class ChartDrawing {
         const ratios = [0.0, 0.236, 0.382, 0.500, 0.618, 0.786, 1.0];
         for (final r in ratios) {
           final levelPrice = p1.price + (priceDiff * r);
-          final y = CoordinateConverter.priceToY(levelPrice, bounds, priceRange);
+          final y = CoordinateConverter.priceToY(
+            levelPrice,
+            bounds,
+            priceRange,
+          );
           if ((pos.dy - y).abs() <= threshold) return true;
         }
         return false;
@@ -394,13 +482,23 @@ class ChartDrawing {
         final widthSpan = (properties['widthSpan'] as double?) ?? (40 * 11.0);
         final rightX = (entryX + widthSpan).clamp(entryX + 50.0, bounds.right);
 
-        final targetPrice = properties['targetPrice'] as double? ??
+        final targetPrice =
+            properties['targetPrice'] as double? ??
             (isLong ? entry.price * 1.015 : entry.price * 0.985);
-        final stopPrice = properties['stopPrice'] as double? ??
+        final stopPrice =
+            properties['stopPrice'] as double? ??
             (isLong ? entry.price * 0.9925 : entry.price * 1.0075);
 
-        final targetY = CoordinateConverter.priceToY(targetPrice, bounds, priceRange);
-        final stopY = CoordinateConverter.priceToY(stopPrice, bounds, priceRange);
+        final targetY = CoordinateConverter.priceToY(
+          targetPrice,
+          bounds,
+          priceRange,
+        );
+        final stopY = CoordinateConverter.priceToY(
+          stopPrice,
+          bounds,
+          priceRange,
+        );
 
         final minY = math.min(targetY, stopY);
         final maxY = math.max(targetY, stopY);

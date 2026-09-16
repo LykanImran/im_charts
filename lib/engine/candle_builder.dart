@@ -8,10 +8,10 @@ class CandleBuilder {
   final Timeframe timeframe;
   final List<Candle> _candles;
 
-  CandleBuilder({
-    required this.timeframe,
-    List<Candle>? initialCandles,
-  }) : _candles = initialCandles != null ? List<Candle>.from(initialCandles) : <Candle>[];
+  CandleBuilder({required this.timeframe, List<Candle>? initialCandles})
+    : _candles = initialCandles != null
+          ? List<Candle>.from(initialCandles)
+          : <Candle>[];
 
   List<Candle> get candles => List.unmodifiable(_candles);
 

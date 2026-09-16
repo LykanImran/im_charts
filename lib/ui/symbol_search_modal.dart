@@ -24,7 +24,10 @@ class SymbolSearchModal extends StatefulWidget {
 
   const SymbolSearchModal({super.key, required this.controller});
 
-  static Future<void> show(BuildContext context, TradingChartController controller) {
+  static Future<void> show(
+    BuildContext context,
+    TradingChartController controller,
+  ) {
     return showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
@@ -165,10 +168,12 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
 
     final query = _searchCtrl.text.trim().toLowerCase();
     final filtered = _symbols.where((s) {
-      final matchesCategory = _selectedCategory == 'All' || s.category == _selectedCategory;
+      final matchesCategory =
+          _selectedCategory == 'All' || s.category == _selectedCategory;
       if (!matchesCategory) return false;
       if (query.isEmpty) return true;
-      return s.symbol.toLowerCase().contains(query) || s.name.toLowerCase().contains(query);
+      return s.symbol.toLowerCase().contains(query) ||
+          s.name.toLowerCase().contains(query);
     }).toList();
 
     final categories = ['All', 'Indices', 'Stocks', 'Crypto'];
@@ -194,7 +199,9 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                   child: Container(
                     height: 44,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF131722) : const Color(0xFFF0F3FA),
+                      color: isDark
+                          ? const Color(0xFF131722)
+                          : const Color(0xFFF0F3FA),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: const Color(0xFF2962FF).withValues(alpha: 0.5),
@@ -204,7 +211,11 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.search, size: 20, color: Color(0xFF2962FF)),
+                        const Icon(
+                          Icons.search,
+                          size: 20,
+                          color: Color(0xFF2962FF),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
@@ -233,7 +244,11 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                               _searchCtrl.clear();
                               setState(() {});
                             },
-                            child: Icon(Icons.clear, size: 18, color: theme.axisTextColor),
+                            child: Icon(
+                              Icons.clear,
+                              size: 18,
+                              color: theme.axisTextColor,
+                            ),
                           ),
                       ],
                     ),
@@ -261,11 +276,16 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                       onTap: () => setState(() => _selectedCategory = cat),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFF2962FF)
-                              : (isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB)),
+                              : (isDark
+                                    ? const Color(0xFF2A2E39)
+                                    : const Color(0xFFE0E3EB)),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -275,7 +295,9 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                                 ? Colors.white
                                 : (isDark ? Colors.white70 : Colors.black87),
                             fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ),
@@ -295,35 +317,54 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.search_off, size: 40, color: theme.axisTextColor),
+                          Icon(
+                            Icons.search_off,
+                            size: 40,
+                            color: theme.axisTextColor,
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'No symbols found for "${_searchCtrl.text}"',
-                            style: TextStyle(color: theme.axisTextColor, fontSize: 13),
+                            style: TextStyle(
+                              color: theme.axisTextColor,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     )
                   : ListView.separated(
                       itemCount: filtered.length,
-                      separatorBuilder: (_, _) => Divider(height: 1, color: theme.gridColor),
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: theme.gridColor),
                       itemBuilder: (context, index) {
                         final item = filtered[index];
-                        final isCurrent = widget.controller.symbol == item.symbol;
+                        final isCurrent =
+                            widget.controller.symbol == item.symbol;
                         final isBull = item.changePercent >= 0;
 
                         return InkWell(
                           onTap: () {
-                            widget.controller.setSymbol(item.symbol, exchange: item.exchange);
+                            widget.controller.setSymbol(
+                              item.symbol,
+                              exchange: item.exchange,
+                            );
                             Navigator.of(context).pop();
                           },
                           borderRadius: BorderRadius.circular(6),
-                          hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.1),
+                          hoverColor: const Color(
+                            0xFF2962FF,
+                          ).withValues(alpha: 0.1),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: isCurrent
-                                  ? const Color(0xFF2962FF).withValues(alpha: 0.15)
+                                  ? const Color(
+                                      0xFF2962FF,
+                                    ).withValues(alpha: 0.15)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
                             ),
@@ -331,15 +372,22 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                               children: [
                                 // Symbol & Exchange Badge
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+                                    color: isDark
+                                        ? const Color(0xFF2A2E39)
+                                        : const Color(0xFFE0E3EB),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     item.exchange,
                                     style: TextStyle(
-                                      color: isDark ? Colors.white70 : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black87,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -348,12 +396,15 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item.symbol,
                                         style: TextStyle(
-                                          color: isDark ? Colors.white : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,
                                         ),
@@ -379,7 +430,9 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                                           ? item.price.toStringAsFixed(2)
                                           : item.price.toStringAsFixed(2),
                                       style: TextStyle(
-                                        color: isDark ? Colors.white : Colors.black87,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
                                         fontFamily: 'monospace',
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
@@ -388,7 +441,9 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                                     Text(
                                       '${isBull ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%',
                                       style: TextStyle(
-                                        color: isBull ? theme.bullishColor : theme.bearishColor,
+                                        color: isBull
+                                            ? theme.bullishColor
+                                            : theme.bearishColor,
                                         fontFamily: 'monospace',
                                         fontWeight: FontWeight.w600,
                                         fontSize: 11,
@@ -398,7 +453,11 @@ class _SymbolSearchModalState extends State<SymbolSearchModal> {
                                 ),
                                 if (isCurrent) ...[
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.check_circle, size: 16, color: Color(0xFF2962FF)),
+                                  const Icon(
+                                    Icons.check_circle,
+                                    size: 16,
+                                    color: Color(0xFF2962FF),
+                                  ),
                                 ],
                               ],
                             ),

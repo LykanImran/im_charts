@@ -29,7 +29,8 @@ class Candle {
   double get priceChange => close - open;
 
   /// Percentage change relative to open.
-  double get percentageChange => open == 0 ? 0.0 : ((close - open) / open) * 100.0;
+  double get percentageChange =>
+      open == 0 ? 0.0 : ((close - open) / open) * 100.0;
 
   /// Total bar height from low to high.
   double get range => high - low;

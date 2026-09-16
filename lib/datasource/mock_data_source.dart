@@ -82,14 +82,16 @@ class MockTradingDataSource implements ChartDataSource {
       final baseVolume = 1500.0 + (_random.nextDouble() * 4000.0);
       final volume = isSpike ? baseVolume * 3.5 : baseVolume;
 
-      tempList.add(Candle(
-        timestamp: currentTimestamp,
-        open: double.parse(open.toStringAsFixed(2)),
-        high: double.parse(high.toStringAsFixed(2)),
-        low: double.parse(low.toStringAsFixed(2)),
-        close: double.parse(close.toStringAsFixed(2)),
-        volume: double.parse(volume.toStringAsFixed(0)),
-      ));
+      tempList.add(
+        Candle(
+          timestamp: currentTimestamp,
+          open: double.parse(open.toStringAsFixed(2)),
+          high: double.parse(high.toStringAsFixed(2)),
+          low: double.parse(low.toStringAsFixed(2)),
+          close: double.parse(close.toStringAsFixed(2)),
+          volume: double.parse(volume.toStringAsFixed(0)),
+        ),
+      );
 
       price = close;
       currentTimestamp = currentTimestamp.add(timeframe.duration);

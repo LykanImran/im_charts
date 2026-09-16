@@ -23,7 +23,8 @@ class IndicatorRenderer extends BaseRenderer {
       if (!indicator.isOverlay) continue;
 
       // Special rendering for Bollinger Bands / VWAP bands (fill area between upper and lower)
-      if ((indicator.indicatorId.startsWith('BB_') || indicator.indicatorId == 'VWAP') &&
+      if ((indicator.indicatorId.startsWith('BB_') ||
+              indicator.indicatorId == 'VWAP') &&
           indicator.series.any((s) => s.id == 'upper') &&
           indicator.series.any((s) => s.id == 'lower')) {
         _drawBandFill(
@@ -60,11 +61,9 @@ class IndicatorRenderer extends BaseRenderer {
     PriceRange? priceRange,
     double candleWidth = 8.0,
   }) {
-    final range = priceRange ??
-        PriceRange(
-          indicator.fixedMin ?? 0.0,
-          indicator.fixedMax ?? 100.0,
-        );
+    final range =
+        priceRange ??
+        PriceRange(indicator.fixedMin ?? 0.0, indicator.fixedMax ?? 100.0);
 
     // Draw horizontal reference levels (e.g. 30, 50, 70 for RSI or 0.0 for MACD)
     if (indicator.horizontalLevels != null) {
@@ -123,7 +122,11 @@ class IndicatorRenderer extends BaseRenderer {
     required CoordinateConverter converter,
     required double candleWidth,
   }) {
-    final zeroY = CoordinateConverter.priceToY(0.0, bounds, priceRange).clamp(bounds.top, bounds.bottom);
+    final zeroY = CoordinateConverter.priceToY(
+      0.0,
+      bounds,
+      priceRange,
+    ).clamp(bounds.top, bounds.bottom);
     final barWidth = (candleWidth * 0.7).clamp(1.5, 24.0);
 
     final greenPaint = Paint()
@@ -145,7 +148,12 @@ class IndicatorRenderer extends BaseRenderer {
       final topY = (val >= 0 ? y : zeroY).clamp(bounds.top, bounds.bottom);
       final bottomY = (val >= 0 ? zeroY : y).clamp(bounds.top, bounds.bottom);
 
-      final barRect = Rect.fromLTRB(x - (barWidth / 2), topY, x + (barWidth / 2), bottomY);
+      final barRect = Rect.fromLTRB(
+        x - (barWidth / 2),
+        topY,
+        x + (barWidth / 2),
+        bottomY,
+      );
       canvas.drawRect(barRect, val >= 0 ? greenPaint : redPaint);
     }
   }
@@ -197,8 +205,14 @@ class IndicatorRenderer extends BaseRenderer {
     required PriceRange priceRange,
     required CoordinateConverter converter,
   }) {
-    final upper = indicator.series.firstWhere((s) => s.id == 'upper', orElse: () => indicator.series[0]);
-    final lower = indicator.series.firstWhere((s) => s.id == 'lower', orElse: () => indicator.series[2]);
+    final upper = indicator.series.firstWhere(
+      (s) => s.id == 'upper',
+      orElse: () => indicator.series[0],
+    );
+    final lower = indicator.series.firstWhere(
+      (s) => s.id == 'lower',
+      orElse: () => indicator.series[2],
+    );
 
     final fillPath = Path();
     bool started = false;

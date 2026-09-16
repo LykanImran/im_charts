@@ -12,13 +12,15 @@ class ChartExporter {
     double pixelRatio = 2.0,
   }) async {
     try {
-      final boundary = repaintBoundaryKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          repaintBoundaryKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
       if (boundary == null) return null;
 
       final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
-      final ByteData? byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
 
       return byteData?.buffer.asUint8List();
     } catch (e) {
@@ -57,8 +59,11 @@ class ChartExporter {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.camera_alt_outlined,
-                              size: 18, color: Color(0xFF2962FF)),
+                          const Icon(
+                            Icons.camera_alt_outlined,
+                            size: 18,
+                            color: Color(0xFF2962FF),
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Chart Snapshot • $symbol ($sizeKb KB)',
@@ -71,8 +76,11 @@ class ChartExporter {
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 18, color: Color(0xFF787B86)),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Color(0xFF787B86),
+                        ),
                         onPressed: () => Navigator.of(ctx).pop(),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -89,10 +97,7 @@ class ChartExporter {
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: Center(
-                        child: Image.memory(
-                          pngBytes,
-                          fit: BoxFit.contain,
-                        ),
+                        child: Image.memory(pngBytes, fit: BoxFit.contain),
                       ),
                     ),
                   ),
@@ -106,17 +111,23 @@ class ChartExporter {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  'Snapshot captured successfully ($sizeKb KB)!'),
+                                'Snapshot captured successfully ($sizeKb KB)!',
+                              ),
                               backgroundColor: const Color(0xFF1E222D),
                               duration: const Duration(seconds: 2),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         },
-                        icon: const Icon(Icons.check,
-                            size: 16, color: Color(0xFF00C853)),
-                        label: const Text('Done',
-                            style: TextStyle(color: Colors.white)),
+                        icon: const Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Color(0xFF00C853),
+                        ),
+                        label: const Text(
+                          'Done',
+                          style: TextStyle(color: Colors.white),
+                        ),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFF2A2E39)),
                         ),

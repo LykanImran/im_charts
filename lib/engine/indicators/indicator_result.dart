@@ -6,6 +6,7 @@ class IndicatorSeries {
   final String label;
   final Color color;
   final double strokeWidth;
+
   /// Values aligned 1:1 with candles. Null when insufficient data.
   final List<double?> values;
 
@@ -24,6 +25,7 @@ class IndicatorResult {
   final String name;
   final bool isOverlay;
   final List<IndicatorSeries> series;
+
   /// Optional fixed range or thresholds (e.g. 0-100 for RSI, 30/70 levels).
   final double? fixedMin;
   final double? fixedMax;

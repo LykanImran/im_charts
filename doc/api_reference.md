@@ -8,10 +8,10 @@ Comprehensive technical reference for all public classes, methods, models, and e
 
 Im Charts provides first-class brand aliases for clean, idiomatic integration:
 
-- **`ImChart`**: Alias for [`TradingChart`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/chart_widget.dart).
-- **`ImTradingScreen`**: Alias for [`TradingScreen`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/trading_screen.dart).
-- **`ImChartsApp`**: Alias for [`TradingApp`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/ui/trading_screen.dart).
-- **`ImChartController`**: Alias for [`TradingChartController`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/engine/chart_controller.dart).
+- **`ImChart`**: Alias for `TradingChart`.
+- **`ImTradingScreen`**: Alias for `TradingScreen`.
+- **`ImChartsApp`**: Alias for `TradingApp`.
+- **`ImChartController`**: Alias for `TradingChartController`.
 
 ---
 

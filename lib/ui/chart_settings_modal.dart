@@ -7,7 +7,10 @@ class ChartSettingsModal extends StatelessWidget {
 
   const ChartSettingsModal({super.key, required this.controller});
 
-  static Future<void> show(BuildContext context, TradingChartController controller) {
+  static Future<void> show(
+    BuildContext context,
+    TradingChartController controller,
+  ) {
     return showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
@@ -29,7 +32,10 @@ class ChartSettingsModal extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: theme.gridColor, width: 1),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 40,
+          ),
           child: Container(
             width: 480,
             padding: const EdgeInsets.all(20),
@@ -43,7 +49,11 @@ class ChartSettingsModal extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.settings, size: 20, color: Color(0xFF2962FF)),
+                        const Icon(
+                          Icons.settings,
+                          size: 20,
+                          color: Color(0xFF2962FF),
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Chart Settings',
@@ -57,7 +67,11 @@ class ChartSettingsModal extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.close, color: theme.axisTextColor, size: 20),
+                      icon: Icon(
+                        Icons.close,
+                        color: theme.axisTextColor,
+                        size: 20,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -138,11 +152,16 @@ class ChartSettingsModal extends StatelessWidget {
                       onTap: () => controller.setCandleStyle(style),
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFF2962FF)
-                              : (isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB)),
+                              : (isDark
+                                    ? const Color(0xFF2A2E39)
+                                    : const Color(0xFFE0E3EB)),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -151,7 +170,9 @@ class ChartSettingsModal extends StatelessWidget {
                             Icon(
                               style.icon,
                               size: 16,
-                              color: isSelected ? Colors.white : theme.axisTextColor,
+                              color: isSelected
+                                  ? Colors.white
+                                  : theme.axisTextColor,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -159,9 +180,13 @@ class ChartSettingsModal extends StatelessWidget {
                               style: TextStyle(
                                 color: isSelected
                                     ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.black87),
                                 fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
                               ),
                             ),
                           ],
@@ -195,7 +220,10 @@ class ChartSettingsModal extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2962FF),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -241,10 +269,7 @@ class ChartSettingsModal extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: textColor, fontSize: 11),
                 ),
               ],
             ),

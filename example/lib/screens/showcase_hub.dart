@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 class ShowcaseHubScreen extends StatelessWidget {
   final Function(int modeIndex) onSelectMode;
 
-  const ShowcaseHubScreen({
-    super.key,
-    required this.onSelectMode,
-  });
+  const ShowcaseHubScreen({super.key, required this.onSelectMode});
 
   @override
   Widget build(BuildContext context) {
@@ -24,16 +21,26 @@ class ShowcaseHubScreen extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF2962FF).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF2962FF), width: 1),
+                      border: Border.all(
+                        color: const Color(0xFF2962FF),
+                        width: 1,
+                      ),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.candlestick_chart, size: 14, color: Color(0xFF2962FF)),
+                        Icon(
+                          Icons.candlestick_chart,
+                          size: 14,
+                          color: Color(0xFF2962FF),
+                        ),
                         SizedBox(width: 6),
                         Text(
                           'Im Charts Studio v0.1.0',
@@ -48,14 +55,21 @@ class ShowcaseHubScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00E676).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
                       'Impeller & Skia • 120 FPS',
-                      style: TextStyle(color: Color(0xFF00E676), fontSize: 11, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -91,7 +105,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                     runSpacing: 16,
                     children: [
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '1. Full Institutional Terminal',
                         tag: 'PLUG & PLAY',
                         tagColor: const Color(0xFF2962FF),
@@ -107,7 +123,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                         onTap: () => onSelectMode(1),
                       ),
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '2. Clean / Headless Chart (No Top Header)',
                         tag: 'MINIMALIST',
                         tagColor: const Color(0xFF00E676),
@@ -123,7 +141,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                         onTap: () => onSelectMode(2),
                       ),
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '3. Multi-Chart Grid (Dual Split View)',
                         tag: 'ADVANCED TRADING',
                         tagColor: const Color(0xFFFF9800),
@@ -139,7 +159,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                         onTap: () => onSelectMode(3),
                       ),
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '4. Custom Themes & Styles Lab',
                         tag: 'DEEPLY CUSTOMIZABLE',
                         tagColor: const Color(0xFFE91E63),
@@ -155,7 +177,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                         onTap: () => onSelectMode(4),
                       ),
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '5. Embedded Analytics Card',
                         tag: 'COMPONENT USAGE',
                         tagColor: const Color(0xFFAB47BC),
@@ -171,7 +195,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                         onTap: () => onSelectMode(5),
                       ),
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '6. Direct Chart Trading & Brackets',
                         tag: 'NEW • INTERACTIVE',
                         tagColor: const Color(0xFF00E5FF),
@@ -189,7 +215,9 @@ class ShowcaseHubScreen extends StatelessWidget {
                         onTap: () => onSelectMode(6),
                       ),
                       _buildModeCard(
-                        width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                        width: isWide
+                            ? (constraints.maxWidth - 16) / 2
+                            : constraints.maxWidth,
                         title: '7. Drawing Tools & Real-Time Telemetry',
                         tag: 'NEW • TECHNICAL ANALYSIS',
                         tagColor: const Color(0xFFFFD600),
@@ -262,14 +290,21 @@ class ShowcaseHubScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: tagColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               tag,
-                              style: TextStyle(color: tagColor, fontSize: 10, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                color: tagColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -301,11 +336,17 @@ class ShowcaseHubScreen extends StatelessWidget {
                   runSpacing: 6,
                   children: bullets.map((bullet) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E2332),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFF2E354A), width: 0.8),
+                        border: Border.all(
+                          color: const Color(0xFF2E354A),
+                          width: 0.8,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -315,7 +356,10 @@ class ShowcaseHubScreen extends StatelessWidget {
                           Flexible(
                             child: Text(
                               bullet,
-                              style: const TextStyle(color: Color(0xFFD0D4E0), fontSize: 11),
+                              style: const TextStyle(
+                                color: Color(0xFFD0D4E0),
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],

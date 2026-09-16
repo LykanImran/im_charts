@@ -30,7 +30,13 @@ class TradingScreen extends StatefulWidget {
   final bool showCountdownTimer;
   final String? brandName;
   final bool enableChartTrading;
-  final Widget Function(BuildContext context, double price, TradingChartController controller, VoidCallback closeMenu)? orderMenuBuilder;
+  final Widget Function(
+    BuildContext context,
+    double price,
+    TradingChartController controller,
+    VoidCallback closeMenu,
+  )?
+  orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(String orderId)? onOrderCancelled;
   final void Function(ChartPosition position)? onPositionClosed;
@@ -78,7 +84,10 @@ class _TradingScreenState extends State<TradingScreen> {
       if (widget.dataSource != null) {
         _dataSource = widget.dataSource!;
       } else {
-        _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
+        _dataSource = MockTradingDataSource(
+          initialPrice: 24520.0,
+          volatility: 0.0018,
+        );
         _internalDataSource = true;
       }
 
@@ -95,7 +104,9 @@ class _TradingScreenState extends State<TradingScreen> {
       // Initialize data & activate starter indicators
       _controller.initialize().then((_) {
         if (mounted) {
-          _controller.toggleIndicator(EMAIndicator(period: 20, color: const Color(0xFF2962FF)));
+          _controller.toggleIndicator(
+            EMAIndicator(period: 20, color: const Color(0xFF2962FF)),
+          );
           _controller.toggleIndicator(RSIIndicator(period: 14));
         }
       });
@@ -124,7 +135,9 @@ class _TradingScreenState extends State<TradingScreen> {
 
         return Theme(
           data: ThemeData(
-            brightness: _controller.isDarkTheme ? Brightness.dark : Brightness.light,
+            brightness: _controller.isDarkTheme
+                ? Brightness.dark
+                : Brightness.light,
             scaffoldBackgroundColor: theme.backgroundColor,
           ),
           child: Scaffold(
@@ -157,9 +170,11 @@ class _TradingScreenState extends State<TradingScreen> {
                                   child: TradingChart(
                                     controller: _controller,
                                     repaintBoundaryKey: _chartRepaintKey,
-                                    enableChartTrading: widget.enableChartTrading,
+                                    enableChartTrading:
+                                        widget.enableChartTrading,
                                     showWatermark: widget.showWatermark,
-                                    showCountdownTimer: widget.showCountdownTimer,
+                                    showCountdownTimer:
+                                        widget.showCountdownTimer,
                                     brandName: widget.brandName,
                                     orderMenuBuilder: widget.orderMenuBuilder,
                                     onOrderPlaced: widget.onOrderPlaced,
@@ -173,7 +188,8 @@ class _TradingScreenState extends State<TradingScreen> {
                                   Positioned(
                                     top: 0,
                                     left: 0,
-                                    right: 65, // Leaves the price axis unobscured
+                                    right:
+                                        65, // Leaves the price axis unobscured
                                     child: ChartHeader(controller: _controller),
                                   ),
                               ],

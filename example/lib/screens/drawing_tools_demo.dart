@@ -21,7 +21,10 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
   @override
   void initState() {
     super.initState();
-    _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0015);
+    _dataSource = MockTradingDataSource(
+      initialPrice: 24520.0,
+      volatility: 0.0015,
+    );
     _controller = TradingChartController(
       symbol: 'NIFTY 50',
       exchange: 'NSE',
@@ -61,7 +64,10 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
       id: 'draw_sample_horizontal',
       tool: DrawingTool.horizontalLine,
       points: [
-        DrawingPoint(candleIndex: lastIndex - 10, price: double.parse((currentPrice * 1.004).toStringAsFixed(2))),
+        DrawingPoint(
+          candleIndex: lastIndex - 10,
+          price: double.parse((currentPrice * 1.004).toStringAsFixed(2)),
+        ),
       ],
       color: const Color(0xFF00E5FF),
       strokeWidth: 1.5,
@@ -72,7 +78,10 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
       id: 'draw_sample_long_pos',
       tool: DrawingTool.longPosition,
       points: [
-        DrawingPoint(candleIndex: lastIndex - 25, price: double.parse((currentPrice * 0.998).toStringAsFixed(2))),
+        DrawingPoint(
+          candleIndex: lastIndex - 25,
+          price: double.parse((currentPrice * 0.998).toStringAsFixed(2)),
+        ),
       ],
       properties: {
         'targetPrice': double.parse((currentPrice * 1.012).toStringAsFixed(2)),
@@ -117,7 +126,10 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
         backgroundColor: color.withValues(alpha: 0.9),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
@@ -163,7 +175,9 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: const BoxDecoration(
             color: Color(0xFF131722),
-            border: Border(bottom: BorderSide(color: Color(0xFF2A2E39), width: 1)),
+            border: Border(
+              bottom: BorderSide(color: Color(0xFF2A2E39), width: 1),
+            ),
           ),
           child: Row(
             children: [
@@ -178,11 +192,19 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.brush_outlined, size: 13, color: Color(0xFF2962FF)),
+                    Icon(
+                      Icons.brush_outlined,
+                      size: 13,
+                      color: Color(0xFF2962FF),
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'DRAWING TOOLS & TELEMETRY LAB',
-                      style: TextStyle(color: Color(0xFF2962FF), fontSize: 11, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFF2962FF),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -200,11 +222,19 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(_controller.activeDrawingTool.icon, size: 12, color: const Color(0xFF00E5FF)),
+                    Icon(
+                      _controller.activeDrawingTool.icon,
+                      size: 12,
+                      color: const Color(0xFF00E5FF),
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Tool: ${_controller.activeDrawingTool.label}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -231,24 +261,34 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
 
               // Watermark Toggle
               IconButton(
-                tooltip: _controller.showWatermark ? 'Hide Watermark' : 'Show Watermark',
+                tooltip: _controller.showWatermark
+                    ? 'Hide Watermark'
+                    : 'Show Watermark',
                 icon: Icon(
                   Icons.branding_watermark_outlined,
                   size: 16,
-                  color: _controller.showWatermark ? const Color(0xFF2962FF) : const Color(0xFF868993),
+                  color: _controller.showWatermark
+                      ? const Color(0xFF2962FF)
+                      : const Color(0xFF868993),
                 ),
-                onPressed: () => _controller.showWatermark = !_controller.showWatermark,
+                onPressed: () =>
+                    _controller.showWatermark = !_controller.showWatermark,
               ),
 
               // Countdown Timer Toggle
               IconButton(
-                tooltip: _controller.showCountdownTimer ? 'Hide Countdown Timer' : 'Show Countdown Timer',
+                tooltip: _controller.showCountdownTimer
+                    ? 'Hide Countdown Timer'
+                    : 'Show Countdown Timer',
                 icon: Icon(
                   Icons.timer_outlined,
                   size: 16,
-                  color: _controller.showCountdownTimer ? const Color(0xFF00E5FF) : const Color(0xFF868993),
+                  color: _controller.showCountdownTimer
+                      ? const Color(0xFF00E5FF)
+                      : const Color(0xFF868993),
                 ),
-                onPressed: () => _controller.showCountdownTimer = !_controller.showCountdownTimer,
+                onPressed: () => _controller.showCountdownTimer =
+                    !_controller.showCountdownTimer,
               ),
             ],
           ),
@@ -276,7 +316,11 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
           ),
           child: Text(
             label,
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

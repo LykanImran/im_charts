@@ -18,7 +18,10 @@ class _CleanChartDemoScreenState extends State<CleanChartDemoScreen> {
   @override
   void initState() {
     super.initState();
-    _dataSource = MockTradingDataSource(initialPrice: 24520.0, volatility: 0.0018);
+    _dataSource = MockTradingDataSource(
+      initialPrice: 24520.0,
+      volatility: 0.0018,
+    );
     _controller = TradingChartController(
       symbol: 'NIFTY 50',
       exchange: 'NSE',
@@ -52,9 +55,7 @@ class _CleanChartDemoScreenState extends State<CleanChartDemoScreen> {
         child: Stack(
           children: [
             // 1. PURE STANDALONE CANVAS (100% full screen, no top toolbar or header)
-            Positioned.fill(
-              child: TradingChart(controller: _controller),
-            ),
+            Positioned.fill(child: TradingChart(controller: _controller)),
 
             // 2. Minimalist Floating Ticker & Timeframe Pill (Top-Left overlay)
             Positioned(
@@ -65,16 +66,28 @@ class _CleanChartDemoScreenState extends State<CleanChartDemoScreen> {
                 builder: (context, _) {
                   final latest = _controller.currentCandle;
                   final isBullish = latest?.isBullish ?? true;
-                  final color = isBullish ? const Color(0xFF089981) : const Color(0xFFF23645);
+                  final color = isBullish
+                      ? const Color(0xFF089981)
+                      : const Color(0xFFF23645);
 
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xDD1E222D),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF2A2E39), width: 1),
+                      border: Border.all(
+                        color: const Color(0xFF2A2E39),
+                        width: 1,
+                      ),
                       boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2)),
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
                       ],
                     ),
                     child: Row(
@@ -100,9 +113,14 @@ class _CleanChartDemoScreenState extends State<CleanChartDemoScreen> {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -173,17 +191,26 @@ class _CleanChartDemoScreenState extends State<CleanChartDemoScreen> {
                           onTap: () => _controller.setTimeframe(tf),
                           borderRadius: BorderRadius.circular(5),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFF2962FF) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0xFF2962FF)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
                               tf.shortLabel,
                               style: TextStyle(
-                                color: isSelected ? Colors.white : const Color(0xFF868993),
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF868993),
                                 fontSize: 11,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),

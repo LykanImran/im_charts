@@ -35,8 +35,16 @@ class VolumeProfileRenderer {
     for (final bin in profile.bins) {
       if (bin.totalVolume <= 0) continue;
 
-      final yTop = CoordinateConverter.priceToY(bin.upperPrice, bounds, priceRange);
-      final yBottom = CoordinateConverter.priceToY(bin.lowerPrice, bounds, priceRange);
+      final yTop = CoordinateConverter.priceToY(
+        bin.upperPrice,
+        bounds,
+        priceRange,
+      );
+      final yBottom = CoordinateConverter.priceToY(
+        bin.lowerPrice,
+        bounds,
+        priceRange,
+      );
 
       final barY = yTop < yBottom ? yTop : yBottom;
       final barHeight = (yBottom - yTop).abs().clamp(1.0, bounds.height);
@@ -80,7 +88,12 @@ class VolumeProfileRenderer {
           canvas.drawRect(buyRect, buyPaint);
         }
         if (sellWidth > 0) {
-          final sellRect = Rect.fromLTWH(left + buyWidth, barY, sellWidth, barHeight - 0.5);
+          final sellRect = Rect.fromLTWH(
+            left + buyWidth,
+            barY,
+            sellWidth,
+            barHeight - 0.5,
+          );
           canvas.drawRect(sellRect, sellPaint);
         }
       }
@@ -107,7 +120,11 @@ class VolumeProfileRenderer {
 
     // 3. Draw Point of Control (POC) with prominent red line and badge
     if (profile.pocPrice != null) {
-      final pocY = CoordinateConverter.priceToY(profile.pocPrice!, bounds, priceRange);
+      final pocY = CoordinateConverter.priceToY(
+        profile.pocPrice!,
+        bounds,
+        priceRange,
+      );
       if (pocY >= bounds.top && pocY <= bounds.bottom) {
         final pocPaint = Paint()
           ..color = const Color(0xFFFF1744)
@@ -148,10 +165,7 @@ class VolumeProfileRenderer {
           const Radius.circular(3),
         );
 
-        canvas.drawRRect(
-          badgeRect,
-          Paint()..color = const Color(0xFFFF1744),
-        );
+        canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFFFF1744));
 
         textPainter.paint(
           canvas,

@@ -35,10 +35,7 @@ void main() {
 class ExampleApp extends StatefulWidget {
   final int initialModeIndex;
 
-  const ExampleApp({
-    super.key,
-    this.initialModeIndex = 0,
-  });
+  const ExampleApp({super.key, this.initialModeIndex = 0});
 
   @override
   State<ExampleApp> createState() => _ExampleAppState();
@@ -49,14 +46,38 @@ class _ExampleAppState extends State<ExampleApp> {
   bool _showTopNavBar = true;
 
   final List<({String title, IconData icon, Color color})> _modes = const [
-    (title: 'Dashboard Hub', icon: Icons.dashboard_outlined, color: Color(0xFF2962FF)),
-    (title: 'Full Terminal', icon: Icons.candlestick_chart, color: Color(0xFF2962FF)),
+    (
+      title: 'Dashboard Hub',
+      icon: Icons.dashboard_outlined,
+      color: Color(0xFF2962FF),
+    ),
+    (
+      title: 'Full Terminal',
+      icon: Icons.candlestick_chart,
+      color: Color(0xFF2962FF),
+    ),
     (title: 'Clean Chart', icon: Icons.fullscreen, color: Color(0xFF00E676)),
-    (title: 'Dual Grid', icon: Icons.grid_view_rounded, color: Color(0xFFFF9800)),
-    (title: 'Themes Lab', icon: Icons.palette_outlined, color: Color(0xFFE91E63)),
-    (title: 'Portfolio Card', icon: Icons.account_balance_wallet_outlined, color: Color(0xFFAB47BC)),
+    (
+      title: 'Dual Grid',
+      icon: Icons.grid_view_rounded,
+      color: Color(0xFFFF9800),
+    ),
+    (
+      title: 'Themes Lab',
+      icon: Icons.palette_outlined,
+      color: Color(0xFFE91E63),
+    ),
+    (
+      title: 'Portfolio Card',
+      icon: Icons.account_balance_wallet_outlined,
+      color: Color(0xFFAB47BC),
+    ),
     (title: 'Chart Trading', icon: Icons.add_chart, color: Color(0xFF00E5FF)),
-    (title: 'Drawing Tools', icon: Icons.brush_outlined, color: Color(0xFFFFD600)),
+    (
+      title: 'Drawing Tools',
+      icon: Icons.brush_outlined,
+      color: Color(0xFFFFD600),
+    ),
   ];
 
   @override
@@ -107,19 +128,33 @@ class _ExampleAppState extends State<ExampleApp> {
                             onTap: () => setState(() => _showTopNavBar = true),
                             borderRadius: BorderRadius.circular(20),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFF2A2E39), width: 1),
+                                border: Border.all(
+                                  color: const Color(0xFF2A2E39),
+                                  width: 1,
+                                ),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.menu_open_rounded, size: 14, color: Colors.white70),
+                                  Icon(
+                                    Icons.menu_open_rounded,
+                                    size: 14,
+                                    color: Colors.white70,
+                                  ),
                                   SizedBox(width: 4),
                                   Text(
                                     'Show Modes',
-                                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -142,9 +177,7 @@ class _ExampleAppState extends State<ExampleApp> {
       height: 48,
       decoration: const BoxDecoration(
         color: Color(0xFF131722),
-        border: Border(
-          bottom: BorderSide(color: Color(0xFF2A2E39), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFF2A2E39), width: 1)),
       ),
       child: Row(
         children: [
@@ -186,7 +219,13 @@ class _ExampleAppState extends State<ExampleApp> {
             ),
           ),
 
-          const VerticalDivider(width: 1, thickness: 1, color: Color(0xFF2A2E39), indent: 10, endIndent: 10),
+          const VerticalDivider(
+            width: 1,
+            thickness: 1,
+            color: Color(0xFF2A2E39),
+            indent: 10,
+            endIndent: 10,
+          ),
 
           // Scrollable Mode Switcher Tabs
           Expanded(
@@ -208,12 +247,19 @@ class _ExampleAppState extends State<ExampleApp> {
                         hoverColor: Colors.white.withValues(alpha: 0.05),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? mode.color.withValues(alpha: 0.18) : Colors.transparent,
+                            color: isSelected
+                                ? mode.color.withValues(alpha: 0.18)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: isSelected ? mode.color : Colors.transparent,
+                              color: isSelected
+                                  ? mode.color
+                                  : Colors.transparent,
                               width: 1,
                             ),
                           ),
@@ -223,15 +269,21 @@ class _ExampleAppState extends State<ExampleApp> {
                               Icon(
                                 mode.icon,
                                 size: 14,
-                                color: isSelected ? mode.color : const Color(0xFF868993),
+                                color: isSelected
+                                    ? mode.color
+                                    : const Color(0xFF868993),
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 mode.title,
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : const Color(0xFF868993),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFF868993),
                                   fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -248,7 +300,11 @@ class _ExampleAppState extends State<ExampleApp> {
           // Collapse Bar Button (to experience edge-to-edge)
           IconButton(
             tooltip: 'Hide Mode Bar (Edge-to-Edge)',
-            icon: const Icon(Icons.fullscreen_outlined, size: 18, color: Color(0xFF868993)),
+            icon: const Icon(
+              Icons.fullscreen_outlined,
+              size: 18,
+              color: Color(0xFF868993),
+            ),
             onPressed: () => setState(() => _showTopNavBar = false),
           ),
         ],

@@ -53,7 +53,7 @@ The inverse function maps pointer Y touches back into exact market prices:
 
 $$\text{Price} = \text{minPrice} + \left( \frac{\text{bounds.bottom} - Y}{\text{bounds.height}} \right) \times (\text{maxPrice} - \text{minPrice})$$
 
-Implemented in [`CoordinateConverter`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/core/coordinates/coordinate_converter.dart).
+Implemented in `CoordinateConverter`.
 
 ---
 
@@ -92,7 +92,7 @@ This anchor calculation ensures **zero-jitter, focal-anchored zooming**.
 
 ## 🎛️ Dual-Pane Layout System
 
-[`ChartPaneLayout`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/renderer/pane.dart) partitions the total canvas area into dedicated rectangles:
+`ChartPaneLayout` partitions the total canvas area into dedicated rectangles:
 
 ```
 +------------------------------------------------------+---------------+

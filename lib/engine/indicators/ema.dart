@@ -56,7 +56,8 @@ class EMAIndicator extends Indicator {
     // Step 2: Exponential smoothing
     final multiplier = 2.0 / (period + 1);
     for (int i = period; i < candles.length; i++) {
-      currentEma = (candles[i].close * multiplier) + (currentEma * (1.0 - multiplier));
+      currentEma =
+          (candles[i].close * multiplier) + (currentEma * (1.0 - multiplier));
       values[i] = currentEma;
     }
 

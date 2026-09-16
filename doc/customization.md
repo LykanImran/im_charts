@@ -6,7 +6,7 @@
 
 ## 🎨 Design System & `ChartTheme`
 
-Every visual aspect of the chart is governed by [`ChartTheme`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/core/models/chart_theme.dart).
+Every visual aspect of the chart is governed by `ChartTheme`.
 
 ### Factory Themes
 
@@ -67,7 +67,7 @@ final emeraldTheme = ChartTheme.light().copyWith(
 
 ## 🕯️ Candlestick Presentation Styles
 
-`im_charts` supports 6 distinct rendering styles out of the box via [`CandleStyle`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/core/models/candle_style.dart):
+`im_charts` supports 6 distinct rendering styles out of the box via `CandleStyle`:
 
 ```dart
 // Change candle style at any time:
@@ -87,7 +87,7 @@ controller.setCandleStyle(CandleStyle.hollowCandles);
 
 ## 🎚️ Viewport & Layout Sizing
 
-You can customize default candle widths, margins, and spacing via [`ChartViewport`](file:///Users/princeraj/Storage%20Drive/Files/Projects/charts/im_charts/lib/core/coordinates/viewport.dart):
+You can customize default candle widths, margins, and spacing via `ChartViewport`:
 
 ```dart
 const customViewport = ChartViewport(

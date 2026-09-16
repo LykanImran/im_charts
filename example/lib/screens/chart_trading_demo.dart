@@ -24,7 +24,10 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
   @override
   void initState() {
     super.initState();
-    _dataSource = MockTradingDataSource(initialPrice: 24500.0, volatility: 0.0015);
+    _dataSource = MockTradingDataSource(
+      initialPrice: 24500.0,
+      volatility: 0.0015,
+    );
     _controller = TradingChartController(
       symbol: 'NIFTY 50',
       exchange: 'NSE',
@@ -90,12 +93,18 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
   void _addQuickOrder(OrderSide side, bool withBrackets) {
     final currentPrice = _controller.currentCandle?.close ?? 24500.0;
     final isBuy = side == OrderSide.buy;
-    final orderPrice = double.parse((currentPrice * (isBuy ? 0.997 : 1.003)).toStringAsFixed(2));
+    final orderPrice = double.parse(
+      (currentPrice * (isBuy ? 0.997 : 1.003)).toStringAsFixed(2),
+    );
     final tp = withBrackets
-        ? double.parse((orderPrice * (isBuy ? 1.015 : 0.985)).toStringAsFixed(2))
+        ? double.parse(
+            (orderPrice * (isBuy ? 1.015 : 0.985)).toStringAsFixed(2),
+          )
         : null;
     final sl = withBrackets
-        ? double.parse((orderPrice * (isBuy ? 0.990 : 1.010)).toStringAsFixed(2))
+        ? double.parse(
+            (orderPrice * (isBuy ? 0.990 : 1.010)).toStringAsFixed(2),
+          )
         : null;
 
     final order = ChartOrder(
@@ -110,14 +119,21 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
     );
 
     _controller.placeOrder(order);
-    _showFeedback('${isBuy ? 'BUY' : 'SELL'} Limit Order Placed @ $orderPrice', isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30));
+    _showFeedback(
+      '${isBuy ? 'BUY' : 'SELL'} Limit Order Placed @ $orderPrice',
+      isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30),
+    );
   }
 
   void _addQuickPosition(PositionSide side) {
     final currentPrice = _controller.currentCandle?.close ?? 24500.0;
     final isLong = side == PositionSide.long;
-    final tp = double.parse((currentPrice * (isLong ? 1.012 : 0.988)).toStringAsFixed(2));
-    final sl = double.parse((currentPrice * (isLong ? 0.992 : 1.008)).toStringAsFixed(2));
+    final tp = double.parse(
+      (currentPrice * (isLong ? 1.012 : 0.988)).toStringAsFixed(2),
+    );
+    final sl = double.parse(
+      (currentPrice * (isLong ? 0.992 : 1.008)).toStringAsFixed(2),
+    );
 
     final pos = ChartPosition(
       id: 'pos_${DateTime.now().millisecondsSinceEpoch}',
@@ -142,7 +158,10 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
         backgroundColor: color.withValues(alpha: 0.9),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
@@ -173,11 +192,16 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                       onOrderPlaced: (order) {
                         _showFeedback(
                           'Order Placed: ${order.side.name.toUpperCase()} ${order.quantity.toInt()} @ ${order.price.toStringAsFixed(2)}',
-                          order.isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30),
+                          order.isBuy
+                              ? const Color(0xFF00E676)
+                              : const Color(0xFFFF3B30),
                         );
                       },
                       onOrderCancelled: (orderId) {
-                        _showFeedback('Order $orderId Cancelled', const Color(0xFFFF9100));
+                        _showFeedback(
+                          'Order $orderId Cancelled',
+                          const Color(0xFFFF9100),
+                        );
                       },
                     ),
                   ),
@@ -187,13 +211,22 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                     top: 12,
                     left: 14,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xDD1E222D),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF2A2E39), width: 1),
+                        border: Border.all(
+                          color: const Color(0xFF2A2E39),
+                          width: 1,
+                        ),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 6),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                          ),
                         ],
                       ),
                       child: Row(
@@ -210,13 +243,19 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                           const SizedBox(width: 8),
                           const Text(
                             'NIFTY 50',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'LIVE CHART TRADING',
                             style: TextStyle(
-                              color: const Color(0xFF00E5FF).withValues(alpha: 0.9),
+                              color: const Color(
+                                0xFF00E5FF,
+                              ).withValues(alpha: 0.9),
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.8,
@@ -260,7 +299,11 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
               color: const Color(0xFF2962FF).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(Icons.touch_app_outlined, size: 18, color: Color(0xFF2962FF)),
+            child: const Icon(
+              Icons.touch_app_outlined,
+              size: 18,
+              color: Color(0xFF2962FF),
+            ),
           ),
           const SizedBox(width: 10),
           const Expanded(
@@ -269,7 +312,11 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
               children: [
                 Text(
                   'Hover before the right price axis to reveal the "+" button. Click to place Limit orders with TP/SL.',
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
@@ -315,13 +362,20 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
           const SizedBox(width: 8),
           // Toggle Ledger Drawer
           IconButton(
-            tooltip: _showOrdersDrawer ? 'Hide Orders Table' : 'Show Orders Table',
+            tooltip: _showOrdersDrawer
+                ? 'Hide Orders Table'
+                : 'Show Orders Table',
             icon: Icon(
-              _showOrdersDrawer ? Icons.table_chart : Icons.table_chart_outlined,
+              _showOrdersDrawer
+                  ? Icons.table_chart
+                  : Icons.table_chart_outlined,
               size: 18,
-              color: _showOrdersDrawer ? const Color(0xFF2962FF) : Colors.white70,
+              color: _showOrdersDrawer
+                  ? const Color(0xFF2962FF)
+                  : Colors.white70,
             ),
-            onPressed: () => setState(() => _showOrdersDrawer = !_showOrdersDrawer),
+            onPressed: () =>
+                setState(() => _showOrdersDrawer = !_showOrdersDrawer),
           ),
         ],
       ),
@@ -348,7 +402,11 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
           ),
           child: Text(
             label,
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
@@ -382,9 +440,14 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
             children: [
               // Header with Tabs
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Color(0xFF2A2E39), width: 1)),
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFF2A2E39), width: 1),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -393,24 +456,37 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                       onTap: () => setState(() => _selectedLedgerTab = 0),
                       borderRadius: BorderRadius.circular(4),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: _selectedLedgerTab == 0 ? const Color(0xFF2962FF).withValues(alpha: 0.2) : Colors.transparent,
+                          color: _selectedLedgerTab == 0
+                              ? const Color(0xFF2962FF).withValues(alpha: 0.2)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: _selectedLedgerTab == 0 ? const Color(0xFF2962FF) : Colors.transparent,
+                            color: _selectedLedgerTab == 0
+                                ? const Color(0xFF2962FF)
+                                : Colors.transparent,
                             width: 1,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.receipt_long, size: 13, color: Color(0xFF00E5FF)),
+                            const Icon(
+                              Icons.receipt_long,
+                              size: 13,
+                              color: Color(0xFF00E5FF),
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Orders (${orders.length})',
                               style: TextStyle(
-                                color: _selectedLedgerTab == 0 ? Colors.white : const Color(0xFF868993),
+                                color: _selectedLedgerTab == 0
+                                    ? Colors.white
+                                    : const Color(0xFF868993),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -426,24 +502,37 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                       onTap: () => setState(() => _selectedLedgerTab = 1),
                       borderRadius: BorderRadius.circular(4),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: _selectedLedgerTab == 1 ? const Color(0xFFAB47BC).withValues(alpha: 0.2) : Colors.transparent,
+                          color: _selectedLedgerTab == 1
+                              ? const Color(0xFFAB47BC).withValues(alpha: 0.2)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: _selectedLedgerTab == 1 ? const Color(0xFFAB47BC) : Colors.transparent,
+                            color: _selectedLedgerTab == 1
+                                ? const Color(0xFFAB47BC)
+                                : Colors.transparent,
                             width: 1,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.trending_up, size: 13, color: Color(0xFFAB47BC)),
+                            const Icon(
+                              Icons.trending_up,
+                              size: 13,
+                              color: Color(0xFFAB47BC),
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Positions (${positions.length})',
                               style: TextStyle(
-                                color: _selectedLedgerTab == 1 ? Colors.white : const Color(0xFF868993),
+                                color: _selectedLedgerTab == 1
+                                    ? Colors.white
+                                    : const Color(0xFF868993),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -461,7 +550,11 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                         onTap: _controller.clearOrders,
                         child: const Text(
                           'Cancel All',
-                          style: TextStyle(color: Color(0xFFFF3B30), fontSize: 11, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Color(0xFFFF3B30),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     if (_selectedLedgerTab == 1 && positions.isNotEmpty)
@@ -469,7 +562,11 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                         onTap: _controller.clearPositions,
                         child: const Text(
                           'Close All',
-                          style: TextStyle(color: Color(0xFFFF3B30), fontSize: 11, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Color(0xFFFF3B30),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                   ],
@@ -492,26 +589,39 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: orders.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFF2A2E39)),
+                      separatorBuilder: (_, _) =>
+                          const Divider(height: 1, color: Color(0xFF2A2E39)),
                       itemBuilder: (context, index) {
                         final order = orders[index];
                         final isBuy = order.isBuy;
-                        final sideColor = isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
+                        final sideColor = isBuy
+                            ? const Color(0xFF00E676)
+                            : const Color(0xFFFF3B30);
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           child: Row(
                             children: [
                               // Side Pill
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: sideColor.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   order.side.name.toUpperCase(),
-                                  style: TextStyle(color: sideColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: sideColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -525,12 +635,19 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                       children: [
                                         Text(
                                           '${order.quantity.toInt()} @ ₹${order.price.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           '(${order.type.name.toUpperCase()})',
-                                          style: const TextStyle(color: Color(0xFF868993), fontSize: 10),
+                                          style: const TextStyle(
+                                            color: Color(0xFF868993),
+                                            fontSize: 10,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -540,17 +657,27 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                         if (order.hasTakeProfit)
                                           Text(
                                             'TP: ₹${order.takeProfitPrice!.toStringAsFixed(2)}  ',
-                                            style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10),
+                                            style: const TextStyle(
+                                              color: Color(0xFF00E5FF),
+                                              fontSize: 10,
+                                            ),
                                           ),
                                         if (order.hasStopLoss)
                                           Text(
                                             'SL: ₹${order.stopLossPrice!.toStringAsFixed(2)}',
-                                            style: const TextStyle(color: Color(0xFFFF9100), fontSize: 10),
+                                            style: const TextStyle(
+                                              color: Color(0xFFFF9100),
+                                              fontSize: 10,
+                                            ),
                                           ),
-                                        if (!order.hasTakeProfit && !order.hasStopLoss)
+                                        if (!order.hasTakeProfit &&
+                                            !order.hasStopLoss)
                                           const Text(
                                             'No brackets',
-                                            style: TextStyle(color: Color(0xFF868993), fontSize: 10),
+                                            style: TextStyle(
+                                              color: Color(0xFF868993),
+                                              fontSize: 10,
+                                            ),
                                           ),
                                       ],
                                     ),
@@ -560,11 +687,18 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
 
                               // Cancel Button
                               IconButton(
-                                icon: const Icon(Icons.close, size: 14, color: Color(0xFFFF3B30)),
+                                icon: const Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: Color(0xFFFF3B30),
+                                ),
                                 tooltip: 'Cancel Order',
                                 onPressed: () {
                                   _controller.cancelOrder(order.id);
-                                  _showFeedback('Order ${order.id} Cancelled', const Color(0xFFFF3B30));
+                                  _showFeedback(
+                                    'Order ${order.id} Cancelled',
+                                    const Color(0xFFFF3B30),
+                                  );
                                 },
                               ),
                             ],
@@ -591,31 +725,48 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: positions.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFF2A2E39)),
+                      separatorBuilder: (_, _) =>
+                          const Divider(height: 1, color: Color(0xFF2A2E39)),
                       itemBuilder: (context, index) {
                         final pos = positions[index];
                         final isLong = pos.isLong;
-                        final sideColor = isLong ? const Color(0xFF2962FF) : const Color(0xFFE91E63);
+                        final sideColor = isLong
+                            ? const Color(0xFF2962FF)
+                            : const Color(0xFFE91E63);
                         final pnl = pos.unrealizedPnL(currentPrice);
-                        final pnlPct = pos.unrealizedPnLPercentage(currentPrice);
+                        final pnlPct = pos.unrealizedPnLPercentage(
+                          currentPrice,
+                        );
                         final isProfit = pnl >= 0;
-                        final pnlColor = isProfit ? const Color(0xFF00E676) : const Color(0xFFFF3B30);
+                        final pnlColor = isProfit
+                            ? const Color(0xFF00E676)
+                            : const Color(0xFFFF3B30);
                         final pnlSign = isProfit ? '+' : '';
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           child: Row(
                             children: [
                               // Side Pill
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: sideColor.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   pos.side.label,
-                                  style: TextStyle(color: sideColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: sideColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -629,12 +780,21 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                       children: [
                                         Text(
                                           '${pos.quantity.toInt()} @ ₹${pos.entryPrice.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         const Spacer(),
                                         Text(
                                           '$pnlSign₹${pnl.abs().toStringAsFixed(2)} ($pnlSign${pnlPct.toStringAsFixed(2)}%)',
-                                          style: TextStyle(color: pnlColor, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                          style: TextStyle(
+                                            color: pnlColor,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'monospace',
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -642,9 +802,21 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                     Row(
                                       children: [
                                         if (pos.hasTakeProfit)
-                                          Text('TP: ₹${pos.takeProfitPrice!.toStringAsFixed(2)}  ', style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10)),
+                                          Text(
+                                            'TP: ₹${pos.takeProfitPrice!.toStringAsFixed(2)}  ',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00E5FF),
+                                              fontSize: 10,
+                                            ),
+                                          ),
                                         if (pos.hasStopLoss)
-                                          Text('SL: ₹${pos.stopLossPrice!.toStringAsFixed(2)}  ', style: const TextStyle(color: Color(0xFFFF9100), fontSize: 10)),
+                                          Text(
+                                            'SL: ₹${pos.stopLossPrice!.toStringAsFixed(2)}  ',
+                                            style: const TextStyle(
+                                              color: Color(0xFFFF9100),
+                                              fontSize: 10,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   ],
@@ -655,11 +827,18 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
 
                               // Close Button
                               IconButton(
-                                icon: const Icon(Icons.close, size: 14, color: Color(0xFFFF5252)),
+                                icon: const Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: Color(0xFFFF5252),
+                                ),
                                 tooltip: 'Close Position',
                                 onPressed: () {
                                   _controller.closePosition(pos.id);
-                                  _showFeedback('Position ${pos.id} Closed', const Color(0xFFFF5252));
+                                  _showFeedback(
+                                    'Position ${pos.id} Closed',
+                                    const Color(0xFFFF5252),
+                                  );
                                 },
                               ),
                             ],

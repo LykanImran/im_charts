@@ -143,7 +143,11 @@ void main() {
       controller.placeOrder(order);
 
       // Add brackets
-      controller.updateOrderBrackets('order_test_3', takeProfitPrice: 110.0, stopLossPrice: 95.0);
+      controller.updateOrderBrackets(
+        'order_test_3',
+        takeProfitPrice: 110.0,
+        stopLossPrice: 95.0,
+      );
       expect(controller.orders.first.takeProfitPrice, 110.0);
       expect(controller.orders.first.stopLossPrice, 95.0);
 
@@ -183,8 +187,22 @@ void main() {
     test('setOrders and clearOrders batch management', () async {
       await controller.initialize();
 
-      final o1 = ChartOrder(id: 'o1', symbol: 'TEST', side: OrderSide.buy, type: OrderType.limit, price: 95.0, quantity: 10);
-      final o2 = ChartOrder(id: 'o2', symbol: 'TEST', side: OrderSide.sell, type: OrderType.limit, price: 105.0, quantity: 10);
+      final o1 = ChartOrder(
+        id: 'o1',
+        symbol: 'TEST',
+        side: OrderSide.buy,
+        type: OrderType.limit,
+        price: 95.0,
+        quantity: 10,
+      );
+      final o2 = ChartOrder(
+        id: 'o2',
+        symbol: 'TEST',
+        side: OrderSide.sell,
+        type: OrderType.limit,
+        price: 105.0,
+        quantity: 10,
+      );
 
       controller.setOrders([o1, o2]);
       expect(controller.orders.length, 2);

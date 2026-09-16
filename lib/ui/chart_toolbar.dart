@@ -270,7 +270,8 @@ class _ChartToolbarState extends State<ChartToolbar>
                       onPressed: () async {
                         if (widget.repaintBoundaryKey != null) {
                           final bytes = await ChartExporter.capturePng(
-                              widget.repaintBoundaryKey!);
+                            widget.repaintBoundaryKey!,
+                          );
                           if (bytes != null && context.mounted) {
                             ChartExporter.showSnapshotDialog(
                               context: context,
@@ -769,8 +770,11 @@ class _ChartToolbarState extends State<ChartToolbar>
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.keyboard_outlined,
-                              size: 20, color: Color(0xFF2962FF)),
+                          const Icon(
+                            Icons.keyboard_outlined,
+                            size: 20,
+                            color: Color(0xFF2962FF),
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'TradingView Keyboard Shortcuts',
@@ -785,11 +789,13 @@ class _ChartToolbarState extends State<ChartToolbar>
                         ],
                       ),
                       IconButton(
-                        icon: Icon(Icons.close,
-                            size: 18,
-                            color: isDark
-                                ? const Color(0xFF787B86)
-                                : Colors.black54),
+                        icon: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: isDark
+                              ? const Color(0xFF787B86)
+                              : Colors.black54,
+                        ),
                         onPressed: () => Navigator.pop(ctx),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -798,14 +804,40 @@ class _ChartToolbarState extends State<ChartToolbar>
                   ),
                   const SizedBox(height: 16),
                   _buildShortcutRow(
-                      'Alt + H', 'Place Horizontal Support/Resistance Line', isDark),
-                  _buildShortcutRow('Alt + T', 'Activate Trendline Tool', isDark),
-                  _buildShortcutRow('Alt + A', 'Set Price Alert at Cursor', isDark),
-                  _buildShortcutRow('Alt + R', 'Reset View to Auto-Scale', isDark),
+                    'Alt + H',
+                    'Place Horizontal Support/Resistance Line',
+                    isDark,
+                  ),
                   _buildShortcutRow(
-                      'Delete / Backspace', 'Remove Selected Drawing', isDark),
-                  _buildShortcutRow('← / →', 'Pan Historical Candlesticks', isDark),
-                  _buildShortcutRow('+ / -', 'Zoom In / Out Horizontally', isDark),
+                    'Alt + T',
+                    'Activate Trendline Tool',
+                    isDark,
+                  ),
+                  _buildShortcutRow(
+                    'Alt + A',
+                    'Set Price Alert at Cursor',
+                    isDark,
+                  ),
+                  _buildShortcutRow(
+                    'Alt + R',
+                    'Reset View to Auto-Scale',
+                    isDark,
+                  ),
+                  _buildShortcutRow(
+                    'Delete / Backspace',
+                    'Remove Selected Drawing',
+                    isDark,
+                  ),
+                  _buildShortcutRow(
+                    '← / →',
+                    'Pan Historical Candlesticks',
+                    isDark,
+                  ),
+                  _buildShortcutRow(
+                    '+ / -',
+                    'Zoom In / Out Horizontally',
+                    isDark,
+                  ),
                   _buildShortcutRow('Esc', 'Clear Tool / Selection', isDark),
                 ],
               ),
@@ -817,7 +849,10 @@ class _ChartToolbarState extends State<ChartToolbar>
   }
 
   Widget _buildShortcutRow(
-      String keyCombination, String description, bool isDark) {
+    String keyCombination,
+    String description,
+    bool isDark,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.5),
       child: Row(
@@ -829,7 +864,9 @@ class _ChartToolbarState extends State<ChartToolbar>
               color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFECEFF1),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: isDark ? const Color(0xFF363A45) : const Color(0xFFCFD8DC),
+                color: isDark
+                    ? const Color(0xFF363A45)
+                    : const Color(0xFFCFD8DC),
               ),
             ),
             child: Text(
@@ -848,8 +885,9 @@ class _ChartToolbarState extends State<ChartToolbar>
               description,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color:
-                    isDark ? const Color(0xFFB2B5BE) : const Color(0xFF434651),
+                color: isDark
+                    ? const Color(0xFFB2B5BE)
+                    : const Color(0xFF434651),
                 fontSize: 11.5,
               ),
             ),

@@ -42,10 +42,17 @@ class ChartViewport {
     // (lastIndex - i) * candleTotalWidth <= viewportWidth - rightMargin + scrollOffset
     // i >= lastIndex - (viewportWidth - rightMargin + scrollOffset) / candleTotalWidth
 
-    final rawEnd = lastIndex - ((scrollOffset - rightMargin) / candleTotalWidth).floor() + 1;
+    final rawEnd =
+        lastIndex -
+        ((scrollOffset - rightMargin) / candleTotalWidth).floor() +
+        1;
     final end = math.max(0, math.min(lastIndex, rawEnd));
 
-    final rawStart = lastIndex - ((viewportWidth - rightMargin + scrollOffset) / candleTotalWidth).ceil() - 1;
+    final rawStart =
+        lastIndex -
+        ((viewportWidth - rightMargin + scrollOffset) / candleTotalWidth)
+            .ceil() -
+        1;
     final start = math.max(0, math.min(lastIndex, rawStart));
 
     return VisibleIndices(start, end);
@@ -81,5 +88,6 @@ class VisibleIndices {
   int get count => (end >= start) ? (end - start + 1) : 0;
 
   @override
-  String toString() => 'VisibleIndices(start: $start, end: $end, count: $count)';
+  String toString() =>
+      'VisibleIndices(start: $start, end: $end, count: $count)';
 }
