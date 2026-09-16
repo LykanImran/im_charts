@@ -4,7 +4,6 @@ library;
 import 'engine/chart_controller.dart';
 import 'engine/chart_sync_group.dart';
 import 'engine/formula/formula_indicator.dart';
-import 'ui/chart_widget.dart';
 import 'ui/multi_chart_container.dart';
 import 'ui/trading_screen.dart';
 
@@ -29,6 +28,7 @@ export 'core/utils/chart_exporter.dart';
 // Data Sources
 export 'datasource/chart_data_source.dart';
 export 'datasource/mock_data_source.dart';
+export 'datasource/static_data_source.dart';
 
 // Engine & Indicators
 export 'engine/candle_builder.dart';
@@ -65,13 +65,11 @@ export 'ui/chart_widget.dart';
 export 'ui/formula_editor_modal.dart';
 export 'ui/multi_chart_container.dart';
 export 'ui/replay_control_bar.dart';
+export 'ui/simple_chart_widget.dart';
 export 'ui/symbol_search_modal.dart';
 export 'ui/trading_screen.dart';
 
 // --- Im Charts Brand Type Aliases ---
-
-/// Convenient alias for [TradingChart] under the brand name **Im Charts**.
-typedef ImChart = TradingChart;
 
 /// Convenient alias for [TradingScreen] under the brand name **Im Charts**.
 typedef ImTradingScreen = TradingScreen;

@@ -161,6 +161,44 @@ class TradingTerminalPage extends StatelessWidget {
 }
 ```
 
+### 3. Ultra-Easy Zero-Boilerplate Chart (`ImChart.simple`)
+
+If you already have a list of candles or JSON data from your backend/broker API, render an institutional interactive chart in **just 3 lines of code**:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:im_charts/im_charts.dart';
+
+class QuickChartCard extends StatelessWidget {
+  final List<Candle> myCandles;
+  const QuickChartCard({super.key, required this.myCandles});
+
+  @override
+  Widget build(BuildContext context) {
+    return ImChart.simple(
+      candles: myCandles,
+      indicators: [
+        EMAIndicator(period: 20, color: const Color(0xFF2962FF)),
+      ],
+      onOrderModified: (order) {
+        // Called whenever an order line or TP/SL bracket is dragged on canvas!
+        print('Updated order ${order.id} to ₹${order.price}');
+      },
+    );
+  }
+}
+```
+
+Or stream live WebSocket ticks with zero controller boilerplate:
+
+```dart
+ImChart.live(
+  candles: initialCandles,
+  liveTickStream: myWebSocketStream, // Stream<Tick>
+  symbol: 'BTC/USDT',
+);
+```
+
 ---
 
 ## 🎮 Interactive Gestures Cheat Sheet

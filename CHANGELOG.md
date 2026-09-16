@@ -5,6 +5,21 @@ All notable changes to the `im_charts` package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.0
+
+### Added
+- **Ultra-Easy Integration Suite**:
+  - `ImChart.simple(candles: myCandles)`: Zero-boilerplate factory rendering an institutional interactive chart in just 3 lines of code with automatic controller and lifecycle management.
+  - `ImChart.live(candles: ..., liveTickStream: ...)`: Instant real-time live streaming charts connecting directly to WebSocket streams.
+  - `StaticChartDataSource`: Turnkey in-memory data source accepting raw `List<Candle>` or `List<Map<String, dynamic>>` via `StaticChartDataSource.fromMapList(...)`.
+- **Interactive On-Chart Trading Execution & Live Drag Badges**:
+  - Live floating drag telemetry chips displaying active price, delta percentage, estimated P&L in currency, and real-time Risk/Reward ratios while dragging order and TP/SL lines.
+  - Comprehensive `onOrderModified` callback fired on drag completion across `TradingChart` and `TradingScreen`.
+  - Added `initialOrders`, `initialPositions`, `initialCandles`, and `initialShowVolumeProfile` constructor parameters to `TradingScreen`.
+  - Added `setCandles(List<Candle> candles)` to `TradingChartController` for instantaneous programmatic dataset updates.
+- **Brand Logo & Asset Modernization**:
+  - Institutional **Quant Hexagonal Shield** logo (3D dark glass and titanium beveled hexagon with glowing emerald/cyan candlesticks) deployed across documentation, web demo assets, and high-resolution favicons.
+
 ## 0.1.0
 
 ### Added

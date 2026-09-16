@@ -260,6 +260,12 @@ class TradingChartController extends ChangeNotifier {
 
   Offset? get crosshairPosition => _showCrosshair ? _crosshairPosition : null;
   bool get showVolume => _showVolume;
+  set showVolume(bool val) {
+    if (_showVolume != val) {
+      _showVolume = val;
+      notifyListeners();
+    }
+  }
   bool get showGrid => _showGrid;
   bool get showCrosshair => _showCrosshair;
   bool get isLoading => _isLoading;
@@ -858,6 +864,16 @@ class TradingChartController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Directly sets the candle dataset and recalculates all active technical indicators.
+  void setCandles(List<Candle> candles) {
+    _candleBuilder.setCandles(candles);
+    _recalculateIndicators();
+    if (_crosshairPosition == null) {
+      _hoveredCandle = currentCandle;
+    }
+    notifyListeners();
   }
 
   void _onLiveTick(Tick tick) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
@@ -6,6 +7,7 @@ import '../core/models/chart_theme.dart';
 import '../core/models/timeframe.dart';
 import '../datasource/chart_data_source.dart';
 import '../datasource/mock_data_source.dart';
+import '../datasource/static_data_source.dart';
 import '../engine/chart_controller.dart';
 import '../engine/indicators/ema.dart';
 import '../engine/indicators/rsi.dart';
@@ -19,10 +21,14 @@ class TradingScreen extends StatefulWidget {
   final String initialSymbol;
   final String initialExchange;
   final ChartDataSource? dataSource;
+  final List<Candle>? initialCandles;
   final Timeframe initialTimeframe;
   final CandleStyle initialCandleStyle;
   final ChartTheme? initialTheme;
   final TradingChartController? controller;
+  final List<ChartOrder>? initialOrders;
+  final List<ChartPosition>? initialPositions;
+  final bool initialShowVolumeProfile;
   final bool showToolbar;
   final bool showHeader;
   final bool showDrawingToolbar;
@@ -37,6 +43,7 @@ class TradingScreen extends StatefulWidget {
     VoidCallback closeMenu,
   )? orderMenuBuilder;
   final void Function(ChartOrder order)? onOrderPlaced;
+  final void Function(ChartOrder order)? onOrderModified;
   final void Function(String orderId)? onOrderCancelled;
   final void Function(ChartPosition position)? onPositionClosed;
 
@@ -45,10 +52,14 @@ class TradingScreen extends StatefulWidget {
     this.initialSymbol = 'NIFTY 50',
     this.initialExchange = 'NSE',
     this.dataSource,
+    this.initialCandles,
     this.initialTimeframe = Timeframe.fiveMinutes,
     this.initialCandleStyle = CandleStyle.candles,
     this.initialTheme,
     this.controller,
+    this.initialOrders,
+    this.initialPositions,
+    this.initialShowVolumeProfile = false,
     this.showToolbar = true,
     this.showHeader = true,
     this.showDrawingToolbar = true,
@@ -58,6 +69,7 @@ class TradingScreen extends StatefulWidget {
     this.enableChartTrading = true,
     this.orderMenuBuilder,
     this.onOrderPlaced,
+    this.onOrderModified,
     this.onOrderCancelled,
     this.onPositionClosed,
   });
@@ -80,7 +92,10 @@ class _TradingScreenState extends State<TradingScreen> {
       _internalController = false;
     } else {
       _internalController = true;
-      if (widget.dataSource != null) {
+      if (widget.initialCandles != null) {
+        _dataSource = StaticChartDataSource(widget.initialCandles!);
+        _internalDataSource = true;
+      } else if (widget.dataSource != null) {
         _dataSource = widget.dataSource!;
       } else {
         _dataSource = MockTradingDataSource(
@@ -99,6 +114,16 @@ class _TradingScreenState extends State<TradingScreen> {
         initialCandleStyle: widget.initialCandleStyle,
         theme: widget.initialTheme ?? ChartTheme.dark(),
       );
+
+      if (widget.initialOrders != null) {
+        _controller.setOrders(widget.initialOrders!);
+      }
+      if (widget.initialPositions != null) {
+        _controller.setPositions(widget.initialPositions!);
+      }
+      if (widget.initialShowVolumeProfile) {
+        _controller.showVolumeProfile = true;
+      }
 
       // Initialize data & activate starter indicators
       _controller.initialize().then((_) {
@@ -176,6 +201,7 @@ class _TradingScreenState extends State<TradingScreen> {
                                     brandName: widget.brandName,
                                     orderMenuBuilder: widget.orderMenuBuilder,
                                     onOrderPlaced: widget.onOrderPlaced,
+                                    onOrderModified: widget.onOrderModified,
                                     onOrderCancelled: widget.onOrderCancelled,
                                     onPositionClosed: widget.onPositionClosed,
                                   ),

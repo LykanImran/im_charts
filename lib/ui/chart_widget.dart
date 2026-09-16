@@ -87,6 +87,11 @@ class _TradingChartState extends State<TradingChart> {
   // Track hover position for dynamic cursor resolution
   Offset? _hoverPosition;
 
+  // Active order dragging telemetry state
+  String? _draggingOrderId;
+  String? _draggingKind; // 'order', 'tp', 'sl'
+  double? _draggingCurrentPrice;
+
   MouseCursor _resolveCursor(double width, double height) {
     if (_dragMode == _ChartDragMode.horizontalLineDrag) {
       return SystemMouseCursors.resizeUpDown;
@@ -1681,6 +1686,8 @@ class _TradingChartState extends State<TradingChart> {
     final slY =
         order.hasStopLoss ? controller.yAtPrice(order.stopLossPrice!) : null;
 
+    final isThisOrderDragging = _draggingOrderId == order.id;
+
     return [
       // 1. Order Badge Interactive Hitbox (Draggable & Cancel)
       if (orderY >= 0 && orderY <= timeAxisTop)
@@ -1727,6 +1734,13 @@ class _TradingChartState extends State<TradingChart> {
                       cursor: SystemMouseCursors.resizeUpDown,
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
+                        onVerticalDragStart: (_) {
+                          setState(() {
+                            _draggingOrderId = order.id;
+                            _draggingKind = 'order';
+                            _draggingCurrentPrice = order.price;
+                          });
+                        },
                         onVerticalDragUpdate: (details) {
                           final currentY = controller.yAtPrice(order.price);
                           final newY = (currentY + details.delta.dy).clamp(
@@ -1737,6 +1751,28 @@ class _TradingChartState extends State<TradingChart> {
                             controller.priceAtY(newY).toStringAsFixed(2),
                           );
                           controller.updateOrderPrice(order.id, newPrice);
+                          setState(() {
+                            _draggingCurrentPrice = newPrice;
+                          });
+                        },
+                        onVerticalDragEnd: (_) {
+                          setState(() {
+                            _draggingOrderId = null;
+                            _draggingKind = null;
+                            _draggingCurrentPrice = null;
+                          });
+                          final updated = controller.orders.firstWhere(
+                            (o) => o.id == order.id,
+                            orElse: () => order,
+                          );
+                          widget.onOrderModified?.call(updated);
+                        },
+                        onVerticalDragCancel: () {
+                          setState(() {
+                            _draggingOrderId = null;
+                            _draggingKind = null;
+                            _draggingCurrentPrice = null;
+                          });
                         },
                         child: const SizedBox.expand(),
                       ),
@@ -1767,6 +1803,18 @@ class _TradingChartState extends State<TradingChart> {
           ),
         ),
 
+      // Floating Live Drag Telemetry Badge for Order Limit
+      if (isThisOrderDragging && _draggingKind == 'order' && orderY >= 0 && orderY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 200,
+          top: (orderY - 14).clamp(0.0, timeAxisTop - 28.0),
+          child: _buildDragTelemetryChip(
+            title: 'LIMIT ${order.isBuy ? 'BUY' : 'SELL'}',
+            value: '₹${(_draggingCurrentPrice ?? order.price).toStringAsFixed(2)} (Qty: ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)})',
+            accentColor: order.isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30),
+          ),
+        ),
+
       // 2. Take Profit (TP) Interactive Hitbox (Draggable & Cancel)
       if (tpY != null && tpY >= 0 && tpY <= timeAxisTop)
         Positioned(
@@ -1786,6 +1834,13 @@ class _TradingChartState extends State<TradingChart> {
                       cursor: SystemMouseCursors.resizeUpDown,
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
+                        onVerticalDragStart: (_) {
+                          setState(() {
+                            _draggingOrderId = order.id;
+                            _draggingKind = 'tp';
+                            _draggingCurrentPrice = order.takeProfitPrice;
+                          });
+                        },
                         onVerticalDragUpdate: (details) {
                           final currentY = controller.yAtPrice(
                             order.takeProfitPrice!,
@@ -1801,6 +1856,28 @@ class _TradingChartState extends State<TradingChart> {
                             order.id,
                             takeProfitPrice: newPrice,
                           );
+                          setState(() {
+                            _draggingCurrentPrice = newPrice;
+                          });
+                        },
+                        onVerticalDragEnd: (_) {
+                          setState(() {
+                            _draggingOrderId = null;
+                            _draggingKind = null;
+                            _draggingCurrentPrice = null;
+                          });
+                          final updated = controller.orders.firstWhere(
+                            (o) => o.id == order.id,
+                            orElse: () => order,
+                          );
+                          widget.onOrderModified?.call(updated);
+                        },
+                        onVerticalDragCancel: () {
+                          setState(() {
+                            _draggingOrderId = null;
+                            _draggingKind = null;
+                            _draggingCurrentPrice = null;
+                          });
                         },
                         child: const SizedBox.expand(),
                       ),
@@ -1833,6 +1910,26 @@ class _TradingChartState extends State<TradingChart> {
           ),
         ),
 
+      // Floating Live Drag Telemetry Badge for TP
+      if (isThisOrderDragging && _draggingKind == 'tp' && tpY != null && tpY >= 0 && tpY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 170,
+          top: (tpY - 14).clamp(0.0, timeAxisTop - 28.0),
+          child: Builder(
+            builder: (_) {
+              final tpPrice = _draggingCurrentPrice ?? order.takeProfitPrice ?? 0.0;
+              final diff = (tpPrice - order.price) * (order.isBuy ? 1 : -1);
+              final estProfit = diff * order.quantity;
+              final pct = order.price > 0 ? (diff / order.price) * 100 : 0.0;
+              return _buildDragTelemetryChip(
+                title: 'TAKE PROFIT',
+                value: '₹${tpPrice.toStringAsFixed(2)} | +₹${estProfit.abs().toStringAsFixed(2)} (+${pct.toStringAsFixed(1)}%)',
+                accentColor: const Color(0xFF00E5FF),
+              );
+            },
+          ),
+        ),
+
       // 3. Stop Loss (SL) Interactive Hitbox (Draggable & Cancel)
       if (slY != null && slY >= 0 && slY <= timeAxisTop)
         Positioned(
@@ -1852,6 +1949,13 @@ class _TradingChartState extends State<TradingChart> {
                       cursor: SystemMouseCursors.resizeUpDown,
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
+                        onVerticalDragStart: (_) {
+                          setState(() {
+                            _draggingOrderId = order.id;
+                            _draggingKind = 'sl';
+                            _draggingCurrentPrice = order.stopLossPrice;
+                          });
+                        },
                         onVerticalDragUpdate: (details) {
                           final currentY = controller.yAtPrice(
                             order.stopLossPrice!,
@@ -1867,6 +1971,28 @@ class _TradingChartState extends State<TradingChart> {
                             order.id,
                             stopLossPrice: newPrice,
                           );
+                          setState(() {
+                            _draggingCurrentPrice = newPrice;
+                          });
+                        },
+                        onVerticalDragEnd: (_) {
+                          setState(() {
+                            _draggingOrderId = null;
+                            _draggingKind = null;
+                            _draggingCurrentPrice = null;
+                          });
+                          final updated = controller.orders.firstWhere(
+                            (o) => o.id == order.id,
+                            orElse: () => order,
+                          );
+                          widget.onOrderModified?.call(updated);
+                        },
+                        onVerticalDragCancel: () {
+                          setState(() {
+                            _draggingOrderId = null;
+                            _draggingKind = null;
+                            _draggingCurrentPrice = null;
+                          });
                         },
                         child: const SizedBox.expand(),
                       ),
@@ -1898,7 +2024,72 @@ class _TradingChartState extends State<TradingChart> {
             ),
           ),
         ),
+
+      // Floating Live Drag Telemetry Badge for SL
+      if (isThisOrderDragging && _draggingKind == 'sl' && slY != null && slY >= 0 && slY <= timeAxisTop)
+        Positioned(
+          right: _priceAxisWidth + 170,
+          top: (slY - 14).clamp(0.0, timeAxisTop - 28.0),
+          child: Builder(
+            builder: (_) {
+              final slPrice = _draggingCurrentPrice ?? order.stopLossPrice ?? 0.0;
+              final diff = (order.price - slPrice) * (order.isBuy ? 1 : -1);
+              final estLoss = diff * order.quantity;
+              final pct = order.price > 0 ? (diff / order.price) * 100 : 0.0;
+              return _buildDragTelemetryChip(
+                title: 'STOP LOSS',
+                value: '₹${slPrice.toStringAsFixed(2)} | -₹${estLoss.abs().toStringAsFixed(2)} (${pct.toStringAsFixed(1)}%)',
+                accentColor: const Color(0xFFFF9100),
+              );
+            },
+          ),
+        ),
     ];
+  }
+
+  Widget _buildDragTelemetryChip({
+    required String title,
+    required String value,
+    required Color accentColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131722).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: accentColor.withValues(alpha: 0.8), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$title  ',
+            style: TextStyle(
+              color: accentColor,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openBracketMenu(
