@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:im_charts/im_charts.dart';
 
@@ -159,6 +161,135 @@ void main() {
 
       expect(controller.viewport.candleWidth, isNonNegative);
 
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Native trackpad pinch zoom on canvas expands candleWidth smoothly',
+        (tester) async {
+      final controller = TradingChartController(
+        symbol: 'TEST',
+        exchange: 'TEST',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialWidth = controller.viewport.candleWidth;
+      const focal = Offset(350, 300);
+
+      // Trackpad pinch in (zoom in)
+      tester.binding.handlePointerEvent(
+        const PointerPanZoomStartEvent(position: focal),
+      );
+      tester.binding.handlePointerEvent(
+        const PointerPanZoomUpdateEvent(
+          position: focal,
+          scale: 1.3,
+        ),
+      );
+      tester.binding.handlePointerEvent(
+        const PointerPanZoomEndEvent(),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.viewport.candleWidth, greaterThan(initialWidth));
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Mouse wheel scroll over canvas smoothly zooms candleWidth',
+        (tester) async {
+      final controller = TradingChartController(
+        symbol: 'TEST',
+        exchange: 'TEST',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialWidth = controller.viewport.candleWidth;
+      const focal = Offset(350, 300);
+
+      // Mouse wheel forward (negative dy -> zoom in)
+      tester.binding.handlePointerEvent(
+        const PointerScrollEvent(
+          position: focal,
+          scrollDelta: Offset(0, -100),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.viewport.candleWidth, greaterThan(initialWidth));
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Web trackpad pinch (PointerScroll with Ctrl) zooms candleWidth',
+        (tester) async {
+      final controller = TradingChartController(
+        symbol: 'TEST',
+        exchange: 'TEST',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialWidth = controller.viewport.candleWidth;
+      const focal = Offset(350, 300);
+
+      // Simulate Ctrl key down (trackpad pinch in browser)
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+
+      // Scroll event with small dy (typical of browser trackpad pinch)
+      tester.binding.handlePointerEvent(
+        const PointerScrollEvent(
+          position: focal,
+          scrollDelta: Offset(0, -10),
+        ),
+      );
+      await tester.pump();
+
+      expect(controller.viewport.candleWidth, greaterThan(initialWidth));
+
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
       controller.dispose();
     });
   });

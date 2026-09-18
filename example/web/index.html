@@ -41,6 +41,14 @@
   </style>
 </head>
 <body>
+  <script>
+    // Prevent browser page zoom on trackpad pinch / Ctrl+wheel so Flutter web canvas receives pinch zoom cleanly
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    }, { capture: true, passive: false });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

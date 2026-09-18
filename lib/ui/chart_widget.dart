@@ -15,6 +15,7 @@ import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
 import 'chart_toast.dart';
 import 'replay_control_bar.dart';
+import 'web_zoom_interop.dart';
 
 enum _ChartDragMode {
   none,
@@ -273,6 +274,11 @@ class _TradingChartState extends State<TradingChart>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
+    if (kIsWeb) {
+      try {
+        preventWebBrowserPinchZoom();
+      } catch (_) {}
+    }
     if (widget.enableContextMenu) {
       _activeContextMenuCharts++;
       if (kIsWeb && _activeContextMenuCharts == 1) {
@@ -512,56 +518,38 @@ class _TradingChartState extends State<TradingChart>
                   },
                   onPointerPanZoomUpdate: (event) {
                     final pos = event.localPosition;
+                    final scaleRatio = event.scale / _lastTrackpadScale;
+                    _lastTrackpadScale = event.scale;
 
                     // Native Trackpad pinch-to-zoom (macOS / Desktop precision trackpads)
-                    if ((event.scale - 1.0).abs() > 0.001) {
-                      final scaleRatio = event.scale / _lastTrackpadScale;
-                      _lastTrackpadScale = event.scale;
-
-                      if (scaleRatio.isFinite &&
-                          scaleRatio > 0 &&
-                          (scaleRatio - 1.0).abs() > 0.0005) {
-                        if (pos.dx >= priceAxisLeft) {
-                          // Pinch over price axis: scale price vertically
-                          if (scaleRatio > 1.0) {
-                            controller.zoomInPrice();
-                          } else {
-                            controller.zoomOutPrice();
-                          }
+                    if (scaleRatio.isFinite &&
+                        scaleRatio > 0 &&
+                        scaleRatio != 1.0) {
+                      if (pos.dx >= priceAxisLeft) {
+                        // Pinch over price axis: scale price vertically
+                        if (scaleRatio > 1.0) {
+                          controller.zoomInPrice();
                         } else {
-                          // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
-                          controller.onPinchZoom(
-                            scaleRatio,
-                            pos,
-                            event.panDelta.dx,
-                          );
+                          controller.zoomOutPrice();
                         }
+                      } else {
+                        // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
+                        controller.onPinchZoom(
+                          scaleRatio,
+                          pos,
+                          event.panDelta.dx,
+                        );
                       }
+                    } else if (event.panDelta.dx.abs() > 0.05) {
+                      controller.onPan(event.panDelta.dx);
+                    }
 
-                      // Allow simultaneous pan while pinching if fingers move across the trackpad over price axis
-                      if (pos.dx >= priceAxisLeft && event.panDelta.dx.abs() > 0.1) {
-                        controller.onPan(event.panDelta.dx);
-                      }
-                      if (controller.isManualPriceScale &&
-                          event.panDelta.dy.abs() > 0.1) {
-                        controller.onVerticalPan(
-                          event.panDelta.dy,
-                          timeAxisTop,
-                        );
-                      }
-                    } else {
-                      _lastTrackpadScale = event.scale;
-                      // Native Trackpad 2-finger pan / swipe
-                      if (event.panDelta.dx.abs() > 0.1) {
-                        controller.onPan(event.panDelta.dx);
-                      }
-                      if (controller.isManualPriceScale &&
-                          event.panDelta.dy.abs() > 0.1) {
-                        controller.onVerticalPan(
-                          event.panDelta.dy,
-                          timeAxisTop,
-                        );
-                      }
+                    if (controller.isManualPriceScale &&
+                        event.panDelta.dy.abs() > 0.1) {
+                      controller.onVerticalPan(
+                        event.panDelta.dy,
+                        timeAxisTop,
+                      );
                     }
                   },
                   onPointerPanZoomEnd: (event) {
@@ -575,7 +563,30 @@ class _TradingChartState extends State<TradingChart>
                       final dx = pointerSignal.scrollDelta.dx;
                       final dy = pointerSignal.scrollDelta.dy;
                       final isShift = HardwareKeyboard.instance.isShiftPressed;
+                      final isCtrlOrMeta =
+                          HardwareKeyboard.instance.isControlPressed ||
+                          HardwareKeyboard.instance.isMetaPressed;
 
+                      // 1. Explicit Trackpad Pinch (in browsers, pinch is sent as wheel with ctrlKey)
+                      // or Ctrl/Cmd + Mouse Wheel zoom:
+                      if (isCtrlOrMeta) {
+                        // dy < 0 -> fingers spread outward -> zoom in (widen candles)
+                        // dy > 0 -> fingers pinch inward -> zoom out (narrow candles)
+                        final zoomFactor =
+                            math.exp(-dy * 0.02).clamp(0.6, 1.6);
+                        if (pos.dx >= priceAxisLeft) {
+                          if (zoomFactor > 1.0) {
+                            controller.zoomInPrice();
+                          } else {
+                            controller.zoomOutPrice();
+                          }
+                        } else {
+                          controller.onZoom(zoomFactor, pos);
+                        }
+                        return;
+                      }
+
+                      // 2. Zone-specific interactions (Price Axis & Time Axis)
                       if (pos.dx >= priceAxisLeft) {
                         // Wheel over price axis -> scale price vertically
                         if (dy < 0) {
@@ -585,23 +596,24 @@ class _TradingChartState extends State<TradingChart>
                         }
                       } else if (pos.dy >= timeAxisTop) {
                         // Wheel over time axis -> scale timeframe horizontally
-                        if (dy < 0 || dx < 0) {
+                        final scrollDelta = dx.abs() > dy.abs() ? dx : dy;
+                        if (scrollDelta < 0) {
                           controller.zoomIn();
-                        } else if (dy > 0 || dx > 0) {
+                        } else if (scrollDelta > 0) {
                           controller.zoomOut();
                         }
                       } else {
                         // Over main chart canvas:
                         if (isShift) {
                           // Shift + scroll -> pan horizontally
-                          controller.onPan(-dy);
+                          controller.onPan(-dy != 0 ? -dy : -dx);
                         } else if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
                           // Horizontal 2-finger trackpad swipe -> pan
                           controller.onPan(-dx);
                         } else if (dy.abs() > 0.0) {
-                          // Smooth exponential focal zoom based on scroll delta
+                          // Standard mouse wheel scroll -> horizontal candle zoom centered at pointer
                           final zoomFactor =
-                              math.exp(-dy * 0.003).clamp(0.7, 1.3);
+                              math.exp(-dy * 0.002).clamp(0.7, 1.4);
                           controller.onZoom(zoomFactor, pos);
                         }
                       }
