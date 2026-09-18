@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +29,7 @@ enum _ChartDragMode {
 class TradingChart extends StatefulWidget {
   final TradingChartController controller;
   final bool enableChartTrading;
+  final bool enableContextMenu;
   final bool showWatermark;
   final bool showCountdownTimer;
   final String? brandName;
@@ -38,6 +40,15 @@ class TradingChart extends StatefulWidget {
     TradingChartController controller,
     VoidCallback closeMenu,
   )? orderMenuBuilder;
+  final Widget Function(
+    BuildContext context,
+    Offset position,
+    double price,
+    TradingChartController controller,
+    VoidCallback closeMenu,
+  )? contextMenuBuilder;
+  final void Function(String action, Offset localPosition, double price)?
+      onContextMenuAction;
   final void Function(ChartOrder order)? onOrderPlaced;
   final void Function(ChartOrder order)? onOrderModified;
   final void Function(String orderId)? onOrderCancelled;
@@ -47,11 +58,14 @@ class TradingChart extends StatefulWidget {
     super.key,
     required this.controller,
     this.enableChartTrading = true,
+    this.enableContextMenu = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.brandName,
     this.repaintBoundaryKey,
     this.orderMenuBuilder,
+    this.contextMenuBuilder,
+    this.onContextMenuAction,
     this.onOrderPlaced,
     this.onOrderModified,
     this.onOrderCancelled,
@@ -179,8 +193,32 @@ class _TradingChartState extends State<TradingChart> {
     return SystemMouseCursors.precise;
   }
 
+  static int _activeContextMenuCharts = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enableContextMenu) {
+      _activeContextMenuCharts++;
+      if (kIsWeb && _activeContextMenuCharts == 1) {
+        try {
+          BrowserContextMenu.disableContextMenu();
+        } catch (_) {}
+      }
+    }
+  }
+
   @override
   void dispose() {
+    if (widget.enableContextMenu) {
+      _activeContextMenuCharts--;
+      if (kIsWeb && _activeContextMenuCharts <= 0) {
+        _activeContextMenuCharts = 0;
+        try {
+          BrowserContextMenu.enableContextMenu();
+        } catch (_) {}
+      }
+    }
     _focusNode.dispose();
     super.dispose();
   }
@@ -477,6 +515,14 @@ class _TradingChartState extends State<TradingChart> {
                           },
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
+                            onSecondaryTapUp: (details) {
+                              if (widget.enableContextMenu) {
+                                _showContextMenu(
+                                  details.globalPosition,
+                                  details.localPosition,
+                                );
+                              }
+                            },
                             onTapDown: (details) {
                               _lastTapDownPosition = details.localPosition;
                               final pos = details.localPosition;
@@ -1693,6 +1739,543 @@ class _TradingChartState extends State<TradingChart> {
             ),
           ),
         );
+      }
+    });
+  }
+
+  void _showContextMenu(Offset globalPosition, Offset localPosition) {
+    final controller = widget.controller;
+
+    // 1. Cancel in-progress drawing tool if active
+    if (controller.activeDrawingTool != DrawingTool.pointer) {
+      controller.cancelActiveDrawing();
+      setState(() {
+        _drawingAnchorPoint = null;
+        _drawingDragStartPos = null;
+        _hasDraggedDuringCreation = false;
+      });
+    }
+
+    // 2. Compute clicked price at cursor position
+    final clickedPrice = double.parse(
+      controller.priceAtY(localPosition.dy).toStringAsFixed(2),
+    );
+
+    // 3. Optional custom context menu builder
+    if (widget.contextMenuBuilder != null) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (ctx) => widget.contextMenuBuilder!(
+          ctx,
+          globalPosition,
+          clickedPrice,
+          controller,
+          () => Navigator.of(ctx).pop(),
+        ),
+      );
+      return;
+    }
+
+    // 4. Calculate relative position within Overlay
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 1, 1),
+      Offset.zero & overlay.size,
+    );
+
+    final isDark = controller.isDarkTheme;
+    final itemTextColor = isDark ? Colors.white : const Color(0xFF131722);
+    final subTextColor =
+        isDark ? const Color(0xFF787B86) : const Color(0xFF5D606B);
+    final menuBg = isDark ? const Color(0xFF1E222D) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+
+    final selectedDrawing = controller.selectedDrawing;
+    final hasIndicators = controller.activeIndicators.isNotEmpty;
+    final hasDrawings = controller.drawings.isNotEmpty;
+
+    showMenu<String>(
+      context: context,
+      position: position,
+      color: menuBg,
+      elevation: 10,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: borderColor, width: 1),
+      ),
+      items: [
+        // --- 1. Selected Drawing Actions ---
+        if (selectedDrawing != null) ...[
+          PopupMenuItem<String>(
+            value: 'delete_drawing',
+            height: 36,
+            child: const Row(
+              children: [
+                Icon(Icons.delete_outline, size: 16, color: Color(0xFFFF3B30)),
+                SizedBox(width: 10),
+                Text(
+                  'Delete Selected Drawing',
+                  style: TextStyle(
+                    color: Color(0xFFFF3B30),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'toggle_lock_drawing',
+            height: 36,
+            child: Row(
+              children: [
+                Icon(
+                  selectedDrawing.isLocked ? Icons.lock_open : Icons.lock_outline,
+                  size: 16,
+                  color: subTextColor,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  selectedDrawing.isLocked ? 'Unlock Drawing' : 'Lock Drawing',
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(height: 1),
+        ],
+
+        // --- 2. Price Actions & Quick Orders ---
+        PopupMenuItem<String>(
+          value: 'add_alert',
+          height: 36,
+          child: Row(
+            children: [
+              const Icon(
+                Icons.add_alert_outlined,
+                size: 16,
+                color: Color(0xFFFFB74D),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Add Alert at ₹$clickedPrice',
+                  style: TextStyle(
+                    color: itemTextColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.enableChartTrading) ...[
+          PopupMenuItem<String>(
+            value: 'buy_limit',
+            height: 36,
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00E676),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Buy 100 Limit @ ₹$clickedPrice',
+                    style: TextStyle(
+                      color: itemTextColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'sell_limit',
+            height: 36,
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF3B30),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Sell 100 Limit @ ₹$clickedPrice',
+                    style: TextStyle(
+                      color: itemTextColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const PopupMenuDivider(height: 1),
+
+        // --- 3. Indicators & Drawings Removal with Live Count ---
+        PopupMenuItem<String>(
+          value: 'remove_indicators',
+          enabled: hasIndicators,
+          height: 36,
+          child: Row(
+            children: [
+              Icon(
+                Icons.layers_clear_outlined,
+                size: 16,
+                color: hasIndicators
+                    ? const Color(0xFF2962FF)
+                    : subTextColor.withValues(alpha: 0.4),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Remove Indicators (${controller.activeIndicators.length})',
+                  style: TextStyle(
+                    color: hasIndicators
+                        ? itemTextColor
+                        : subTextColor.withValues(alpha: 0.4),
+                    fontSize: 12,
+                    fontWeight:
+                        hasIndicators ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'remove_drawings',
+          enabled: hasDrawings,
+          height: 36,
+          child: Row(
+            children: [
+              Icon(
+                Icons.delete_sweep_outlined,
+                size: 16,
+                color: hasDrawings
+                    ? const Color(0xFFFF9100)
+                    : subTextColor.withValues(alpha: 0.4),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Remove Drawings (${controller.drawings.length})',
+                  style: TextStyle(
+                    color: hasDrawings
+                        ? itemTextColor
+                        : subTextColor.withValues(alpha: 0.4),
+                    fontSize: 12,
+                    fontWeight:
+                        hasDrawings ? FontWeight.w500 : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+
+        // --- 4. Chart Reset & Auto Scale ---
+        PopupMenuItem<String>(
+          value: 'reset_chart',
+          height: 36,
+          child: Row(
+            children: [
+              const Icon(
+                Icons.restart_alt,
+                size: 16,
+                color: Color(0xFF00E5FF),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Reset Chart View',
+                  style: TextStyle(
+                    color: itemTextColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                'Alt+R',
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 10.5,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (controller.isManualPriceScale)
+          PopupMenuItem<String>(
+            value: 'reset_price_scale',
+            height: 36,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.height,
+                  size: 16,
+                  color: Color(0xFF2962FF),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Reset Price Scale (Auto)',
+                    style: TextStyle(
+                      color: itemTextColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(height: 1),
+
+        // --- 5. Quick Terminal Toggles & Utility ---
+        PopupMenuItem<String>(
+          value: 'toggle_theme',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(
+                isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                size: 16,
+                color: subTextColor,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme',
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'toggle_magnet',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(
+                controller.magnetMode
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank,
+                size: 16,
+                color: controller.magnetMode
+                    ? const Color(0xFF2962FF)
+                    : subTextColor,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Magnet Mode (Snap to OHLC)',
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'toggle_countdown',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(
+                controller.showCountdownTimer
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank,
+                size: 16,
+                color: controller.showCountdownTimer
+                    ? const Color(0xFF2962FF)
+                    : subTextColor,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Bar Countdown Timer',
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'copy_price',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(Icons.content_copy, size: 15, color: subTextColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Copy Price (₹$clickedPrice)',
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((choice) {
+      if (choice == null || !mounted) return;
+
+      widget.onContextMenuAction?.call(choice, localPosition, clickedPrice);
+
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      void showFeedback(String msg, Color col) {
+        messenger?.clearSnackBars();
+        messenger?.showSnackBar(
+          SnackBar(
+            content: Text(
+              msg,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+            backgroundColor: col.withValues(alpha: 0.9),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        );
+      }
+
+      switch (choice) {
+        case 'delete_drawing':
+          controller.deleteSelectedDrawing();
+          showFeedback('Drawing deleted', const Color(0xFFFF3B30));
+          break;
+
+        case 'toggle_lock_drawing':
+          controller.toggleSelectedDrawingLocked();
+          showFeedback('Drawing lock toggled', const Color(0xFF2962FF));
+          break;
+
+        case 'add_alert':
+          final alert = ChartAlert(
+            id: 'alt_${DateTime.now().millisecondsSinceEpoch}',
+            symbol: controller.symbol,
+            price: clickedPrice,
+            note: 'Crossing $clickedPrice',
+            condition: AlertTriggerCondition.crossing,
+            createdAt: DateTime.now(),
+          );
+          controller.addAlert(alert);
+          showFeedback(
+            '🔔 Alert set at ₹$clickedPrice for ${controller.symbol}',
+            const Color(0xFFFFB74D),
+          );
+          break;
+
+        case 'buy_limit':
+          final order = ChartOrder(
+            id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+            symbol: controller.symbol,
+            side: OrderSide.buy,
+            type: OrderType.limit,
+            price: clickedPrice,
+            quantity: 100,
+          );
+          controller.placeOrder(order);
+          widget.onOrderPlaced?.call(order);
+          showFeedback(
+            'Buy 100 Limit placed at ₹$clickedPrice',
+            const Color(0xFF00E676),
+          );
+          break;
+
+        case 'sell_limit':
+          final order = ChartOrder(
+            id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
+            symbol: controller.symbol,
+            side: OrderSide.sell,
+            type: OrderType.limit,
+            price: clickedPrice,
+            quantity: 100,
+          );
+          controller.placeOrder(order);
+          widget.onOrderPlaced?.call(order);
+          showFeedback(
+            'Sell 100 Limit placed at ₹$clickedPrice',
+            const Color(0xFFFF3B30),
+          );
+          break;
+
+        case 'remove_indicators':
+          final count = controller.activeIndicators.length;
+          controller.clearIndicators();
+          showFeedback('Removed $count indicator(s)', const Color(0xFF2962FF));
+          break;
+
+        case 'remove_drawings':
+          final count = controller.drawings.length;
+          controller.clearDrawings();
+          showFeedback('Removed $count drawing(s)', const Color(0xFFFF9100));
+          break;
+
+        case 'reset_chart':
+          controller.resetView();
+          showFeedback('Chart view reset', const Color(0xFF00E5FF));
+          break;
+
+        case 'reset_price_scale':
+          controller.resetPriceScale();
+          showFeedback('Price scale reset to auto', const Color(0xFF2962FF));
+          break;
+
+        case 'toggle_theme':
+          controller.toggleTheme();
+          break;
+
+        case 'toggle_magnet':
+          controller.toggleMagnetMode();
+          showFeedback(
+            controller.magnetMode
+                ? 'Magnet mode enabled'
+                : 'Magnet mode disabled',
+            const Color(0xFF2962FF),
+          );
+          break;
+
+        case 'toggle_countdown':
+          controller.showCountdownTimer = !controller.showCountdownTimer;
+          break;
+
+        case 'copy_price':
+          Clipboard.setData(ClipboardData(text: clickedPrice.toString()));
+          showFeedback(
+            'Copied ₹$clickedPrice to clipboard',
+            const Color(0xFF00E5FF),
+          );
+          break;
       }
     });
   }

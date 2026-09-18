@@ -61,6 +61,7 @@ class ImChart extends StatefulWidget {
   final bool showWatermark;
   final bool showCountdownTimer;
   final bool enableChartTrading;
+  final bool enableContextMenu;
 
   final GlobalKey? repaintBoundaryKey;
   final void Function(ChartOrder order)? onOrderPlaced;
@@ -92,6 +93,7 @@ class ImChart extends StatefulWidget {
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
+    this.enableContextMenu = true,
     this.repaintBoundaryKey,
     this.onOrderPlaced,
     this.onOrderModified,
@@ -121,6 +123,7 @@ class ImChart extends StatefulWidget {
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
+    this.enableContextMenu = true,
     this.repaintBoundaryKey,
     this.onOrderPlaced,
     this.onOrderModified,
@@ -152,6 +155,7 @@ class ImChart extends StatefulWidget {
     this.showWatermark = true,
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
+    this.enableContextMenu = true,
     this.repaintBoundaryKey,
     this.onOrderPlaced,
     this.onOrderModified,
@@ -288,6 +292,7 @@ class _ImChartState extends State<ImChart> {
                 controller: controller,
                 repaintBoundaryKey: repaintKey,
                 enableChartTrading: widget.enableChartTrading,
+                enableContextMenu: widget.enableContextMenu,
                 showWatermark: widget.showWatermark,
                 showCountdownTimer: widget.showCountdownTimer,
                 brandName: widget.brandName,

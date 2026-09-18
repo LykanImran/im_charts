@@ -343,7 +343,7 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  '💡 Drag order pills up/down to modify prices • Click ✖ on canvas to cancel • Click "+Bracket" for TP/SL',
+                  '💡 Right-click canvas for dropdown menu (remove indicators/drawings, reset chart, alerts) • Drag order pills to adjust price',
                   style: TextStyle(color: subColor, fontSize: 10.5),
                   overflow: TextOverflow.ellipsis,
                 ),

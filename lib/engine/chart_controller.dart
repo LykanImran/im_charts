@@ -1305,6 +1305,15 @@ class TradingChartController extends ChangeNotifier {
     triggerAutoSave();
   }
 
+  /// Clears all active indicators from the chart.
+  void clearIndicators() {
+    if (_activeIndicators.isEmpty) return;
+    _activeIndicators.clear();
+    _recalculateIndicators();
+    notifyListeners();
+    triggerAutoSave();
+  }
+
   bool isIndicatorActive(String id) {
     return _activeIndicators.any((i) => i.id == id);
   }
