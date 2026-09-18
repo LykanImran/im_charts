@@ -530,12 +530,16 @@ class _TradingChartState extends State<TradingChart>
                           }
                         } else {
                           // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
-                          controller.onZoom(scaleRatio, pos);
+                          controller.onPinchZoom(
+                            scaleRatio,
+                            pos,
+                            event.panDelta.dx,
+                          );
                         }
                       }
 
-                      // Allow simultaneous pan while pinching if fingers move across the trackpad
-                      if (event.panDelta.dx.abs() > 0.1) {
+                      // Allow simultaneous pan while pinching if fingers move across the trackpad over price axis
+                      if (pos.dx >= priceAxisLeft && event.panDelta.dx.abs() > 0.1) {
                         controller.onPan(event.panDelta.dx);
                       }
                       if (controller.isManualPriceScale &&
@@ -782,10 +786,25 @@ class _TradingChartState extends State<TradingChart>
                                 _recenterAnimController.stop();
                               }
                               if (_isTrackpadPanZoomActive) return;
+
+                              if (_isInspecting) {
+                                setState(() {
+                                  _isInspecting = false;
+                                  _lastInspectedCandleIndex = null;
+                                });
+                                controller.setCrosshairPosition(null);
+                              }
+
                               final start = details.localFocalPoint;
                               _lastFocalPoint = start;
                               _lastScale = 1.0;
                               _lastPointerCount = details.pointerCount;
+
+                              // If 2 or more fingers touch down immediately, prioritize horizontal candle pinch-zoom
+                              if (details.pointerCount >= 2) {
+                                _dragMode = _ChartDragMode.mainChart;
+                                return;
+                              }
 
                               // If a drawing tool is currently active
                               if (controller.activeDrawingTool !=
@@ -924,6 +943,24 @@ class _TradingChartState extends State<TradingChart>
                             },
                             onScaleUpdate: (details) {
                               if (_isTrackpadPanZoomActive) return;
+
+                              // If 2 or more fingers are down, always switch to mainChart horizontal candle zoom
+                              if (details.pointerCount >= 2 &&
+                                  _dragMode != _ChartDragMode.mainChart) {
+                                if (_dragMode ==
+                                    _ChartDragMode.drawingCreation) {
+                                  _drawingAnchorPoint = null;
+                                  _hasDraggedDuringCreation = false;
+                                  controller.setPreviewDrawing(null);
+                                }
+                                _draggingHandleIndex = null;
+                                _draggingDrawingId = null;
+                                _dragMode = _ChartDragMode.mainChart;
+                                _lastPointerCount = details.pointerCount;
+                                _lastFocalPoint = details.localFocalPoint;
+                                _lastScale = details.scale;
+                                return;
+                              }
 
                               // If pointer count changed (finger added/lifted), synchronize focal point without jump
                               if (details.pointerCount != _lastPointerCount) {
@@ -1235,28 +1272,30 @@ class _TradingChartState extends State<TradingChart>
 
                                 case _ChartDragMode.mainChart:
                                   if (details.pointerCount >= 2 ||
-                                      (details.scale - 1.0).abs() > 0.01) {
+                                      (details.scale - 1.0).abs() > 0.005) {
                                     final scaleRatio =
                                         details.scale / _lastScale;
+                                    _lastScale = details.scale;
+
+                                    final clampedFocal = Offset(
+                                      _lastFocalPoint.dx
+                                          .clamp(0.0, priceAxisLeft),
+                                      _lastFocalPoint.dy
+                                          .clamp(0.0, timeAxisTop),
+                                    );
+
                                     if (scaleRatio.isFinite &&
                                         scaleRatio > 0 &&
-                                        (scaleRatio - 1.0).abs() > 0.001) {
-                                      final clampedFocal = Offset(
-                                        details.localFocalPoint.dx
-                                            .clamp(0.0, priceAxisLeft),
-                                        details.localFocalPoint.dy
-                                            .clamp(0.0, timeAxisTop),
-                                      );
-                                      controller.onZoom(
+                                        (scaleRatio - 1.0).abs() > 0.0005) {
+                                      controller.onPinchZoom(
                                         scaleRatio,
                                         clampedFocal,
+                                        deltaX,
                                       );
-                                      _lastScale = details.scale;
-                                    }
-                                    // Simultaneous pan while pinching if fingers move across chart
-                                    if (deltaX.abs() > 0.1) {
+                                    } else if (deltaX.abs() > 0.05) {
                                       controller.onPan(deltaX);
                                     }
+
                                     if (controller.isManualPriceScale &&
                                         deltaY.abs() > 0.1) {
                                       controller.onVerticalPan(
@@ -1265,9 +1304,9 @@ class _TradingChartState extends State<TradingChart>
                                       );
                                     }
                                   } else {
-                                    // Finger released from pinch: reset pinch tracking to avoid scale jump
+                                    // 1-finger pan: reset scale baseline to avoid jump on next multi-touch
                                     _lastScale = 1.0;
-                                    if (deltaX.abs() > 0.1) {
+                                    if (deltaX.abs() > 0.05) {
                                       controller.onPan(deltaX);
                                     }
                                     if (controller.isManualPriceScale &&

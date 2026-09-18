@@ -1124,9 +1124,12 @@ class TradingChartController extends ChangeNotifier {
     }
   }
 
-  /// Focal-point aware horizontal zoom (pinch zoom or mouse wheel).
-  void onZoom(double scaleFactor, Offset focalPoint) {
-    _applyZoom(scaleFactor, focalPoint);
+  /// Unified atomic pinch-to-zoom & pan method.
+  /// Smoothly adjusts candleWidth clamped to [1.5, 60.0] while anchoring the zoom
+  /// around [focalPoint] and translating by [panDeltaX], preserving focal stability
+  /// identical to TradingView.
+  void onPinchZoom(double scaleFactor, Offset focalPoint, double panDeltaX) {
+    _applyPinchZoom(scaleFactor, focalPoint, panDeltaX);
     if (_syncGroup != null &&
         !_isReceivingSync &&
         _viewport.viewportWidth > 0) {
@@ -1139,13 +1142,30 @@ class TradingChartController extends ChangeNotifier {
     }
   }
 
+  /// Focal-point aware horizontal zoom (pinch zoom or mouse wheel).
+  void onZoom(double scaleFactor, Offset focalPoint) {
+    onPinchZoom(scaleFactor, focalPoint, 0.0);
+  }
+
   void _applyZoom(double scaleFactor, Offset focalPoint) {
-    if (scaleFactor.isNaN || scaleFactor.isInfinite || scaleFactor <= 0) return;
-    const minWidth = 2.0;
-    const maxWidth = 50.0;
+    _applyPinchZoom(scaleFactor, focalPoint, 0.0);
+  }
+
+  void _applyPinchZoom(
+    double scaleFactor,
+    Offset focalPoint,
+    double panDeltaX,
+  ) {
+    if (scaleFactor.isNaN || scaleFactor.isInfinite || scaleFactor <= 0) {
+      if (panDeltaX.abs() > 0.01) {
+        _applyPan(panDeltaX);
+      }
+      return;
+    }
+    const minWidth = 1.5;
+    const maxWidth = 60.0;
     final oldCandleWidth = _viewport.candleWidth;
     final newWidth = (oldCandleWidth * scaleFactor).clamp(minWidth, maxWidth);
-    if (newWidth == oldCandleWidth) return;
 
     final oldTotal = _viewport.candleTotalWidth;
     final newTotal = newWidth + _viewport.candleSpacing;
@@ -1162,11 +1182,17 @@ class TradingChartController extends ChangeNotifier {
     // Prevent zoom out from introducing unwanted future whitespace if not already overscrolled
     final minScroll = _viewport.scrollOffset < 0 ? -120.0 : 0.0;
     final maxScroll = math.max(0.0, candles.length * newTotal).toDouble();
+    final zoomDeltaScroll = distFromRight * (ratio - 1.0);
     final newScrollOffset =
-        (_viewport.scrollOffset + distFromRight * (ratio - 1.0)).clamp(
+        (_viewport.scrollOffset + zoomDeltaScroll + panDeltaX).clamp(
       minScroll,
       maxScroll,
     );
+
+    if (newWidth == oldCandleWidth &&
+        newScrollOffset == _viewport.scrollOffset) {
+      return;
+    }
 
     _viewport = _viewport.copyWith(
       candleWidth: newWidth,
@@ -1211,7 +1237,7 @@ class TradingChartController extends ChangeNotifier {
     // deltaX > 0 -> dragged right -> zoom in (widen candle width)
     // deltaX < 0 -> dragged left -> zoom out (narrow candle width)
     final scaleRatio = 1.0 + (deltaX / 120.0);
-    final newWidth = (_viewport.candleWidth * scaleRatio).clamp(2.0, 50.0);
+    final newWidth = (_viewport.candleWidth * scaleRatio).clamp(1.5, 60.0);
     if (newWidth == _viewport.candleWidth) return;
 
     final oldTotal = _viewport.candleTotalWidth;
@@ -1231,14 +1257,14 @@ class TradingChartController extends ChangeNotifier {
 
   /// Zoom in horizontally by 25%.
   void zoomIn() {
-    final newWidth = (_viewport.candleWidth * 1.25).clamp(2.0, 50.0);
+    final newWidth = (_viewport.candleWidth * 1.25).clamp(1.5, 60.0);
     _viewport = _viewport.copyWith(candleWidth: newWidth);
     notifyListeners();
   }
 
   /// Zoom out horizontally by 20%.
   void zoomOut() {
-    final newWidth = (_viewport.candleWidth * 0.8).clamp(2.0, 50.0);
+    final newWidth = (_viewport.candleWidth * 0.8).clamp(1.5, 60.0);
     _viewport = _viewport.copyWith(candleWidth: newWidth);
     notifyListeners();
   }

@@ -405,5 +405,202 @@ void main() {
       await tester.pumpAndSettle();
       controller.dispose();
     });
+
+    testWidgets(
+        'Two-finger horizontal pinch zoom in expands candleWidth smoothly',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialWidth = controller.viewport.candleWidth;
+      final center = const Offset(350, 300);
+
+      // Start 2 fingers 40px apart horizontally
+      final touch1 = await tester.startGesture(center - const Offset(20, 0));
+      final touch2 = await tester.startGesture(center + const Offset(20, 0));
+
+      // Spread fingers outward by 50px each (total 100px wider)
+      await touch1.moveBy(const Offset(-50, 0));
+      await touch2.moveBy(const Offset(50, 0));
+      await tester.pump();
+
+      expect(controller.viewport.candleWidth, greaterThan(initialWidth));
+
+      await touch1.up();
+      await touch2.up();
+      await tester.pumpAndSettle();
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Two-finger horizontal pinch zoom out compresses candleWidth smoothly',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Zoom in first so we have room to zoom out
+      controller.onZoom(2.0, const Offset(350, 300));
+      await tester.pumpAndSettle();
+      final zoomedWidth = controller.viewport.candleWidth;
+
+      final center = const Offset(350, 300);
+
+      // Start 2 fingers 120px apart horizontally
+      final touch1 = await tester.startGesture(center - const Offset(60, 0));
+      final touch2 = await tester.startGesture(center + const Offset(60, 0));
+
+      // Pinch fingers inward by 40px each (compress)
+      await touch1.moveBy(const Offset(40, 0));
+      await touch2.moveBy(const Offset(-40, 0));
+      await tester.pump();
+
+      expect(controller.viewport.candleWidth, lessThan(zoomedWidth));
+
+      await touch1.up();
+      await touch2.up();
+      await tester.pumpAndSettle();
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Two-finger pinch starting with finger 1 on price axis switches to candle horizontal zoom',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialCandleWidth = controller.viewport.candleWidth;
+
+      // Price axis is at X >= 800 - 68 = 732 on desktop
+      // Finger 1 lands on price axis at X = 750 and drags
+      final touch1 = await tester.startGesture(const Offset(750, 300));
+      await touch1.moveBy(const Offset(0, 20));
+      await tester.pump(const Duration(milliseconds: 20));
+
+      // Finger 2 lands on chart canvas at X = 400
+      final touch2 = await tester.startGesture(const Offset(400, 300));
+      await tester.pump(const Duration(milliseconds: 20));
+
+      // Spread fingers apart horizontally (touch 1 moves right, touch 2 moves left)
+      await touch1.moveBy(const Offset(30, 0));
+      await touch2.moveBy(const Offset(-50, 0));
+      await tester.pump();
+
+      // Horizontal candle width should have zoomed outward
+      expect(controller.viewport.candleWidth, greaterThan(initialCandleWidth));
+
+      await touch1.up();
+      await touch2.up();
+      await tester.pumpAndSettle();
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Simultaneous 2-finger pan and pinch updates both scrollOffset and candleWidth',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialCandleWidth = controller.viewport.candleWidth;
+
+      // Start 2 fingers
+      final touch1 = await tester.startGesture(const Offset(300, 300));
+      final touch2 = await tester.startGesture(const Offset(400, 300));
+
+      // Both fingers move right (pan) while also spreading apart (zoom)
+      await touch1.moveBy(const Offset(30, 0)); // moves right by 30
+      await touch2.moveBy(const Offset(90, 0)); // moves right by 90 (spread increases by 60)
+      await tester.pump();
+
+      expect(controller.viewport.candleWidth, greaterThan(initialCandleWidth));
+
+      await touch1.up();
+      await touch2.up();
+      await tester.pumpAndSettle();
+      controller.dispose();
+    });
   });
 }
