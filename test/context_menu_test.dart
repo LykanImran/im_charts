@@ -5,6 +5,10 @@ import 'package:im_charts/im_charts.dart';
 
 void main() {
   group('Context Menu & Controller Removal Tests', () {
+    tearDown(() {
+      ChartToast.dismiss();
+    });
+
     test('clearIndicators removes all active indicators and updates state',
         () async {
       final controller = TradingChartController(
@@ -131,7 +135,7 @@ void main() {
       expect(controller.viewport.candleWidth, 8.0);
       expect(controller.viewport.scrollOffset, 0.0);
 
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
       controller.dispose();
     });
 
@@ -179,7 +183,7 @@ void main() {
 
       expect(controller.activeIndicators.isEmpty, isTrue);
 
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
       controller.dispose();
     });
 
@@ -232,7 +236,7 @@ void main() {
 
       expect(controller.drawings.isEmpty, isTrue);
 
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
       controller.dispose();
     });
 

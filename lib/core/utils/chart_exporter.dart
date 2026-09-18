@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import '../../ui/chart_toast.dart';
 import '../models/candle.dart';
 
 /// Utility class for capturing high-DPI snapshots of the chart canvas and exporting data.
@@ -126,15 +127,9 @@ class ChartExporter {
                       OutlinedButton.icon(
                         onPressed: () {
                           Navigator.of(ctx).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Snapshot captured successfully ($sizeKb KB)!',
-                              ),
-                              backgroundColor: const Color(0xFF1E222D),
-                              duration: const Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          ChartToast.success(
+                            context,
+                            'Snapshot captured successfully ($sizeKb KB)!',
                           );
                         },
                         icon: const Icon(

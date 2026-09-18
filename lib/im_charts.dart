@@ -69,6 +69,7 @@ export 'ui/drawing_action_toolbar.dart';
 export 'ui/chart_header.dart';
 export 'ui/chart_save_status_badge.dart';
 export 'ui/chart_settings_modal.dart';
+export 'ui/chart_toast.dart';
 export 'ui/chart_toolbar.dart';
 export 'ui/chart_widget.dart';
 export 'ui/formula_editor_modal.dart';

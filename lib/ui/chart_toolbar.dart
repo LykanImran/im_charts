@@ -17,6 +17,7 @@ import '../engine/indicators/vwap.dart';
 import '../engine/indicators/williams_r.dart';
 import 'chart_save_status_badge.dart';
 import 'chart_settings_modal.dart';
+import 'chart_toast.dart';
 import 'formula_editor_modal.dart';
 import 'symbol_search_modal.dart';
 
@@ -296,13 +297,9 @@ class _ChartToolbarState extends State<ChartToolbar>
                             );
                           }
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Chart snapshot captured (1080p)!'),
-                              backgroundColor: Color(0xFF1E222D),
-                              duration: Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          ChartToast.success(
+                            context,
+                            'Chart snapshot captured (1080p)!',
                           );
                         }
                       },

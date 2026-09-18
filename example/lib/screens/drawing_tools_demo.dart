@@ -123,20 +123,7 @@ class _DrawingToolsDemoScreenState extends State<DrawingToolsDemoScreen> {
 
   void _showFeedback(String message, Color color) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        ),
-        backgroundColor: color.withValues(alpha: 0.9),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    ChartToast.show(context, message: message, color: color);
   }
 
   @override

@@ -236,7 +236,7 @@ void main() {
 
       // Tap Close button
       await tester.tap(closeKey);
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
 
       // Verify position was closed in controller and callback invoked
       expect(controller.positions, isEmpty);

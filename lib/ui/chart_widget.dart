@@ -10,6 +10,7 @@ import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
+import 'chart_toast.dart';
 import 'replay_control_bar.dart';
 
 enum _ChartDragMode {
@@ -440,18 +441,35 @@ class _TradingChartState extends State<TradingChart> {
                       final scaleRatio = event.scale / _lastTrackpadScale;
                       _lastTrackpadScale = event.scale;
 
-                      if (pos.dx >= priceAxisLeft) {
-                        // Pinch over price axis: scale price vertically
-                        if (scaleRatio > 1.0) {
-                          controller.zoomInPrice();
+                      if (scaleRatio.isFinite &&
+                          scaleRatio > 0 &&
+                          (scaleRatio - 1.0).abs() > 0.0005) {
+                        if (pos.dx >= priceAxisLeft) {
+                          // Pinch over price axis: scale price vertically
+                          if (scaleRatio > 1.0) {
+                            controller.zoomInPrice();
+                          } else {
+                            controller.zoomOutPrice();
+                          }
                         } else {
-                          controller.zoomOutPrice();
+                          // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
+                          controller.onZoom(scaleRatio, pos);
                         }
-                      } else {
-                        // Pinch over main chart canvas: horizontal focal zoom centered at trackpad pointer
-                        controller.onZoom(scaleRatio, pos);
+                      }
+
+                      // Allow simultaneous pan while pinching if fingers move across the trackpad
+                      if (event.panDelta.dx.abs() > 0.1) {
+                        controller.onPan(event.panDelta.dx);
+                      }
+                      if (controller.isManualPriceScale &&
+                          event.panDelta.dy.abs() > 0.1) {
+                        controller.onVerticalPan(
+                          event.panDelta.dy,
+                          timeAxisTop,
+                        );
                       }
                     } else {
+                      _lastTrackpadScale = event.scale;
                       // Native Trackpad 2-finger pan / swipe
                       if (event.panDelta.dx.abs() > 0.1) {
                         controller.onPan(event.panDelta.dx);
@@ -475,6 +493,7 @@ class _TradingChartState extends State<TradingChart> {
                       final pos = pointerSignal.localPosition;
                       final dx = pointerSignal.scrollDelta.dx;
                       final dy = pointerSignal.scrollDelta.dy;
+                      final isShift = HardwareKeyboard.instance.isShiftPressed;
 
                       if (pos.dx >= priceAxisLeft) {
                         // Wheel over price axis -> scale price vertically
@@ -492,8 +511,11 @@ class _TradingChartState extends State<TradingChart> {
                         }
                       } else {
                         // Over main chart canvas:
-                        // If dominant horizontal trackpad scroll (2-finger swipe)
-                        if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
+                        if (isShift) {
+                          // Shift + scroll -> pan horizontally
+                          controller.onPan(-dy);
+                        } else if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
+                          // Horizontal 2-finger trackpad swipe -> pan
                           controller.onPan(-dx);
                         } else if (dy.abs() > 0.0) {
                           // Smooth exponential focal zoom based on scroll delta
@@ -1497,7 +1519,7 @@ class _TradingChartState extends State<TradingChart> {
     TradingChartController controller,
     double y,
     double price,
-  ) {
+  ) async {
     final roundedPrice = double.parse(price.toStringAsFixed(2));
 
     if (widget.orderMenuBuilder != null) {
@@ -1525,11 +1547,10 @@ class _TradingChartState extends State<TradingChart> {
       Offset.zero & overlay.size,
     );
 
-    final messenger = ScaffoldMessenger.maybeOf(context);
     final isDark = controller.isDarkTheme;
     final itemTextColor = isDark ? Colors.white : const Color(0xFF131722);
 
-    showMenu<String>(
+    final choice = await showMenu<String>(
       context: context,
       position: position,
       color: isDark ? const Color(0xFF1E222D) : Colors.white,
@@ -1660,8 +1681,9 @@ class _TradingChartState extends State<TradingChart> {
           ),
         ),
       ],
-    ).then((choice) {
-      if (choice == null) return;
+    );
+
+    if (choice == null || !mounted) return;
 
       if (choice == 'buy') {
         final order = ChartOrder(
@@ -1724,23 +1746,12 @@ class _TradingChartState extends State<TradingChart> {
           createdAt: DateTime.now(),
         );
         controller.addAlert(alert);
-        messenger?.clearSnackBars();
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Text(
-              '🔔 Alert set at ₹$roundedPrice for ${controller.symbol}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            backgroundColor: const Color(0xFF1E222D),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
+        if (!mounted || !context.mounted) return;
+        ChartToast.alert(
+          context,
+          'Alert set at ₹$roundedPrice for ${controller.symbol}',
         );
       }
-    });
   }
 
   void _showContextMenu(Offset globalPosition, Offset localPosition) {
@@ -2149,23 +2160,9 @@ class _TradingChartState extends State<TradingChart> {
 
       widget.onContextMenuAction?.call(choice, localPosition, clickedPrice);
 
-      final messenger = ScaffoldMessenger.maybeOf(context);
       void showFeedback(String msg, Color col) {
-        messenger?.clearSnackBars();
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Text(
-              msg,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            backgroundColor: col.withValues(alpha: 0.9),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        );
+        if (!mounted) return;
+        ChartToast.show(context, message: msg, color: col);
       }
 
       switch (choice) {
@@ -2823,26 +2820,12 @@ class _TradingChartState extends State<TradingChart> {
                   onTap: () {
                     controller.closePosition(position.id);
                     widget.onPositionClosed?.call(position);
-                    ScaffoldMessenger.of(context).clearSnackBars();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Position closed: ${position.side.label} ${position.quantity.toStringAsFixed(0)} @ ₹${position.entryPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        backgroundColor: controller.isDarkTheme
-                            ? const Color(0xFF1E222D)
-                            : const Color(0xFF32363E),
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    );
+                    if (context.mounted) {
+                      ChartToast.info(
+                        context,
+                        'Position closed: ${position.side.label} ${position.quantity.toStringAsFixed(0)} @ ₹${position.entryPrice.toStringAsFixed(2)}',
+                      );
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
