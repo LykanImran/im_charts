@@ -115,6 +115,14 @@ Comprehensive guides and architectural deep-dives are located in the [`doc/`](do
   - **Countdown Timer Badge**: Live ticking badge on the vertical price axis showing exact time remaining before the active bar closes (e.g. `04:18`).
   - **Background Canvas Watermark**: Bold institutional typography featuring brand name (`IM CHARTS • NIFTY 50 • 5m • NSE`) rendered in the background pane at 4.5% opacity.
   - **Price Beacon Pulse Dot**: Radiant pulsing beacon tracking the active candle close price on canvas.
+- **📱 Mobile-Optimized Touch Ergonomics & Responsive Layout (`ChartLayoutMode`)**:
+  - **Automatic Web vs Mobile Switching**: `ChartLayoutMode.auto` automatically detects available screen/container width (`< 600px`), dynamically adjusting axes, toolbars, and touch targets. Can be explicitly set to `ChartLayoutMode.mobile` or `ChartLayoutMode.desktop`.
+  - **Ultra-Smooth, Zero-Cling Finger Dragging**: Replaces frame-by-frame price rounding with continuous floating-point drag accumulation. Finger dragging of Buy/Sell orders, TP/SL brackets, and price alerts is 100% linear and fluid at 60/120Hz.
+  - **Enlarged 44px Touch Targets**: Order tags, bracket handles, price alerts, and position close buttons feature an invisible 44px touch hit box with `HitTestBehavior.opaque` to ensure fingers never accidentally trigger background chart panning.
+  - **Jump-Free Pinch-to-Zoom**: Multi-touch pointer synchronization eliminates the 100–250px focal point jumps when placing down or lifting a second finger. Focal zoom is strictly clamped within canvas boundaries.
+  - **Draggable Price Alerts (`ChartAlert`)**: Interactive alert pill handles directly on the chart canvas allowing traders to drag price alerts up and down with live floating telemetry chip positioned above the thumb.
+  - **Responsive Floating Notifications (`ChartToast`)**: Adapts to the viewport—docking to the top-right with a fixed 350px width on Desktop/Web, and center-top with full device width on Mobile.
+  - **Custom Context Menu**: TradingView-style right-click context menu (with live indicator counts, canvas drawing counts, reset view, and order shortcuts) suppressing browser defaults on Web.
 - **🚀 Skia & Impeller Direct Canvas Rendering**:
   - Zero widget overhead: Entire chart renders via a single, isolated `CustomPainter` with boundary clipping.
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/models/candle.dart';
 import '../core/models/candle_style.dart';
+import '../core/models/chart_layout_mode.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
 import '../core/models/chart_theme.dart';
@@ -62,6 +63,8 @@ class ImChart extends StatefulWidget {
   final bool showCountdownTimer;
   final bool enableChartTrading;
   final bool enableContextMenu;
+  final ChartLayoutMode layoutMode;
+  final double mobileBreakpoint;
 
   final GlobalKey? repaintBoundaryKey;
   final void Function(ChartOrder order)? onOrderPlaced;
@@ -94,6 +97,8 @@ class ImChart extends StatefulWidget {
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
     this.enableContextMenu = true,
+    this.layoutMode = ChartLayoutMode.auto,
+    this.mobileBreakpoint = 600.0,
     this.repaintBoundaryKey,
     this.onOrderPlaced,
     this.onOrderModified,
@@ -124,6 +129,8 @@ class ImChart extends StatefulWidget {
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
     this.enableContextMenu = true,
+    this.layoutMode = ChartLayoutMode.auto,
+    this.mobileBreakpoint = 600.0,
     this.repaintBoundaryKey,
     this.onOrderPlaced,
     this.onOrderModified,
@@ -156,6 +163,8 @@ class ImChart extends StatefulWidget {
     this.showCountdownTimer = true,
     this.enableChartTrading = true,
     this.enableContextMenu = true,
+    this.layoutMode = ChartLayoutMode.auto,
+    this.mobileBreakpoint = 600.0,
     this.repaintBoundaryKey,
     this.onOrderPlaced,
     this.onOrderModified,
@@ -295,6 +304,8 @@ class _ImChartState extends State<ImChart> {
                 enableContextMenu: widget.enableContextMenu,
                 showWatermark: widget.showWatermark,
                 showCountdownTimer: widget.showCountdownTimer,
+                layoutMode: widget.layoutMode,
+                mobileBreakpoint: widget.mobileBreakpoint,
                 brandName: widget.brandName,
                 onOrderPlaced: widget.onOrderPlaced,
                 onOrderModified: widget.onOrderModified,

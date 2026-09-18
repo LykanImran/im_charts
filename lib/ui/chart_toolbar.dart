@@ -74,6 +74,9 @@ class _ChartToolbarState extends State<ChartToolbar>
         final solidToolbarBg =
             isDark ? const Color(0xFF131722) : const Color(0xFFFFFFFF);
 
+        final isMobile = MediaQuery.maybeOf(context) != null &&
+            MediaQuery.of(context).size.width < 600;
+
         return Material(
           color: solidToolbarBg,
           child: Container(
@@ -100,8 +103,8 @@ class _ChartToolbarState extends State<ChartToolbar>
                       onTap: () => SymbolSearchModal.show(context, controller),
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 8 : 10,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
@@ -121,34 +124,38 @@ class _ChartToolbarState extends State<ChartToolbar>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Search symbol...',
+                              isMobile ? controller.symbol : 'Search symbol...',
                               style: TextStyle(
                                 color: theme.axisTextColor,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: isMobile
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF2A2E39)
-                                    : const Color(0xFFE0E3EB),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                              child: Text(
-                                '⌘K',
-                                style: TextStyle(
-                                  color: theme.axisTextColor,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            if (!isMobile) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF2A2E39)
+                                      : const Color(0xFFE0E3EB),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  '⌘K',
+                                  style: TextStyle(
+                                    color: theme.axisTextColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
@@ -305,23 +312,25 @@ class _ChartToolbarState extends State<ChartToolbar>
                       },
                     ),
 
-                    const SizedBox(width: 4),
+                    if (!isMobile) ...[
+                      const SizedBox(width: 4),
 
-                    // 10. SHORTCUTS / HOTKEYS HELP
-                    IconButton(
-                      icon: Icon(
-                        Icons.keyboard_outlined,
-                        size: 18,
-                        color: theme.axisTextColor,
+                      // 10. SHORTCUTS / HOTKEYS HELP
+                      IconButton(
+                        icon: Icon(
+                          Icons.keyboard_outlined,
+                          size: 18,
+                          color: theme.axisTextColor,
+                        ),
+                        tooltip: 'Keyboard Shortcuts (Hotkeys)',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        onPressed: () => _showShortcutsDialog(context, isDark),
                       ),
-                      tooltip: 'Keyboard Shortcuts (Hotkeys)',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                      onPressed: () => _showShortcutsDialog(context, isDark),
-                    ),
+                    ],
                   ],
                 ),
               ),

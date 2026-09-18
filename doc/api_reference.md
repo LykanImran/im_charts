@@ -445,4 +445,41 @@ const ReplayControlBar({
 });
 ```
 
+---
+
+### `ChartLayoutMode`
+Defines responsive layout behavior for `TradingChart` and `ImChart`.
+
+```dart
+enum ChartLayoutMode {
+  /// Automatically switches between desktop and mobile layouts based on container width (< 600px).
+  auto,
+
+  /// Forces full desktop trading terminal layout.
+  desktop,
+
+  /// Forces mobile layout with compact price axis (52px), 44px touch targets, and mobile ergonomics.
+  mobile,
+}
+```
+
+---
+
+### `ChartToast`
+Responsive trading terminal notification and toast system.
+
+- Automatically positions at the **top-right** with a **fixed 350px width** on Desktop/Web (`width >= 600px`), preventing full-screen expansion.
+- Automatically docks to **center-top** with **full device width** on Mobile (`width < 600px`).
+- Features entrance slide/fade animations and auto-dismiss after 2.5 seconds.
+
+```dart
+// Semantic helper methods
+ChartToast.success(context, 'Snapshot saved successfully', title: 'Export Complete');
+ChartToast.info(context, 'Position closed: LONG 100 @ ₹24,490.00');
+ChartToast.alert(context, 'Alert set at ₹24,500.00 for NIFTY 50');
+ChartToast.error(context, 'Connection timeout');
+ChartToast.dismiss(); // Immediately clears active toast
+```
+
+
 

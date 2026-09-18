@@ -12,6 +12,7 @@ export 'core/models/candle.dart';
 export 'core/models/candle_style.dart';
 export 'core/models/chart_alert.dart';
 export 'core/models/chart_drawing.dart';
+export 'core/models/chart_layout_mode.dart';
 export 'core/models/chart_order.dart';
 export 'core/models/chart_position.dart';
 export 'core/models/chart_save_state.dart';

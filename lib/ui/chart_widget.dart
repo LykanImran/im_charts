@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../core/coordinates/coordinate_converter.dart';
 import '../core/models/chart_alert.dart';
 import '../core/models/chart_drawing.dart';
+import '../core/models/chart_layout_mode.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
 import '../engine/chart_controller.dart';
@@ -33,6 +34,8 @@ class TradingChart extends StatefulWidget {
   final bool enableContextMenu;
   final bool showWatermark;
   final bool showCountdownTimer;
+  final ChartLayoutMode layoutMode;
+  final double mobileBreakpoint;
   final String? brandName;
   final GlobalKey? repaintBoundaryKey;
   final Widget Function(
@@ -62,6 +65,8 @@ class TradingChart extends StatefulWidget {
     this.enableContextMenu = true,
     this.showWatermark = true,
     this.showCountdownTimer = true,
+    this.layoutMode = ChartLayoutMode.auto,
+    this.mobileBreakpoint = 600.0,
     this.brandName,
     this.repaintBoundaryKey,
     this.orderMenuBuilder,
@@ -78,12 +83,14 @@ class TradingChart extends StatefulWidget {
 }
 
 class _TradingChartState extends State<TradingChart> {
-  static const double _priceAxisWidth = 65.0;
-  static const double _timeAxisHeight = 24.0;
+  bool _isMobile = false;
+  double get _priceAxisWidth => _isMobile ? 52.0 : 65.0;
+  double get _timeAxisHeight => _isMobile ? 22.0 : 24.0;
   final GlobalKey _defaultRepaintKey = GlobalKey();
 
   double _lastScale = 1.0;
   double _lastTrackpadScale = 1.0;
+  int _lastPointerCount = 0;
   bool _isTrackpadPanZoomActive = false;
   Offset _lastFocalPoint = Offset.zero;
   Offset _lastTapDownPosition = Offset.zero;
@@ -102,10 +109,21 @@ class _TradingChartState extends State<TradingChart> {
   // Track hover position for dynamic cursor resolution
   Offset? _hoverPosition;
 
-  // Active order dragging telemetry state
+  // Active order and alert dragging state
   String? _draggingOrderId;
-  String? _draggingKind; // 'order', 'tp', 'sl'
+  String? _draggingKind; // 'order', 'tp', 'sl', 'alert'
   double? _draggingCurrentPrice;
+  double _dragStartY = 0.0;
+  double _dragAccumulatedDeltaY = 0.0;
+
+  bool _computeIsMobile(BoxConstraints constraints, BuildContext context) {
+    if (widget.layoutMode == ChartLayoutMode.mobile) return true;
+    if (widget.layoutMode == ChartLayoutMode.desktop) return false;
+    final screenWidth =
+        MediaQuery.maybeOf(context)?.size.width ?? constraints.maxWidth;
+    return constraints.maxWidth < widget.mobileBreakpoint ||
+        screenWidth < widget.mobileBreakpoint;
+  }
 
   MouseCursor _resolveCursor(double width, double height) {
     if (_dragMode == _ChartDragMode.horizontalLineDrag) {
@@ -355,6 +373,7 @@ class _TradingChartState extends State<TradingChart> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
+        _isMobile = _computeIsMobile(constraints, context);
         final priceAxisLeft = width - _priceAxisWidth;
         final timeAxisTop = height - _timeAxisHeight;
 
@@ -702,6 +721,7 @@ class _TradingChartState extends State<TradingChart> {
                               final start = details.localFocalPoint;
                               _lastFocalPoint = start;
                               _lastScale = 1.0;
+                              _lastPointerCount = details.pointerCount;
 
                               // If a drawing tool is currently active
                               if (controller.activeDrawingTool !=
@@ -840,6 +860,15 @@ class _TradingChartState extends State<TradingChart> {
                             },
                             onScaleUpdate: (details) {
                               if (_isTrackpadPanZoomActive) return;
+
+                              // If pointer count changed (finger added/lifted), synchronize focal point without jump
+                              if (details.pointerCount != _lastPointerCount) {
+                                _lastPointerCount = details.pointerCount;
+                                _lastFocalPoint = details.localFocalPoint;
+                                _lastScale = details.scale;
+                                return;
+                              }
+
                               final deltaX = details.localFocalPoint.dx -
                                   _lastFocalPoint.dx;
                               final deltaY = details.localFocalPoint.dy -
@@ -1145,10 +1174,18 @@ class _TradingChartState extends State<TradingChart> {
                                       (details.scale - 1.0).abs() > 0.01) {
                                     final scaleRatio =
                                         details.scale / _lastScale;
-                                    if ((scaleRatio - 1.0).abs() > 0.001) {
+                                    if (scaleRatio.isFinite &&
+                                        scaleRatio > 0 &&
+                                        (scaleRatio - 1.0).abs() > 0.001) {
+                                      final clampedFocal = Offset(
+                                        details.localFocalPoint.dx
+                                            .clamp(0.0, priceAxisLeft),
+                                        details.localFocalPoint.dy
+                                            .clamp(0.0, timeAxisTop),
+                                      );
                                       controller.onZoom(
                                         scaleRatio,
-                                        details.localFocalPoint,
+                                        clampedFocal,
                                       );
                                       _lastScale = details.scale;
                                     }
@@ -1195,6 +1232,7 @@ class _TradingChartState extends State<TradingChart> {
                             },
                             onScaleEnd: (_) {
                               _lastScale = 1.0;
+                              _lastPointerCount = 0;
                               if (_isTrackpadPanZoomActive) return;
 
                               if (_dragMode == _ChartDragMode.drawingCreation) {
@@ -1319,6 +1357,17 @@ class _TradingChartState extends State<TradingChart> {
                             context,
                             controller,
                             order,
+                            timeAxisTop,
+                          ),
+                      ],
+
+                      // Interactive Price Alert Badges & Hitboxes (Draggable & Cancel)
+                      if (controller.alerts.isNotEmpty) ...[
+                        for (final alert in controller.alerts)
+                          ..._buildAlertInteractiveWidgets(
+                            context,
+                            controller,
+                            alert,
                             timeAxisTop,
                           ),
                       ],
@@ -2291,131 +2340,150 @@ class _TradingChartState extends State<TradingChart> {
         order.hasStopLoss ? controller.yAtPrice(order.stopLossPrice!) : null;
 
     final isThisOrderDragging = _draggingOrderId == order.id;
+    final touchHeight = _isMobile ? 44.0 : 22.0;
 
     return [
       // 1. Order Badge Interactive Hitbox (Draggable & Cancel)
       if (orderY >= 0 && orderY <= timeAxisTop)
         Positioned(
           right: _priceAxisWidth + 18,
-          top: (orderY - 11).clamp(0.0, timeAxisTop - 22.0),
+          top: (orderY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
             width: 175,
-            height: 22,
-            child: Row(
-              children: [
-                // Quick bracket add button if no TP or SL
-                if (!order.hasTakeProfit || !order.hasStopLoss)
-                  GestureDetector(
-                    key: Key('bracket_order_${order.id}'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _openBracketMenu(context, controller, order),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 2),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
+            height: touchHeight,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 22,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Quick bracket add button if no TP or SL
+                    if (!order.hasTakeProfit || !order.hasStopLoss)
+                      GestureDetector(
+                        key: Key('bracket_order_${order.id}'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _openBracketMenu(context, controller, order),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF2962FF).withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: const Text(
+                            '+Bracket',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2962FF).withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: const Text(
-                        '+Bracket',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
+                    // Draggable drag handle for adjusting limit price
+                    Expanded(
+                      child: Tooltip(
+                        message: 'Drag up/down to adjust limit price',
+                        waitDuration: const Duration(milliseconds: 500),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.resizeUpDown,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onVerticalDragStart: (_) {
+                              setState(() {
+                                _draggingOrderId = order.id;
+                                _draggingKind = 'order';
+                                _draggingCurrentPrice = order.price;
+                                _dragStartY = orderY;
+                                _dragAccumulatedDeltaY = 0.0;
+                              });
+                            },
+                            onVerticalDragUpdate: (details) {
+                              _dragAccumulatedDeltaY += details.delta.dy;
+                              final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                                  .clamp(0.0, timeAxisTop);
+                              final newPrice = double.parse(
+                                controller.priceAtY(newY).toStringAsFixed(2),
+                              );
+                              if (newPrice != _draggingCurrentPrice) {
+                                _draggingCurrentPrice = newPrice;
+                                controller.updateOrderPrice(order.id, newPrice);
+                              }
+                            },
+                            onVerticalDragEnd: (_) {
+                              setState(() {
+                                _draggingOrderId = null;
+                                _draggingKind = null;
+                                _draggingCurrentPrice = null;
+                              });
+                              final updated = controller.orders.firstWhere(
+                                (o) => o.id == order.id,
+                                orElse: () => order,
+                              );
+                              widget.onOrderModified?.call(updated);
+                            },
+                            onVerticalDragCancel: () {
+                              setState(() {
+                                _draggingOrderId = null;
+                                _draggingKind = null;
+                                _draggingCurrentPrice = null;
+                              });
+                            },
+                            child: Container(
+                              color: Colors.transparent,
+                              height: touchHeight,
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                // Draggable drag handle for adjusting limit price
-                Expanded(
-                  child: Tooltip(
-                    message: 'Drag up/down to adjust limit price',
-                    waitDuration: const Duration(milliseconds: 500),
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.resizeUpDown,
+                    // Cancel order button (✖) at the right end of the badge
+                    Tooltip(
+                      message: 'Cancel Order',
+                      waitDuration: const Duration(milliseconds: 300),
                       child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onVerticalDragStart: (_) {
-                          setState(() {
-                            _draggingOrderId = order.id;
-                            _draggingKind = 'order';
-                            _draggingCurrentPrice = order.price;
-                          });
+                        key: Key('cancel_order_${order.id}'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          controller.cancelOrder(order.id);
+                          widget.onOrderCancelled?.call(order.id);
                         },
-                        onVerticalDragUpdate: (details) {
-                          final currentY = controller.yAtPrice(order.price);
-                          final newY = (currentY + details.delta.dy).clamp(
-                            0.0,
-                            timeAxisTop,
-                          );
-                          final newPrice = double.parse(
-                            controller.priceAtY(newY).toStringAsFixed(2),
-                          );
-                          controller.updateOrderPrice(order.id, newPrice);
-                          setState(() {
-                            _draggingCurrentPrice = newPrice;
-                          });
-                        },
-                        onVerticalDragEnd: (_) {
-                          setState(() {
-                            _draggingOrderId = null;
-                            _draggingKind = null;
-                            _draggingCurrentPrice = null;
-                          });
-                          final updated = controller.orders.firstWhere(
-                            (o) => o.id == order.id,
-                            orElse: () => order,
-                          );
-                          widget.onOrderModified?.call(updated);
-                        },
-                        onVerticalDragCancel: () {
-                          setState(() {
-                            _draggingOrderId = null;
-                            _draggingKind = null;
-                            _draggingCurrentPrice = null;
-                          });
-                        },
-                        child: const SizedBox.expand(),
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          color: Colors.transparent,
+                          alignment: Alignment.center,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                // Cancel order button (✖) at the right end of the badge
-                Tooltip(
-                  message: 'Cancel Order',
-                  waitDuration: const Duration(milliseconds: 300),
-                  child: GestureDetector(
-                    key: Key('cancel_order_${order.id}'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      controller.cancelOrder(order.id);
-                      widget.onOrderCancelled?.call(order.id);
-                    },
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      color: Colors.transparent,
-                      alignment: Alignment.center,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
 
       // Floating Live Drag Telemetry Badge for Order Limit
-      if (isThisOrderDragging && _draggingKind == 'order' && orderY >= 0 && orderY <= timeAxisTop)
+      if (isThisOrderDragging &&
+          _draggingKind == 'order' &&
+          orderY >= 0 &&
+          orderY <= timeAxisTop)
         Positioned(
-          right: _priceAxisWidth + 200,
-          top: (orderY - 14).clamp(0.0, timeAxisTop - 28.0),
+          right: _isMobile ? _priceAxisWidth + 10 : _priceAxisWidth + 200,
+          top: (_isMobile ? orderY - 44 : orderY - 14)
+              .clamp(8.0, timeAxisTop - 32.0),
           child: _buildDragTelemetryChip(
             title: 'LIMIT ${order.isBuy ? 'BUY' : 'SELL'}',
-            value: '₹${(_draggingCurrentPrice ?? order.price).toStringAsFixed(2)} (Qty: ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)})',
-            accentColor: order.isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30),
+            value:
+                '₹${(_draggingCurrentPrice ?? order.price).toStringAsFixed(2)} (Qty: ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)})',
+            accentColor:
+                order.isBuy ? const Color(0xFF00E676) : const Color(0xFFFF3B30),
           ),
         ),
 
@@ -2423,111 +2491,127 @@ class _TradingChartState extends State<TradingChart> {
       if (tpY != null && tpY >= 0 && tpY <= timeAxisTop)
         Positioned(
           right: _priceAxisWidth + 18,
-          top: (tpY - 11).clamp(0.0, timeAxisTop - 22.0),
+          top: (tpY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
             width: 145,
-            height: 22,
-            child: Row(
-              children: [
-                // Draggable zone for Take Profit price
-                Expanded(
-                  child: Tooltip(
-                    message: 'Drag up/down to adjust TP',
-                    waitDuration: const Duration(milliseconds: 500),
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.resizeUpDown,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onVerticalDragStart: (_) {
-                          setState(() {
-                            _draggingOrderId = order.id;
-                            _draggingKind = 'tp';
-                            _draggingCurrentPrice = order.takeProfitPrice;
-                          });
-                        },
-                        onVerticalDragUpdate: (details) {
-                          final currentY = controller.yAtPrice(
-                            order.takeProfitPrice!,
-                          );
-                          final newY = (currentY + details.delta.dy).clamp(
-                            0.0,
-                            timeAxisTop,
-                          );
-                          final newPrice = double.parse(
-                            controller.priceAtY(newY).toStringAsFixed(2),
-                          );
-                          controller.updateOrderBrackets(
-                            order.id,
-                            takeProfitPrice: newPrice,
-                          );
-                          setState(() {
-                            _draggingCurrentPrice = newPrice;
-                          });
-                        },
-                        onVerticalDragEnd: (_) {
-                          setState(() {
-                            _draggingOrderId = null;
-                            _draggingKind = null;
-                            _draggingCurrentPrice = null;
-                          });
-                          final updated = controller.orders.firstWhere(
-                            (o) => o.id == order.id,
-                            orElse: () => order,
-                          );
-                          widget.onOrderModified?.call(updated);
-                        },
-                        onVerticalDragCancel: () {
-                          setState(() {
-                            _draggingOrderId = null;
-                            _draggingKind = null;
-                            _draggingCurrentPrice = null;
-                          });
-                        },
-                        child: const SizedBox.expand(),
+            height: touchHeight,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 22,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Draggable zone for Take Profit price
+                    Expanded(
+                      child: Tooltip(
+                        message: 'Drag up/down to adjust TP',
+                        waitDuration: const Duration(milliseconds: 500),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.resizeUpDown,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onVerticalDragStart: (_) {
+                              setState(() {
+                                _draggingOrderId = order.id;
+                                _draggingKind = 'tp';
+                                _draggingCurrentPrice = order.takeProfitPrice;
+                                _dragStartY = tpY;
+                                _dragAccumulatedDeltaY = 0.0;
+                              });
+                            },
+                            onVerticalDragUpdate: (details) {
+                              _dragAccumulatedDeltaY += details.delta.dy;
+                              final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                                  .clamp(0.0, timeAxisTop);
+                              final newPrice = double.parse(
+                                controller.priceAtY(newY).toStringAsFixed(2),
+                              );
+                              if (newPrice != _draggingCurrentPrice) {
+                                _draggingCurrentPrice = newPrice;
+                                controller.updateOrderBrackets(
+                                  order.id,
+                                  takeProfitPrice: newPrice,
+                                );
+                              }
+                            },
+                            onVerticalDragEnd: (_) {
+                              setState(() {
+                                _draggingOrderId = null;
+                                _draggingKind = null;
+                                _draggingCurrentPrice = null;
+                              });
+                              final updated = controller.orders.firstWhere(
+                                (o) => o.id == order.id,
+                                orElse: () => order,
+                              );
+                              widget.onOrderModified?.call(updated);
+                            },
+                            onVerticalDragCancel: () {
+                              setState(() {
+                                _draggingOrderId = null;
+                                _draggingKind = null;
+                                _draggingCurrentPrice = null;
+                              });
+                            },
+                            child: Container(
+                              color: Colors.transparent,
+                              height: touchHeight,
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                // Cancel TP button
-                Tooltip(
-                  message: 'Remove Take Profit',
-                  waitDuration: const Duration(milliseconds: 300),
-                  child: GestureDetector(
-                    key: Key('cancel_tp_${order.id}'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      controller.updateOrderBrackets(
-                        order.id,
-                        clearTakeProfit: true,
-                      );
-                    },
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      color: Colors.transparent,
-                      alignment: Alignment.center,
+                    // Cancel TP button
+                    Tooltip(
+                      message: 'Remove Take Profit',
+                      waitDuration: const Duration(milliseconds: 300),
+                      child: GestureDetector(
+                        key: Key('cancel_tp_${order.id}'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          controller.updateOrderBrackets(
+                            order.id,
+                            clearTakeProfit: true,
+                          );
+                        },
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          color: Colors.transparent,
+                          alignment: Alignment.center,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
 
       // Floating Live Drag Telemetry Badge for TP
-      if (isThisOrderDragging && _draggingKind == 'tp' && tpY != null && tpY >= 0 && tpY <= timeAxisTop)
+      if (isThisOrderDragging &&
+          _draggingKind == 'tp' &&
+          tpY != null &&
+          tpY >= 0 &&
+          tpY <= timeAxisTop)
         Positioned(
-          right: _priceAxisWidth + 170,
-          top: (tpY - 14).clamp(0.0, timeAxisTop - 28.0),
+          right: _isMobile ? _priceAxisWidth + 10 : _priceAxisWidth + 170,
+          top: (_isMobile ? tpY - 44 : tpY - 14)
+              .clamp(8.0, timeAxisTop - 32.0),
           child: Builder(
             builder: (_) {
-              final tpPrice = _draggingCurrentPrice ?? order.takeProfitPrice ?? 0.0;
+              final tpPrice =
+                  _draggingCurrentPrice ?? order.takeProfitPrice ?? 0.0;
               final diff = (tpPrice - order.price) * (order.isBuy ? 1 : -1);
               final estProfit = diff * order.quantity;
               final pct = order.price > 0 ? (diff / order.price) * 100 : 0.0;
               return _buildDragTelemetryChip(
                 title: 'TAKE PROFIT',
-                value: '₹${tpPrice.toStringAsFixed(2)} | +₹${estProfit.abs().toStringAsFixed(2)} (+${pct.toStringAsFixed(1)}%)',
+                value:
+                    '₹${tpPrice.toStringAsFixed(2)} | +₹${estProfit.abs().toStringAsFixed(2)} (+${pct.toStringAsFixed(1)}%)',
                 accentColor: const Color(0xFF00E5FF),
               );
             },
@@ -2538,46 +2622,211 @@ class _TradingChartState extends State<TradingChart> {
       if (slY != null && slY >= 0 && slY <= timeAxisTop)
         Positioned(
           right: _priceAxisWidth + 18,
-          top: (slY - 11).clamp(0.0, timeAxisTop - 22.0),
+          top: (slY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
             width: 145,
-            height: 22,
-            child: Row(
-              children: [
-                // Draggable zone for Stop Loss price
-                Expanded(
-                  child: Tooltip(
-                    message: 'Drag up/down to adjust SL',
-                    waitDuration: const Duration(milliseconds: 500),
+            height: touchHeight,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 22,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Draggable zone for Stop Loss price
+                    Expanded(
+                      child: Tooltip(
+                        message: 'Drag up/down to adjust SL',
+                        waitDuration: const Duration(milliseconds: 500),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.resizeUpDown,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onVerticalDragStart: (_) {
+                              setState(() {
+                                _draggingOrderId = order.id;
+                                _draggingKind = 'sl';
+                                _draggingCurrentPrice = order.stopLossPrice;
+                                _dragStartY = slY;
+                                _dragAccumulatedDeltaY = 0.0;
+                              });
+                            },
+                            onVerticalDragUpdate: (details) {
+                              _dragAccumulatedDeltaY += details.delta.dy;
+                              final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                                  .clamp(0.0, timeAxisTop);
+                              final newPrice = double.parse(
+                                controller.priceAtY(newY).toStringAsFixed(2),
+                              );
+                              if (newPrice != _draggingCurrentPrice) {
+                                _draggingCurrentPrice = newPrice;
+                                controller.updateOrderBrackets(
+                                  order.id,
+                                  stopLossPrice: newPrice,
+                                );
+                              }
+                            },
+                            onVerticalDragEnd: (_) {
+                              setState(() {
+                                _draggingOrderId = null;
+                                _draggingKind = null;
+                                _draggingCurrentPrice = null;
+                              });
+                              final updated = controller.orders.firstWhere(
+                                (o) => o.id == order.id,
+                                orElse: () => order,
+                              );
+                              widget.onOrderModified?.call(updated);
+                            },
+                            onVerticalDragCancel: () {
+                              setState(() {
+                                _draggingOrderId = null;
+                                _draggingKind = null;
+                                _draggingCurrentPrice = null;
+                              });
+                            },
+                            child: Container(
+                              color: Colors.transparent,
+                              height: touchHeight,
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Cancel SL button
+                    Tooltip(
+                      message: 'Remove Stop Loss',
+                      waitDuration: const Duration(milliseconds: 300),
+                      child: GestureDetector(
+                        key: Key('cancel_sl_${order.id}'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          controller.updateOrderBrackets(
+                            order.id,
+                            clearStopLoss: true,
+                          );
+                        },
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          color: Colors.transparent,
+                          alignment: Alignment.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+      // Floating Live Drag Telemetry Badge for SL
+      if (isThisOrderDragging &&
+          _draggingKind == 'sl' &&
+          slY != null &&
+          slY >= 0 &&
+          slY <= timeAxisTop)
+        Positioned(
+          right: _isMobile ? _priceAxisWidth + 10 : _priceAxisWidth + 170,
+          top: (_isMobile ? slY - 44 : slY - 14)
+              .clamp(8.0, timeAxisTop - 32.0),
+          child: Builder(
+            builder: (_) {
+              final slPrice =
+                  _draggingCurrentPrice ?? order.stopLossPrice ?? 0.0;
+              final diff = (order.price - slPrice) * (order.isBuy ? 1 : -1);
+              final estLoss = diff * order.quantity;
+              final pct = order.price > 0 ? (diff / order.price) * 100 : 0.0;
+              return _buildDragTelemetryChip(
+                title: 'STOP LOSS',
+                value:
+                    '₹${slPrice.toStringAsFixed(2)} | -₹${estLoss.abs().toStringAsFixed(2)} (${pct.toStringAsFixed(1)}%)',
+                accentColor: const Color(0xFFFF9100),
+              );
+            },
+          ),
+        ),
+    ];
+  }
+
+  List<Widget> _buildAlertInteractiveWidgets(
+    BuildContext context,
+    TradingChartController controller,
+    ChartAlert alert,
+    double timeAxisTop,
+  ) {
+    if (!alert.isActive && !alert.isTriggered) return const [];
+    final alertY = controller.yAtPrice(alert.price);
+    if (alertY < 0 || alertY > timeAxisTop) return const [];
+
+    final isThisAlertDragging =
+        _draggingOrderId == alert.id && _draggingKind == 'alert';
+    final touchHeight = _isMobile ? 44.0 : 24.0;
+    final isTriggered = alert.isTriggered;
+    final alertColor =
+        isTriggered ? const Color(0xFF787B86) : const Color(0xFFFFB300);
+
+    return [
+      Positioned(
+        right: _priceAxisWidth + 18,
+        top: (alertY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
+        child: SizedBox(
+          width: 150,
+          height: touchHeight,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              height: 22,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: controller.isDarkTheme
+                    ? const Color(0xFF1E222D).withValues(alpha: 0.95)
+                    : Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: alertColor.withValues(alpha: 0.8),
+                  width: 1.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Expanded(
                     child: MouseRegion(
                       cursor: SystemMouseCursors.resizeUpDown,
                       child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
+                        key: Key('drag_alert_${alert.id}'),
+                        behavior: HitTestBehavior.opaque,
                         onVerticalDragStart: (_) {
                           setState(() {
-                            _draggingOrderId = order.id;
-                            _draggingKind = 'sl';
-                            _draggingCurrentPrice = order.stopLossPrice;
+                            _draggingOrderId = alert.id;
+                            _draggingKind = 'alert';
+                            _draggingCurrentPrice = alert.price;
+                            _dragStartY = alertY;
+                            _dragAccumulatedDeltaY = 0.0;
                           });
                         },
                         onVerticalDragUpdate: (details) {
-                          final currentY = controller.yAtPrice(
-                            order.stopLossPrice!,
-                          );
-                          final newY = (currentY + details.delta.dy).clamp(
-                            0.0,
-                            timeAxisTop,
-                          );
+                          _dragAccumulatedDeltaY += details.delta.dy;
+                          final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                              .clamp(0.0, timeAxisTop);
                           final newPrice = double.parse(
                             controller.priceAtY(newY).toStringAsFixed(2),
                           );
-                          controller.updateOrderBrackets(
-                            order.id,
-                            stopLossPrice: newPrice,
-                          );
-                          setState(() {
+                          if (newPrice != _draggingCurrentPrice) {
                             _draggingCurrentPrice = newPrice;
-                          });
+                            controller.updateAlert(
+                              alert.copyWith(price: newPrice),
+                            );
+                          }
                         },
                         onVerticalDragEnd: (_) {
                           setState(() {
@@ -2585,11 +2834,6 @@ class _TradingChartState extends State<TradingChart> {
                             _draggingKind = null;
                             _draggingCurrentPrice = null;
                           });
-                          final updated = controller.orders.firstWhere(
-                            (o) => o.id == order.id,
-                            orElse: () => order,
-                          );
-                          widget.onOrderModified?.call(updated);
                         },
                         onVerticalDragCancel: () {
                           setState(() {
@@ -2598,54 +2842,66 @@ class _TradingChartState extends State<TradingChart> {
                             _draggingCurrentPrice = null;
                           });
                         },
-                        child: const SizedBox.expand(),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.notifications_active,
+                              size: 11,
+                              color: alertColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                alert.note.isNotEmpty
+                                    ? alert.note
+                                    : '₹${alert.price.toStringAsFixed(1)}',
+                                style: TextStyle(
+                                  color: alertColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                // Cancel SL button
-                Tooltip(
-                  message: 'Remove Stop Loss',
-                  waitDuration: const Duration(milliseconds: 300),
-                  child: GestureDetector(
-                    key: Key('cancel_sl_${order.id}'),
+                  GestureDetector(
+                    key: Key('cancel_alert_${alert.id}'),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      controller.updateOrderBrackets(
-                        order.id,
-                        clearStopLoss: true,
-                      );
+                      controller.removeAlert(alert.id);
                     },
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      color: Colors.transparent,
-                      alignment: Alignment.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Icon(
+                        Icons.close,
+                        size: 12,
+                        color: controller.isDarkTheme
+                            ? const Color(0xFF787B86)
+                            : const Color(0xFF9598A1),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
+      ),
 
-      // Floating Live Drag Telemetry Badge for SL
-      if (isThisOrderDragging && _draggingKind == 'sl' && slY != null && slY >= 0 && slY <= timeAxisTop)
+      if (isThisAlertDragging && alertY >= 0 && alertY <= timeAxisTop)
         Positioned(
-          right: _priceAxisWidth + 170,
-          top: (slY - 14).clamp(0.0, timeAxisTop - 28.0),
-          child: Builder(
-            builder: (_) {
-              final slPrice = _draggingCurrentPrice ?? order.stopLossPrice ?? 0.0;
-              final diff = (order.price - slPrice) * (order.isBuy ? 1 : -1);
-              final estLoss = diff * order.quantity;
-              final pct = order.price > 0 ? (diff / order.price) * 100 : 0.0;
-              return _buildDragTelemetryChip(
-                title: 'STOP LOSS',
-                value: '₹${slPrice.toStringAsFixed(2)} | -₹${estLoss.abs().toStringAsFixed(2)} (${pct.toStringAsFixed(1)}%)',
-                accentColor: const Color(0xFFFF9100),
-              );
-            },
+          right: _isMobile ? _priceAxisWidth + 10 : _priceAxisWidth + 170,
+          top: (_isMobile ? alertY - 44 : alertY - 14)
+              .clamp(8.0, timeAxisTop - 32.0),
+          child: _buildDragTelemetryChip(
+            title: 'ALERT TRIGGER',
+            value:
+                '₹${(_draggingCurrentPrice ?? alert.price).toStringAsFixed(2)}',
+            accentColor: alertColor,
           ),
         ),
     ];
@@ -2800,18 +3056,21 @@ class _TradingChartState extends State<TradingChart> {
     double timeAxisTop,
   ) {
     final posY = controller.yAtPrice(position.entryPrice);
+    final touchHeight = _isMobile ? 44.0 : 24.0;
 
     return [
       if (posY >= 0 && posY <= timeAxisTop)
         Positioned(
           right: _priceAxisWidth + 18,
-          top: (posY - 12).clamp(0.0, timeAxisTop - 24.0),
+          top: (posY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
             width: 80,
-            height: 24,
+            height: touchHeight,
             child: Align(
               alignment: Alignment.centerRight,
-              child: Tooltip(
+              child: SizedBox(
+                height: 24,
+                child: Tooltip(
                 message: 'Close Position (Market Order)',
                 waitDuration: const Duration(milliseconds: 300),
                 child: GestureDetector(
@@ -2860,6 +3119,7 @@ class _TradingChartState extends State<TradingChart> {
               ),
             ),
           ),
+        ),
         ),
     ];
   }
