@@ -169,11 +169,28 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = widget.controller.isDarkTheme;
+    final dialogBg = isDark ? const Color(0xFF1E222D) : Colors.white;
+    final dialogBorder =
+        isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+    final headerTextColor = isDark ? Colors.white : const Color(0xFF131722);
+    final fieldBg =
+        isDark ? const Color(0xFF131722) : const Color(0xFFF8F9FD);
+    final fieldBorder =
+        isDark ? const Color(0xFF363A45) : const Color(0xFFD0D3DC);
+    final fieldTextColor = isDark ? Colors.white : const Color(0xFF131722);
+    final presetBg =
+        isDark ? const Color(0xFF2A2E39) : const Color(0xFFF0F3FA);
+    final presetText =
+        isDark ? const Color(0xFFB2B5BE) : const Color(0xFF4A4E59);
+    final sectionLabelColor =
+        isDark ? const Color(0xFF787B86) : const Color(0xFF6A6D78);
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E222D),
+      backgroundColor: dialogBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF2A2E39), width: 1),
+        side: BorderSide(color: dialogBorder, width: 1),
       ),
       child: Container(
         width: 580,
@@ -192,18 +209,18 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Custom Pine Formula Indicator',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: headerTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close,
-                      color: Color(0xFF787B86), size: 18),
+                  icon: Icon(Icons.close,
+                      color: sectionLabelColor, size: 18),
                   onPressed: () => Navigator.of(context).pop(),
                   tooltip: 'Close',
                   padding: EdgeInsets.zero,
@@ -214,10 +231,10 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
             const SizedBox(height: 14),
 
             // Presets row
-            const Text(
+            Text(
               'QUICK PRESETS',
               style: TextStyle(
-                color: Color(0xFF787B86),
+                color: sectionLabelColor,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
@@ -239,13 +256,13 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2A2E39),
+                          color: presetBg,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           p['title'] as String,
-                          style: const TextStyle(
-                            color: Color(0xFFB2B5BE),
+                          style: TextStyle(
+                            color: presetText,
                             fontSize: 11,
                           ),
                         ),
@@ -264,10 +281,10 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'INDICATOR LABEL',
                         style: TextStyle(
-                          color: Color(0xFF787B86),
+                          color: sectionLabelColor,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
@@ -276,16 +293,16 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                       Container(
                         height: 36,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF131722),
+                          color: fieldBg,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFF363A45)),
+                          border: Border.all(color: fieldBorder),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         alignment: Alignment.centerLeft,
                         child: TextField(
                           controller: _nameController,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 13),
+                          style: TextStyle(
+                              color: fieldTextColor, fontSize: 13),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             isDense: true,
@@ -300,10 +317,10 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'DISPLAY PANE',
                       style: TextStyle(
-                        color: Color(0xFF787B86),
+                        color: sectionLabelColor,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
@@ -312,9 +329,9 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                     Container(
                       height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF131722),
+                        color: fieldBg,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF363A45)),
+                        border: Border.all(color: fieldBorder),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: Row(
@@ -330,7 +347,7 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                             labelStyle: TextStyle(
                               color: _isOverlay
                                   ? Colors.white
-                                  : const Color(0xFF787B86),
+                                  : sectionLabelColor,
                             ),
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
@@ -347,7 +364,7 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                             labelStyle: TextStyle(
                               color: !_isOverlay
                                   ? Colors.white
-                                  : const Color(0xFF787B86),
+                                  : sectionLabelColor,
                             ),
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
@@ -364,10 +381,10 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
             // Color Picker
             Row(
               children: [
-                const Text(
+                Text(
                   'COLOR:',
                   style: TextStyle(
-                    color: Color(0xFF787B86),
+                    color: sectionLabelColor,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -387,8 +404,9 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                           color: c,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color:
-                                isSelected ? Colors.white : Colors.transparent,
+                            color: isSelected
+                                ? (isDark ? Colors.white : Colors.black87)
+                                : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -401,10 +419,10 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
             const SizedBox(height: 14),
 
             // Formula Code Editor
-            const Text(
+            Text(
               'PINESCRIPT / FORMULA EXPRESSION',
               style: TextStyle(
-                color: Color(0xFF787B86),
+                color: sectionLabelColor,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
@@ -413,11 +431,11 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF131722),
+                  color: fieldBg,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: _isValid
-                        ? const Color(0xFF363A45)
+                        ? fieldBorder
                         : const Color(0xFFFF5252),
                     width: 1,
                   ),
@@ -427,9 +445,11 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
                   controller: _formulaController,
                   maxLines: null,
                   expands: true,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
-                    color: Color(0xFFE0E0E0),
+                    color: isDark
+                        ? const Color(0xFFE0E0E0)
+                        : const Color(0xFF1A1A1A),
                     fontSize: 12,
                     height: 1.4,
                   ),
@@ -483,9 +503,9 @@ class _FormulaEditorModalState extends State<FormulaEditorModal> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
-                    style: TextStyle(color: Color(0xFF787B86)),
+                    style: TextStyle(color: sectionLabelColor),
                   ),
                 ),
                 const SizedBox(width: 8),

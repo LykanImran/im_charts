@@ -42,23 +42,34 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
       builder: (context, _) {
         final activeTool = widget.controller.activeDrawingTool;
         final hasDrawings = widget.controller.drawings.isNotEmpty;
+        final isDark = widget.controller.isDarkTheme;
+
+        final bgColor = isDark ? const Color(0xFF131722) : Colors.white;
+        final borderColor =
+            isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+        final inactiveIconColor =
+            isDark ? const Color(0xFF868993) : const Color(0xFF787B86);
+        final activeActionColor =
+            isDark ? const Color(0xFFD1D4DC) : const Color(0xFF2A2E39);
+        final disabledActionColor =
+            isDark ? const Color(0xFF4A4E59) : const Color(0xFFB2B5BE);
 
         if (_isCollapsed) {
           return Container(
             width: 18,
-            decoration: const BoxDecoration(
-              color: Color(0xFF131722),
+            decoration: BoxDecoration(
+              color: bgColor,
               border: Border(
-                right: BorderSide(color: Color(0xFF2A2E39), width: 1),
+                right: BorderSide(color: borderColor, width: 1),
               ),
             ),
             child: InkWell(
               onTap: () => setState(() => _isCollapsed = false),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.chevron_right,
                   size: 14,
-                  color: Color(0xFF868993),
+                  color: inactiveIconColor,
                 ),
               ),
             ),
@@ -67,10 +78,10 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
 
         return Container(
           width: 44,
-          decoration: const BoxDecoration(
-            color: Color(0xFF131722),
+          decoration: BoxDecoration(
+            color: bgColor,
             border: Border(
-              right: BorderSide(color: Color(0xFF2A2E39), width: 1),
+              right: BorderSide(color: borderColor, width: 1),
             ),
           ),
           child: Column(
@@ -82,6 +93,7 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                 _buildToolButton(
                   tool: tool,
                   isActive: activeTool == tool,
+                  isDark: isDark,
                   onTap: () {
                     if (activeTool == tool) {
                       widget.controller.activeDrawingTool = DrawingTool.pointer;
@@ -93,9 +105,10 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                 const SizedBox(height: 4),
               ],
 
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                child: Divider(color: Color(0xFF2A2E39), height: 1),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                child: Divider(color: borderColor, height: 1),
               ),
 
               // Magnet Mode Toggle
@@ -131,7 +144,7 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                         size: 18,
                         color: widget.controller.magnetMode
                             ? const Color(0xFFFFB300)
-                            : const Color(0xFF868993),
+                            : inactiveIconColor,
                       ),
                     ),
                   ),
@@ -161,8 +174,8 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                         Icons.undo,
                         size: 18,
                         color: widget.controller.canUndo
-                            ? const Color(0xFFD1D4DC)
-                            : const Color(0xFF4A4E59),
+                            ? activeActionColor
+                            : disabledActionColor,
                       ),
                     ),
                   ),
@@ -192,8 +205,8 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                         Icons.redo,
                         size: 18,
                         color: widget.controller.canRedo
-                            ? const Color(0xFFD1D4DC)
-                            : const Color(0xFF4A4E59),
+                            ? activeActionColor
+                            : disabledActionColor,
                       ),
                     ),
                   ),
@@ -244,10 +257,10 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                       width: 32,
                       height: 32,
                       alignment: Alignment.center,
-                      child: const Icon(
+                      child: Icon(
                         Icons.chevron_left,
                         size: 16,
-                        color: Color(0xFF868993),
+                        color: inactiveIconColor,
                       ),
                     ),
                   ),
@@ -264,8 +277,14 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
   Widget _buildToolButton({
     required DrawingTool tool,
     required bool isActive,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
+    final hoverColor =
+        isActive ? const Color(0xFF2962FF) : (isDark ? const Color(0xFF2A2E39) : const Color(0xFFF0F3FA));
+    final defaultIconColor =
+        isDark ? const Color(0xFFB2B5BE) : const Color(0xFF50535E);
+
     return Tooltip(
       message: tool.label,
       waitDuration: const Duration(milliseconds: 300),
@@ -276,8 +295,7 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
           key: Key('drawing_tool_${tool.name}'),
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-          hoverColor:
-              isActive ? const Color(0xFF2962FF) : const Color(0xFF2A2E39),
+          hoverColor: hoverColor,
           child: Container(
             width: 34,
             height: 34,
@@ -296,7 +314,7 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
             child: Icon(
               tool.icon,
               size: 18,
-              color: isActive ? Colors.white : const Color(0xFFB2B5BE),
+              color: isActive ? Colors.white : defaultIconColor,
             ),
           ),
         ),

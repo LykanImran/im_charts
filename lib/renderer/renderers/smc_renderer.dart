@@ -235,7 +235,11 @@ class SMCRenderer {
         const Radius.circular(3),
       );
 
-      canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF131722));
+      canvas.drawRRect(
+        badgeRect,
+        Paint()
+          ..color = theme.isDark ? const Color(0xFF131722) : Colors.white,
+      );
       canvas.drawRRect(
         badgeRect,
         Paint()

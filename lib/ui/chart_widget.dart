@@ -69,9 +69,9 @@ class _TradingChartState extends State<TradingChart> {
 
   double _lastScale = 1.0;
   double _lastTrackpadScale = 1.0;
+  bool _isTrackpadPanZoomActive = false;
   Offset _lastFocalPoint = Offset.zero;
   Offset _lastTapDownPosition = Offset.zero;
-  bool _isPinching = false;
   _ChartDragMode _dragMode = _ChartDragMode.none;
   final FocusNode _focusNode = FocusNode();
 
@@ -391,6 +391,7 @@ class _TradingChartState extends State<TradingChart> {
                 },
                 child: Listener(
                   onPointerPanZoomStart: (event) {
+                    _isTrackpadPanZoomActive = true;
                     _lastTrackpadScale = 1.0;
                   },
                   onPointerPanZoomUpdate: (event) {
@@ -427,6 +428,7 @@ class _TradingChartState extends State<TradingChart> {
                     }
                   },
                   onPointerPanZoomEnd: (event) {
+                    _isTrackpadPanZoomActive = false;
                     _lastTrackpadScale = 1.0;
                   },
                   onPointerSignal: (pointerSignal) {
@@ -628,10 +630,10 @@ class _TradingChartState extends State<TradingChart> {
                               }
                             },
                             onScaleStart: (details) {
+                              if (_isTrackpadPanZoomActive) return;
                               final start = details.localFocalPoint;
                               _lastFocalPoint = start;
                               _lastScale = 1.0;
-                              _isPinching = false;
 
                               // If a drawing tool is currently active
                               if (controller.activeDrawingTool !=
@@ -769,6 +771,7 @@ class _TradingChartState extends State<TradingChart> {
                               }
                             },
                             onScaleUpdate: (details) {
+                              if (_isTrackpadPanZoomActive) return;
                               final deltaX = details.localFocalPoint.dx -
                                   _lastFocalPoint.dx;
                               final deltaY = details.localFocalPoint.dy -
@@ -1071,17 +1074,30 @@ class _TradingChartState extends State<TradingChart> {
 
                                 case _ChartDragMode.mainChart:
                                   if (details.pointerCount >= 2 ||
-                                      _isPinching ||
                                       (details.scale - 1.0).abs() > 0.01) {
-                                    _isPinching = true;
                                     final scaleRatio =
                                         details.scale / _lastScale;
-                                    controller.onZoom(
-                                      scaleRatio,
-                                      details.localFocalPoint,
-                                    );
-                                    _lastScale = details.scale;
+                                    if ((scaleRatio - 1.0).abs() > 0.001) {
+                                      controller.onZoom(
+                                        scaleRatio,
+                                        details.localFocalPoint,
+                                      );
+                                      _lastScale = details.scale;
+                                    }
+                                    // Simultaneous pan while pinching if fingers move across chart
+                                    if (deltaX.abs() > 0.1) {
+                                      controller.onPan(deltaX);
+                                    }
+                                    if (controller.isManualPriceScale &&
+                                        deltaY.abs() > 0.1) {
+                                      controller.onVerticalPan(
+                                        deltaY,
+                                        timeAxisTop,
+                                      );
+                                    }
                                   } else {
+                                    // Finger released from pinch: reset pinch tracking to avoid scale jump
+                                    _lastScale = 1.0;
                                     if (deltaX.abs() > 0.1) {
                                       controller.onPan(deltaX);
                                     }
@@ -1110,6 +1126,9 @@ class _TradingChartState extends State<TradingChart> {
                               _lastFocalPoint = details.localFocalPoint;
                             },
                             onScaleEnd: (_) {
+                              _lastScale = 1.0;
+                              if (_isTrackpadPanZoomActive) return;
+
                               if (_dragMode == _ChartDragMode.drawingCreation) {
                                 if (_hasDraggedDuringCreation &&
                                     _drawingAnchorPoint != null &&
@@ -1138,8 +1157,6 @@ class _TradingChartState extends State<TradingChart> {
                               _draggingHandleIndex = null;
                               _draggingDrawingId = null;
                               _dragMode = _ChartDragMode.none;
-                              _isPinching = false;
-                              _lastScale = 1.0;
                             },
                             onDoubleTap: () {
                               // Zone-aware double-tap reset (TradingView behavior)
@@ -1463,14 +1480,19 @@ class _TradingChartState extends State<TradingChart> {
     );
 
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final isDark = controller.isDarkTheme;
+    final itemTextColor = isDark ? Colors.white : const Color(0xFF131722);
 
     showMenu<String>(
       context: context,
       position: position,
-      color: const Color(0xFF1E222D),
+      color: isDark ? const Color(0xFF1E222D) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: Color(0xFF2A2E39), width: 1),
+        side: BorderSide(
+          color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+          width: 1,
+        ),
       ),
       items: [
         PopupMenuItem<String>(
@@ -1489,8 +1511,8 @@ class _TradingChartState extends State<TradingChart> {
               const SizedBox(width: 8),
               Text(
                 'Buy 100 Limit @ $roundedPrice',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: itemTextColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1514,8 +1536,8 @@ class _TradingChartState extends State<TradingChart> {
               const SizedBox(width: 8),
               Text(
                 'Sell 100 Limit @ $roundedPrice',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: itemTextColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -2054,12 +2076,15 @@ class _TradingChartState extends State<TradingChart> {
     required String value,
     required Color accentColor,
   }) {
+    final isDark = widget.controller.isDarkTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF131722).withValues(alpha: 0.95),
+        color: (isDark ? const Color(0xFF131722) : Colors.white)
+            .withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: accentColor.withValues(alpha: 0.8), width: 1.2),
+        border:
+            Border.all(color: accentColor.withValues(alpha: 0.8), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: accentColor.withValues(alpha: 0.25),
@@ -2082,8 +2107,8 @@ class _TradingChartState extends State<TradingChart> {
           ),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF131722),
               fontSize: 9.5,
               fontWeight: FontWeight.w600,
               fontFamily: 'monospace',
@@ -2111,41 +2136,47 @@ class _TradingChartState extends State<TradingChart> {
       Offset.zero & overlay.size,
     );
 
+    final isDark = controller.isDarkTheme;
+    final itemTextColor = isDark ? Colors.white : const Color(0xFF131722);
+
     showMenu<String>(
       context: context,
       position: position,
-      color: const Color(0xFF1E222D),
+      color: isDark ? const Color(0xFF1E222D) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: Color(0xFF2A2E39), width: 1),
+        side: BorderSide(
+          color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+          width: 1,
+        ),
       ),
       items: [
         if (!order.hasTakeProfit)
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             value: 'add_tp',
             height: 36,
             child: Row(
               children: [
-                Icon(Icons.trending_up, size: 14, color: Color(0xFF00E5FF)),
-                SizedBox(width: 8),
+                const Icon(Icons.trending_up, size: 14, color: Color(0xFF00E5FF)),
+                const SizedBox(width: 8),
                 Text(
                   'Add Take Profit (+1.5%)',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
                 ),
               ],
             ),
           ),
         if (!order.hasStopLoss)
-          const PopupMenuItem<String>(
+          PopupMenuItem<String>(
             value: 'add_sl',
             height: 36,
             child: Row(
               children: [
-                Icon(Icons.trending_down, size: 14, color: Color(0xFFFF9100)),
-                SizedBox(width: 8),
+                const Icon(Icons.trending_down, size: 14, color: Color(0xFFFF9100)),
+                const SizedBox(width: 8),
                 Text(
                   'Add Stop Loss (-1.0%)',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                  style: TextStyle(color: itemTextColor, fontSize: 12),
                 ),
               ],
             ),
@@ -2219,7 +2250,9 @@ class _TradingChartState extends State<TradingChart> {
                             fontSize: 12,
                           ),
                         ),
-                        backgroundColor: const Color(0xFF1E222D),
+                        backgroundColor: controller.isDarkTheme
+                            ? const Color(0xFF1E222D)
+                            : const Color(0xFF32363E),
                         duration: const Duration(seconds: 2),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(

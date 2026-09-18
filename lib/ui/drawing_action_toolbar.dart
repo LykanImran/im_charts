@@ -37,17 +37,25 @@ class DrawingActionToolbar extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         final currentDrawing = controller.selectedDrawing ?? selectedDrawing;
+        final isDark = controller.isDarkTheme;
+        final borderColor =
+            isDark ? const Color(0xFF363A45) : const Color(0xFFD0D3DC);
+        final dividerColor =
+            isDark ? const Color(0xFF363A45) : const Color(0xFFE0E3EB);
+
         return Material(
           color: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xF01E222D),
+              color: isDark ? const Color(0xF01E222D) : const Color(0xF8FFFFFF),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF363A45), width: 1),
+              border: Border.all(color: borderColor, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.45),
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.45)
+                      : Colors.black.withValues(alpha: 0.12),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
@@ -65,34 +73,36 @@ class DrawingActionToolbar extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   currentDrawing.tool.label,
-                  style: const TextStyle(
-                    color: Color(0xFFD1D4DC),
+                  style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFFD1D4DC)
+                        : const Color(0xFF131722),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(width: 1, height: 18, color: const Color(0xFF363A45)),
+                Container(width: 1, height: 18, color: dividerColor),
                 const SizedBox(width: 8),
 
                 // Color Swatches
                 for (final color in _swatches) ...[
-                  _buildColorSwatch(color, currentDrawing),
+                  _buildColorSwatch(color, currentDrawing, isDark),
                   const SizedBox(width: 4),
                 ],
 
                 const SizedBox(width: 4),
-                Container(width: 1, height: 18, color: const Color(0xFF363A45)),
+                Container(width: 1, height: 18, color: dividerColor),
                 const SizedBox(width: 8),
 
                 // Stroke Width Selector
                 for (final width in _strokeWidths) ...[
-                  _buildStrokeWidthButton(width, currentDrawing),
+                  _buildStrokeWidthButton(width, currentDrawing, isDark),
                   const SizedBox(width: 4),
                 ],
 
                 const SizedBox(width: 4),
-                Container(width: 1, height: 18, color: const Color(0xFF363A45)),
+                Container(width: 1, height: 18, color: dividerColor),
                 const SizedBox(width: 8),
 
                 // Lock / Unlock Toggle
@@ -106,7 +116,9 @@ class DrawingActionToolbar extends StatelessWidget {
                         : Icons.lock_open_outlined,
                     color: currentDrawing.isLocked
                         ? const Color(0xFFFF9800)
-                        : const Color(0xFF868993),
+                        : (isDark
+                            ? const Color(0xFF868993)
+                            : const Color(0xFF787B86)),
                     onTap: controller.toggleSelectedDrawingLocked,
                   ),
                 ),
@@ -130,7 +142,9 @@ class DrawingActionToolbar extends StatelessWidget {
                   child: _buildIconButton(
                     key: Key('close_drawing_${currentDrawing.id}'),
                     icon: Icons.close,
-                    color: const Color(0xFF868993),
+                    color: isDark
+                        ? const Color(0xFF868993)
+                        : const Color(0xFF787B86),
                     onTap: () => controller.selectDrawing(null),
                   ),
                 ),
@@ -142,7 +156,8 @@ class DrawingActionToolbar extends StatelessWidget {
     );
   }
 
-  Widget _buildColorSwatch(Color color, ChartDrawing drawing) {
+  Widget _buildColorSwatch(
+      Color color, ChartDrawing drawing, bool isDark) {
     final isSelected = drawing.color.toARGB32() == color.toARGB32();
     return InkWell(
       onTap: () => controller.setSelectedDrawingColor(color),
@@ -154,7 +169,11 @@ class DrawingActionToolbar extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected
+                ? (isDark ? Colors.white : Colors.black87)
+                : (color == Colors.white && !isDark
+                    ? const Color(0xFFD0D3DC)
+                    : Colors.transparent),
             width: isSelected ? 2.0 : 1.0,
           ),
           boxShadow: isSelected
@@ -165,7 +184,8 @@ class DrawingActionToolbar extends StatelessWidget {
     );
   }
 
-  Widget _buildStrokeWidthButton(double width, ChartDrawing drawing) {
+  Widget _buildStrokeWidthButton(
+      double width, ChartDrawing drawing, bool isDark) {
     final isSelected = drawing.strokeWidth == width;
     return InkWell(
       onTap: () => controller.setSelectedDrawingStrokeWidth(width),
@@ -187,7 +207,9 @@ class DrawingActionToolbar extends StatelessWidget {
           width: 14,
           height: width,
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : const Color(0xFF868993),
+            color: isSelected
+                ? (isDark ? Colors.white : const Color(0xFF2962FF))
+                : (isDark ? const Color(0xFF868993) : const Color(0xFF787B86)),
             borderRadius: BorderRadius.circular(1),
           ),
         ),

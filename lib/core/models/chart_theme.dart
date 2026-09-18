@@ -38,6 +38,9 @@ class ChartTheme {
     required this.tooltipTextStyle,
   });
 
+  /// Returns whether this theme is considered a dark theme based on background luminance.
+  bool get isDark => backgroundColor.computeLuminance() < 0.5;
+
   /// Premium dark trading terminal theme (TradingView / Bloomberg dark aesthetic).
   factory ChartTheme.dark() {
     const bull = Color(0xFF089981);

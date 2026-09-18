@@ -289,7 +289,7 @@ class TradingChartController extends ChangeNotifier {
   bool get showGrid => _showGrid;
   bool get showCrosshair => _showCrosshair;
   bool get isLoading => _isLoading;
-  bool get isDarkTheme => theme.backgroundColor == const Color(0xFF131722);
+  bool get isDarkTheme => theme.isDark;
 
   double get verticalScale => _verticalScale;
   double get verticalPan => _verticalPan;
@@ -1140,6 +1140,7 @@ class TradingChartController extends ChangeNotifier {
   }
 
   void _applyZoom(double scaleFactor, Offset focalPoint) {
+    if (scaleFactor.isNaN || scaleFactor.isInfinite || scaleFactor <= 0) return;
     const minWidth = 2.0;
     const maxWidth = 50.0;
     final oldCandleWidth = _viewport.candleWidth;
@@ -1151,15 +1152,20 @@ class TradingChartController extends ChangeNotifier {
     final ratio = newTotal / oldTotal;
 
     // Anchor calculation to keep candle under focalPoint.dx stationary
-    final focalX = focalPoint.dx;
+    final focalX =
+        focalPoint.dx.clamp(0.0, math.max(1.0, _viewport.viewportWidth));
     final distFromRight = _viewport.viewportWidth -
         _viewport.rightMargin -
         focalX +
         _viewport.scrollOffset;
+
+    // Prevent zoom out from introducing unwanted future whitespace if not already overscrolled
+    final minScroll = _viewport.scrollOffset < 0 ? -120.0 : 0.0;
+    final maxScroll = math.max(0.0, candles.length * newTotal).toDouble();
     final newScrollOffset =
         (_viewport.scrollOffset + distFromRight * (ratio - 1.0)).clamp(
-      -120.0,
-      math.max(0.0, candles.length * newTotal).toDouble(),
+      minScroll,
+      maxScroll,
     );
 
     _viewport = _viewport.copyWith(

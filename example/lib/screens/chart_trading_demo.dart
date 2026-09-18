@@ -173,122 +173,145 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E1117),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Interactive Instructions & Quick-Action Bar
-            _buildInteractiveHeader(),
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final isDark = _controller.isDarkTheme;
+        final pageBg =
+            isDark ? const Color(0xFF0E1117) : const Color(0xFFF4F6F9);
+        final badgeBg =
+            isDark ? const Color(0xDD1E222D) : const Color(0xEEFFFFFF);
+        final badgeBorder =
+            isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+        final symbolTextColor =
+            isDark ? Colors.white : const Color(0xFF131722);
 
-            // 2. Main Chart Canvas with Order Lines & Hover '+' Button
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: TradingChart(
-                      controller: _controller,
-                      enableChartTrading: true,
-                      onOrderPlaced: (order) {
-                        _showFeedback(
-                          'Order Placed: ${order.side.name.toUpperCase()} ${order.quantity.toInt()} @ ${order.price.toStringAsFixed(2)}',
-                          order.isBuy
-                              ? const Color(0xFF00E676)
-                              : const Color(0xFFFF3B30),
-                        );
-                      },
-                      onOrderCancelled: (orderId) {
-                        _showFeedback(
-                          'Order $orderId Cancelled',
-                          const Color(0xFFFF9100),
-                        );
-                      },
-                    ),
-                  ),
+        return Scaffold(
+          backgroundColor: pageBg,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // 1. Interactive Instructions & Quick-Action Bar
+                _buildInteractiveHeader(isDark),
 
-                  // Floating symbol telemetry badge at top left
-                  Positioned(
-                    top: 12,
-                    left: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xDD1E222D),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFF2A2E39),
-                          width: 1,
+                // 2. Main Chart Canvas with Order Lines & Hover '+' Button
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: TradingChart(
+                          controller: _controller,
+                          enableChartTrading: true,
+                          onOrderPlaced: (order) {
+                            _showFeedback(
+                              'Order Placed: ${order.side.name.toUpperCase()} ${order.quantity.toInt()} @ ${order.price.toStringAsFixed(2)}',
+                              order.isBuy
+                                  ? const Color(0xFF00E676)
+                                  : const Color(0xFFFF3B30),
+                            );
+                          },
+                          onOrderCancelled: (orderId) {
+                            _showFeedback(
+                              'Order $orderId Cancelled',
+                              const Color(0xFFFF9100),
+                            );
+                          },
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 6,
-                          ),
-                        ],
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF00E676),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'NIFTY 50',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'LIVE CHART TRADING',
-                            style: TextStyle(
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.9),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
 
-                  // Collapsible Orders Ledger Panel (Bottom Right)
-                  if (_showOrdersDrawer)
-                    Positioned(
-                      left: 14,
-                      bottom: 36,
-                      width: 480,
-                      child: _buildOrdersLedger(),
-                    ),
-                ],
-              ),
+                      // Floating symbol telemetry badge at top left
+                      Positioned(
+                        top: 12,
+                        left: 14,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: badgeBorder,
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDark
+                                    ? Colors.black.withValues(alpha: 0.3)
+                                    : Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF00E676),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'NIFTY 50',
+                                style: TextStyle(
+                                  color: symbolTextColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'LIVE CHART TRADING',
+                                style: TextStyle(
+                                  color: const Color(
+                                    0xFF00E5FF,
+                                  ).withValues(alpha: 0.9),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Collapsible Orders Ledger Panel (Bottom Right)
+                      if (_showOrdersDrawer)
+                        Positioned(
+                          left: 14,
+                          bottom: 36,
+                          width: 480,
+                          child: _buildOrdersLedger(isDark),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildInteractiveHeader() {
+  Widget _buildInteractiveHeader(bool isDark) {
+    final headerBg = isDark ? const Color(0xFF131722) : Colors.white;
+    final headerBorder =
+        isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+    final titleColor = isDark ? Colors.white : const Color(0xFF131722);
+    final subColor = isDark ? const Color(0xFF868993) : const Color(0xFF6A6D78);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Color(0xFF131722),
-        border: Border(bottom: BorderSide(color: Color(0xFF2A2E39), width: 1)),
+      decoration: BoxDecoration(
+        color: headerBg,
+        border: Border(bottom: BorderSide(color: headerBorder, width: 1)),
       ),
       child: Row(
         children: [
@@ -306,14 +329,14 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Hover before the right price axis to reveal the "+" button. Click to place Limit orders with TP/SL.',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: titleColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -321,7 +344,7 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                 ),
                 Text(
                   '💡 Drag order pills up/down to modify prices • Click ✖ on canvas to cancel • Click "+Bracket" for TP/SL',
-                  style: TextStyle(color: Color(0xFF868993), fontSize: 10.5),
+                  style: TextStyle(color: subColor, fontSize: 10.5),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -372,7 +395,7 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
               size: 18,
               color: _showOrdersDrawer
                   ? const Color(0xFF2962FF)
-                  : Colors.white70,
+                  : (isDark ? Colors.white70 : const Color(0xFF6A6D78)),
             ),
             onPressed: () =>
                 setState(() => _showOrdersDrawer = !_showOrdersDrawer),
@@ -413,7 +436,18 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
     );
   }
 
-  Widget _buildOrdersLedger() {
+  Widget _buildOrdersLedger(bool isDark) {
+    final ledgerBg =
+        isDark ? const Color(0xF2161A25) : const Color(0xF8FFFFFF);
+    final ledgerBorder =
+        isDark ? const Color(0xFF2A2E39) : const Color(0xFFD0D3DC);
+    final headerBorder =
+        isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+    final itemTextColor =
+        isDark ? Colors.white : const Color(0xFF131722);
+    final subTextColor =
+        isDark ? const Color(0xFF868993) : const Color(0xFF6A6D78);
+
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -424,12 +458,14 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
         return Container(
           constraints: const BoxConstraints(maxHeight: 240),
           decoration: BoxDecoration(
-            color: const Color(0xF2161A25),
+            color: ledgerBg,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF2A2E39), width: 1),
+            border: Border.all(color: ledgerBorder, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.5)
+                    : Colors.black.withValues(alpha: 0.12),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -444,9 +480,9 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                   horizontal: 10,
                   vertical: 6,
                 ),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: Color(0xFF2A2E39), width: 1),
+                    bottom: BorderSide(color: headerBorder, width: 1),
                   ),
                 ),
                 child: Row(
@@ -485,8 +521,8 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                               'Orders (${orders.length})',
                               style: TextStyle(
                                 color: _selectedLedgerTab == 0
-                                    ? Colors.white
-                                    : const Color(0xFF868993),
+                                    ? (isDark ? Colors.white : const Color(0xFF2962FF))
+                                    : subTextColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -531,8 +567,8 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                               'Positions (${positions.length})',
                               style: TextStyle(
                                 color: _selectedLedgerTab == 1
-                                    ? Colors.white
-                                    : const Color(0xFF868993),
+                                    ? (isDark ? Colors.white : const Color(0xFFAB47BC))
+                                    : subTextColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -576,12 +612,12 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
               // Tab 0: Orders List
               if (_selectedLedgerTab == 0) ...[
                 if (orders.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(20.0),
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
                     child: Text(
                       'No active working orders on chart.\nHover near the right price axis to add one.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF868993), fontSize: 11),
+                      style: TextStyle(color: subTextColor, fontSize: 11),
                     ),
                   )
                 else
@@ -590,7 +626,7 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                       shrinkWrap: true,
                       itemCount: orders.length,
                       separatorBuilder: (_, _) =>
-                          const Divider(height: 1, color: Color(0xFF2A2E39)),
+                          Divider(height: 1, color: headerBorder),
                       itemBuilder: (context, index) {
                         final order = orders[index];
                         final isBuy = order.isBuy;
@@ -635,8 +671,8 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                       children: [
                                         Text(
                                           '${order.quantity.toInt()} @ ₹${order.price.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: itemTextColor,
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -644,8 +680,8 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                         const SizedBox(width: 6),
                                         Text(
                                           '(${order.type.name.toUpperCase()})',
-                                          style: const TextStyle(
-                                            color: Color(0xFF868993),
+                                          style: TextStyle(
+                                            color: subTextColor,
                                             fontSize: 10,
                                           ),
                                         ),
@@ -672,10 +708,10 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                           ),
                                         if (!order.hasTakeProfit &&
                                             !order.hasStopLoss)
-                                          const Text(
+                                          Text(
                                             'No brackets',
                                             style: TextStyle(
-                                              color: Color(0xFF868993),
+                                              color: subTextColor,
                                               fontSize: 10,
                                             ),
                                           ),
@@ -712,12 +748,12 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
               // Tab 1: Positions List with live P&L
               if (_selectedLedgerTab == 1) ...[
                 if (positions.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(20.0),
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
                     child: Text(
                       'No executed open positions.\nClick "+ Long Pos" or "+ Short Pos" above to open one.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF868993), fontSize: 11),
+                      style: TextStyle(color: subTextColor, fontSize: 11),
                     ),
                   )
                 else
@@ -726,7 +762,7 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                       shrinkWrap: true,
                       itemCount: positions.length,
                       separatorBuilder: (_, _) =>
-                          const Divider(height: 1, color: Color(0xFF2A2E39)),
+                          Divider(height: 1, color: headerBorder),
                       itemBuilder: (context, index) {
                         final pos = positions[index];
                         final isLong = pos.isLong;
@@ -780,8 +816,8 @@ class _ChartTradingDemoScreenState extends State<ChartTradingDemoScreen> {
                                       children: [
                                         Text(
                                           '${pos.quantity.toInt()} @ ₹${pos.entryPrice.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: itemTextColor,
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                           ),

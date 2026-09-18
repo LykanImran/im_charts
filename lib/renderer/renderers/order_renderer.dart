@@ -289,8 +289,8 @@ class OrderRenderer {
         ),
         TextSpan(
           text: '$qtyText @ $entryText  ',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.isDark ? Colors.white : const Color(0xFF131722),
             fontSize: 10.5,
             fontWeight: FontWeight.w600,
             fontFamily: 'monospace',
@@ -337,7 +337,11 @@ class OrderRenderer {
     );
 
     // Background fill & dynamic glow border
-    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF131722));
+    canvas.drawRRect(
+      badgeRect,
+      Paint()
+        ..color = theme.isDark ? const Color(0xFF131722) : Colors.white,
+    );
     canvas.drawRRect(
       badgeRect,
       Paint()
@@ -398,8 +402,8 @@ class OrderRenderer {
         ),
         TextSpan(
           text: '$qtyText @ $priceText  ✖',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.isDark ? Colors.white : const Color(0xFF131722),
             fontSize: 10.5,
             fontWeight: FontWeight.w600,
             fontFamily: 'monospace',
@@ -428,7 +432,11 @@ class OrderRenderer {
     );
 
     // Background fill & glow
-    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF161A25));
+    canvas.drawRRect(
+      badgeRect,
+      Paint()
+        ..color = theme.isDark ? const Color(0xFF161A25) : Colors.white,
+    );
     canvas.drawRRect(
       badgeRect,
       Paint()
@@ -495,7 +503,11 @@ class OrderRenderer {
       const Radius.circular(4.0),
     );
 
-    canvas.drawRRect(badgeRect, Paint()..color = const Color(0xFF131722));
+    canvas.drawRRect(
+      badgeRect,
+      Paint()
+        ..color = theme.isDark ? const Color(0xFF131722) : Colors.white,
+    );
     canvas.drawRRect(
       badgeRect,
       Paint()

@@ -118,27 +118,63 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
       return const Center(child: Text('No charts configured'));
     }
 
-    return Container(
-      color: const Color(0xFF131722),
-      child: Column(
-        children: [
-          if (widget.showToolbar) _buildTopToolbar(),
-          Expanded(
-            child: _buildLayoutGrid(),
+    final activeController = (_activeIndex < widget.controllers.length)
+        ? widget.controllers[_activeIndex]
+        : widget.controllers.first;
+
+    return ListenableBuilder(
+      listenable: activeController,
+      builder: (context, _) {
+        final isDark = activeController.isDarkTheme;
+        final bgColor = isDark ? const Color(0xFF131722) : Colors.white;
+        final toolbarBg =
+            isDark ? const Color(0xFF1E222D) : const Color(0xFFF8F9FD);
+        final borderColor =
+            isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB);
+        final headerTextColor =
+            isDark ? Colors.white : const Color(0xFF131722);
+        final subTextColor =
+            isDark ? const Color(0xFF787B86) : const Color(0xFF6A6D78);
+
+        return Container(
+          color: bgColor,
+          child: Column(
+            children: [
+              if (widget.showToolbar)
+                _buildTopToolbar(
+                  isDark: isDark,
+                  toolbarBg: toolbarBg,
+                  borderColor: borderColor,
+                  headerTextColor: headerTextColor,
+                  subTextColor: subTextColor,
+                ),
+              Expanded(
+                child: _buildLayoutGrid(isDark: isDark, borderColor: borderColor, subTextColor: subTextColor),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTopToolbar() {
+  Widget _buildTopToolbar({
+    required bool isDark,
+    required Color toolbarBg,
+    required Color borderColor,
+    required Color headerTextColor,
+    required Color subTextColor,
+  }) {
+    final inactiveBorder =
+        isDark ? const Color(0xFF363A45) : const Color(0xFFD0D3DC);
+
     return Container(
       height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E222D),
+      decoration: BoxDecoration(
+        color: toolbarBg,
         border: Border(
-          bottom: BorderSide(color: Color(0xFF2A2E39), width: 1),
+          bottom: BorderSide(color: borderColor, width: 1),
         ),
       ),
       child: Row(
@@ -149,17 +185,17 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
             color: Color(0xFF90CAF9),
           ),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'Multi-Chart Sync',
             style: TextStyle(
-              color: Colors.white,
+              color: headerTextColor,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
             ),
           ),
           const SizedBox(width: 14),
-          Container(width: 1, height: 18, color: const Color(0xFF2A2E39)),
+          Container(width: 1, height: 18, color: borderColor),
           const SizedBox(width: 10),
 
           // Layout Mode Selector Buttons
@@ -195,15 +231,15 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                           size: 14,
                           color: isSelected
                               ? const Color(0xFF2962FF)
-                              : const Color(0xFF787B86),
+                              : subTextColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           mode.label,
                           style: TextStyle(
                             color: isSelected
-                                ? Colors.white
-                                : const Color(0xFF787B86),
+                                ? (isDark ? Colors.white : const Color(0xFF2962FF))
+                                : subTextColor,
                             fontSize: 11,
                             fontWeight:
                                 isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -242,7 +278,7 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                       border: Border.all(
                         color: active
                             ? const Color(0xFF00E676)
-                            : const Color(0xFF363A45),
+                            : inactiveBorder,
                         width: 1,
                       ),
                     ),
@@ -254,7 +290,7 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                           size: 13,
                           color: active
                               ? const Color(0xFF00E676)
-                              : const Color(0xFF787B86),
+                              : subTextColor,
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -262,7 +298,7 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                           style: TextStyle(
                             color: active
                                 ? const Color(0xFF00E676)
-                                : const Color(0xFF787B86),
+                                : subTextColor,
                             fontSize: 11,
                             fontWeight:
                                 active ? FontWeight.w600 : FontWeight.w400,
@@ -305,7 +341,7 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                       border: Border.all(
                         color: active
                             ? const Color(0xFF2962FF)
-                            : const Color(0xFF363A45),
+                            : inactiveBorder,
                         width: 1,
                       ),
                     ),
@@ -317,7 +353,7 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                           size: 13,
                           color: active
                               ? const Color(0xFF2962FF)
-                              : const Color(0xFF787B86),
+                              : subTextColor,
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -325,7 +361,7 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
                           style: TextStyle(
                             color: active
                                 ? const Color(0xFF2962FF)
-                                : const Color(0xFF787B86),
+                                : subTextColor,
                             fontSize: 11,
                             fontWeight:
                                 active ? FontWeight.w600 : FontWeight.w400,
@@ -343,26 +379,30 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
     );
   }
 
-  Widget _buildLayoutGrid() {
+  Widget _buildLayoutGrid({
+    required bool isDark,
+    required Color borderColor,
+    required Color subTextColor,
+  }) {
     switch (_layoutMode) {
       case MultiChartLayoutMode.single:
-        return _buildSinglePane(0);
+        return _buildSinglePane(0, isDark, subTextColor);
 
       case MultiChartLayoutMode.splitHorizontal:
         return Row(
           children: [
-            Expanded(child: _buildSinglePane(0)),
-            Container(width: 2, color: const Color(0xFF2A2E39)),
-            Expanded(child: _buildSinglePane(1)),
+            Expanded(child: _buildSinglePane(0, isDark, subTextColor)),
+            Container(width: 2, color: borderColor),
+            Expanded(child: _buildSinglePane(1, isDark, subTextColor)),
           ],
         );
 
       case MultiChartLayoutMode.splitVertical:
         return Column(
           children: [
-            Expanded(child: _buildSinglePane(0)),
-            Container(height: 2, color: const Color(0xFF2A2E39)),
-            Expanded(child: _buildSinglePane(1)),
+            Expanded(child: _buildSinglePane(0, isDark, subTextColor)),
+            Container(height: 2, color: borderColor),
+            Expanded(child: _buildSinglePane(1, isDark, subTextColor)),
           ],
         );
 
@@ -372,19 +412,19 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _buildSinglePane(0)),
-                  Container(width: 2, color: const Color(0xFF2A2E39)),
-                  Expanded(child: _buildSinglePane(1)),
+                  Expanded(child: _buildSinglePane(0, isDark, subTextColor)),
+                  Container(width: 2, color: borderColor),
+                  Expanded(child: _buildSinglePane(1, isDark, subTextColor)),
                 ],
               ),
             ),
-            Container(height: 2, color: const Color(0xFF2A2E39)),
+            Container(height: 2, color: borderColor),
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _buildSinglePane(2)),
-                  Container(width: 2, color: const Color(0xFF2A2E39)),
-                  Expanded(child: _buildSinglePane(3)),
+                  Expanded(child: _buildSinglePane(2, isDark, subTextColor)),
+                  Container(width: 2, color: borderColor),
+                  Expanded(child: _buildSinglePane(3, isDark, subTextColor)),
                 ],
               ),
             ),
@@ -393,14 +433,14 @@ class _MultiChartContainerState extends State<MultiChartContainer> {
     }
   }
 
-  Widget _buildSinglePane(int index) {
+  Widget _buildSinglePane(int index, bool isDark, Color subTextColor) {
     if (index >= widget.controllers.length) {
       return Container(
-        color: const Color(0xFF131722),
+        color: isDark ? const Color(0xFF131722) : Colors.white,
         child: Center(
           child: Text(
             'Chart ${index + 1} Unassigned',
-            style: const TextStyle(color: Color(0xFF787B86), fontSize: 13),
+            style: TextStyle(color: subTextColor, fontSize: 13),
           ),
         ),
       );
