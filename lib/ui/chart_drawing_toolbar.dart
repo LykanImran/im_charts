@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/models/chart_drawing.dart';
 import '../engine/chart_controller.dart';
 
@@ -8,11 +9,13 @@ import '../engine/chart_controller.dart';
 class ChartDrawingToolbar extends StatefulWidget {
   final TradingChartController controller;
   final bool isCollapsible;
+  final bool? initialCollapsed;
 
   const ChartDrawingToolbar({
     super.key,
     required this.controller,
     this.isCollapsible = true,
+    this.initialCollapsed,
   });
 
   @override
@@ -20,7 +23,20 @@ class ChartDrawingToolbar extends StatefulWidget {
 }
 
 class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
-  bool _isCollapsed = false;
+  bool? _isCollapsed;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isCollapsed == null) {
+      if (widget.initialCollapsed != null) {
+        _isCollapsed = widget.initialCollapsed!;
+      } else {
+        final screenWidth = MediaQuery.maybeOf(context)?.size.width ?? 1000.0;
+        _isCollapsed = screenWidth < 600.0;
+      }
+    }
+  }
 
   final List<DrawingTool> _tools = const [
     DrawingTool.pointer,
@@ -54,7 +70,7 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
         final disabledActionColor =
             isDark ? const Color(0xFF4A4E59) : const Color(0xFFB2B5BE);
 
-        if (_isCollapsed) {
+        if (_isCollapsed ?? false) {
           return Container(
             width: 18,
             decoration: BoxDecoration(
@@ -64,7 +80,10 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
               ),
             ),
             child: InkWell(
-              onTap: () => setState(() => _isCollapsed = false),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                setState(() => _isCollapsed = false);
+              },
               child: Center(
                 child: Icon(
                   Icons.chevron_right,
@@ -251,7 +270,10 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                 Tooltip(
                   message: 'Hide Drawing Toolbar',
                   child: InkWell(
-                    onTap: () => setState(() => _isCollapsed = true),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() => _isCollapsed = true);
+                    },
                     borderRadius: BorderRadius.circular(4),
                     child: Container(
                       width: 32,

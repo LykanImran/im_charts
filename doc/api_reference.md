@@ -65,8 +65,11 @@ const ChartDrawingToolbar({
   super.key,
   required TradingChartController controller,
   bool isCollapsible = true,
+  bool? initialCollapsed,
 });
 ```
+
+- `initialCollapsed`: Optional initial collapse state. When `null`, automatically collapses on mobile screens (`width < 600px`) to maximize candle viewing space.
 
 ---
 
@@ -84,7 +87,7 @@ const DrawingActionToolbar({
 ---
 
 ### `TradingChart`
-Standalone high-performance canvas presentation widget.
+Standalone high-performance canvas presentation widget. Features kinetic momentum inertia scrolling, floating "Jump to Real-time" recenter pill, mobile long-press inspection mode with mechanical haptic ticks, and zero-cling 44px order/bracket dragging.
 
 ```dart
 const TradingChart({
@@ -93,6 +96,9 @@ const TradingChart({
   bool showWatermark = true,
   bool showCountdownTimer = true,
   bool enableChartTrading = true,
+  bool enableContextMenu = true,
+  ChartLayoutMode layoutMode = ChartLayoutMode.auto,
+  double mobileBreakpoint = 600.0,
   OrderMenuBuilder? orderMenuBuilder,
 });
 ```

@@ -1284,6 +1284,16 @@ class TradingChartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets horizontal scroll offset directly with boundary clamping.
+  void setScrollOffset(double offset) {
+    final maxScroll = (candles.length * _viewport.candleWidth).clamp(0.0, double.infinity);
+    final clamped = offset.clamp(-120.0, maxScroll);
+    if (_viewport.scrollOffset != clamped) {
+      _viewport = _viewport.copyWith(scrollOffset: clamped);
+      notifyListeners();
+    }
+  }
+
   /// Toggles volume histogram on/off.
   void toggleVolume() {
     _showVolume = !_showVolume;

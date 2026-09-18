@@ -225,5 +225,185 @@ void main() {
 
       controller.dispose();
     });
+
+    testWidgets(
+        'Jump to Real-time button appears when scrolled away and animates to latest',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final recenterBtn = find.byKey(const Key('btn_jump_to_realtime'));
+      expect(recenterBtn, findsOneWidget);
+
+      // Initially at scrollOffset 0.0, AnimatedOpacity is 0.0
+      final initialOpacity = tester.widget<AnimatedOpacity>(
+        find.ancestor(of: recenterBtn, matching: find.byType(AnimatedOpacity)),
+      );
+      expect(initialOpacity.opacity, 0.0);
+
+      // Scroll back into historical data
+      controller.setScrollOffset(120.0);
+      await tester.pumpAndSettle();
+
+      final activeOpacity = tester.widget<AnimatedOpacity>(
+        find.ancestor(of: recenterBtn, matching: find.byType(AnimatedOpacity)),
+      );
+      expect(activeOpacity.opacity, 1.0);
+
+      // Tap recenter button
+      await tester.tap(recenterBtn);
+      await tester.pumpAndSettle();
+
+      // Scroll offset should animate back to 0.0
+      expect(controller.viewport.scrollOffset, 0.0);
+
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Long-press on mobile activates inspection mode and shows inspection card',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(400, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              height: 700,
+              child: TradingChart(
+                controller: controller,
+                layoutMode: ChartLayoutMode.mobile,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Long press on canvas at (200, 300)
+      final gesture = await tester.startGesture(const Offset(200, 300));
+      await tester.pump(const Duration(milliseconds: 600)); // Trigger long press
+
+      // Floating mobile inspection card should appear
+      expect(find.textContaining('O:'), findsWidgets);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      controller.dispose();
+    });
+
+    testWidgets(
+        'ChartDrawingToolbar auto-collapses when screen width is mobile',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(400, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              height: 700,
+              child: ChartDrawingToolbar(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Collapsed toolbar renders chevron_right button in 18px width
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+
+      // Tap chevron to expand
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      // Now drawing tools are visible
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+
+      controller.dispose();
+    });
+
+    testWidgets(
+        'Kinetic fling velocity on pan updates chart scroll smoothly',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Fast horizontal fling gesture across chart canvas
+      await tester.fling(
+        find.byType(CustomPaint).first,
+        const Offset(200, 0),
+        1000,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Scroll offset has changed
+      expect(controller.viewport.scrollOffset != 0.0, isTrue);
+
+      await tester.pumpAndSettle();
+      controller.dispose();
+    });
   });
 }

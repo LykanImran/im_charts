@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import '../core/coordinates/coordinate_converter.dart';
 import '../core/models/chart_alert.dart';
@@ -9,6 +10,7 @@ import '../core/models/chart_drawing.dart';
 import '../core/models/chart_layout_mode.dart';
 import '../core/models/chart_order.dart';
 import '../core/models/chart_position.dart';
+import '../core/models/chart_theme.dart';
 import '../engine/chart_controller.dart';
 import '../renderer/chart_painter.dart';
 import 'chart_toast.dart';
@@ -82,7 +84,8 @@ class TradingChart extends StatefulWidget {
   State<TradingChart> createState() => _TradingChartState();
 }
 
-class _TradingChartState extends State<TradingChart> {
+class _TradingChartState extends State<TradingChart>
+    with TickerProviderStateMixin {
   bool _isMobile = false;
   double get _priceAxisWidth => _isMobile ? 52.0 : 65.0;
   double get _timeAxisHeight => _isMobile ? 22.0 : 24.0;
@@ -96,6 +99,19 @@ class _TradingChartState extends State<TradingChart> {
   Offset _lastTapDownPosition = Offset.zero;
   _ChartDragMode _dragMode = _ChartDragMode.none;
   final FocusNode _focusNode = FocusNode();
+
+  // Kinetic Inertia Scrolling State
+  late final AnimationController _inertiaController;
+  double _lastInertiaValue = 0.0;
+
+  // Viewport Recenter Animation State
+  late final AnimationController _recenterAnimController;
+  Animation<double>? _recenterAnimation;
+
+  // Mobile Inspection Mode State
+  bool _isInspecting = false;
+  int? _lastInspectedCandleIndex;
+  double? _lastHapticDragPrice;
 
   // Multi-point tool creation state (click-move-click OR drag-release)
   DrawingPoint? _drawingAnchorPoint;
@@ -115,6 +131,40 @@ class _TradingChartState extends State<TradingChart> {
   double? _draggingCurrentPrice;
   double _dragStartY = 0.0;
   double _dragAccumulatedDeltaY = 0.0;
+
+  void _handleInertiaTick() {
+    final current = _inertiaController.value;
+    final delta = current - _lastInertiaValue;
+    _lastInertiaValue = current;
+    if (delta.abs() > 0.01) {
+      widget.controller.onPan(delta);
+    }
+  }
+
+  void _animateScrollTo(double targetOffset) {
+    if (_inertiaController.isAnimating) {
+      _inertiaController.stop();
+    }
+    final currentOffset = widget.controller.viewport.scrollOffset;
+    if ((currentOffset - targetOffset).abs() < 1.0) {
+      widget.controller.scrollToLatest();
+      return;
+    }
+    _recenterAnimController.stop();
+    _recenterAnimation = Tween<double>(
+      begin: currentOffset,
+      end: targetOffset,
+    ).animate(
+      CurvedAnimation(
+        parent: _recenterAnimController,
+        curve: Curves.easeOutCubic,
+      ),
+    )..addListener(() {
+        widget.controller.setScrollOffset(_recenterAnimation!.value);
+      });
+    _recenterAnimController.forward(from: 0.0);
+    HapticFeedback.lightImpact();
+  }
 
   bool _computeIsMobile(BoxConstraints constraints, BuildContext context) {
     if (widget.layoutMode == ChartLayoutMode.mobile) return true;
@@ -217,6 +267,12 @@ class _TradingChartState extends State<TradingChart> {
   @override
   void initState() {
     super.initState();
+    _inertiaController = AnimationController.unbounded(vsync: this)
+      ..addListener(_handleInertiaTick);
+    _recenterAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
     if (widget.enableContextMenu) {
       _activeContextMenuCharts++;
       if (kIsWeb && _activeContextMenuCharts == 1) {
@@ -229,6 +285,8 @@ class _TradingChartState extends State<TradingChart> {
 
   @override
   void dispose() {
+    _inertiaController.dispose();
+    _recenterAnimController.dispose();
     if (widget.enableContextMenu) {
       _activeContextMenuCharts--;
       if (kIsWeb && _activeContextMenuCharts <= 0) {
@@ -717,6 +775,12 @@ class _TradingChartState extends State<TradingChart> {
                               }
                             },
                             onScaleStart: (details) {
+                              if (_inertiaController.isAnimating) {
+                                _inertiaController.stop();
+                              }
+                              if (_recenterAnimController.isAnimating) {
+                                _recenterAnimController.stop();
+                              }
                               if (_isTrackpadPanZoomActive) return;
                               final start = details.localFocalPoint;
                               _lastFocalPoint = start;
@@ -1213,7 +1277,8 @@ class _TradingChartState extends State<TradingChart> {
                                         timeAxisTop,
                                       );
                                     }
-                                    if (details.localFocalPoint.dx <
+                                    if (!_isMobile &&
+                                        details.localFocalPoint.dx <
                                             priceAxisLeft &&
                                         details.localFocalPoint.dy <
                                             timeAxisTop) {
@@ -1230,10 +1295,22 @@ class _TradingChartState extends State<TradingChart> {
 
                               _lastFocalPoint = details.localFocalPoint;
                             },
-                            onScaleEnd: (_) {
+                            onScaleEnd: (details) {
                               _lastScale = 1.0;
                               _lastPointerCount = 0;
                               if (_isTrackpadPanZoomActive) return;
+
+                              if (_dragMode == _ChartDragMode.mainChart) {
+                                final vx = details.velocity.pixelsPerSecond.dx;
+                                if (vx.abs() > 80.0) {
+                                  final clampedVx = vx.clamp(-4000.0, 4000.0);
+                                  _lastInertiaValue = 0.0;
+                                  _inertiaController.value = 0.0;
+                                  final simulation =
+                                      FrictionSimulation(0.18, 0.0, clampedVx);
+                                  _inertiaController.animateWith(simulation);
+                                }
+                              }
 
                               if (_dragMode == _ChartDragMode.drawingCreation) {
                                 if (_hasDraggedDuringCreation &&
@@ -1265,6 +1342,7 @@ class _TradingChartState extends State<TradingChart> {
                               _dragMode = _ChartDragMode.none;
                             },
                             onDoubleTap: () {
+                              HapticFeedback.lightImpact();
                               // Zone-aware double-tap reset (TradingView behavior)
                               if (_lastTapDownPosition.dx >= priceAxisLeft) {
                                 // Double tap on price scale -> reset auto-scale
@@ -1274,16 +1352,30 @@ class _TradingChartState extends State<TradingChart> {
                                 // Double tap on time scale -> reset timeframe zoom
                                 controller.resetTimeScale();
                               } else {
-                                // Double tap on main chart -> reset complete view
-                                controller.resetView();
+                                // Double tap on main chart -> reset complete view smoothly
+                                _animateScrollTo(0.0);
+                                controller.resetPriceScale();
                               }
                             },
                             onLongPressStart: (details) {
+                              if (_inertiaController.isAnimating) {
+                                _inertiaController.stop();
+                              }
+                              HapticFeedback.mediumImpact();
+                              setState(() => _isInspecting = true);
                               if (details.localPosition.dx < priceAxisLeft &&
                                   details.localPosition.dy < timeAxisTop) {
                                 controller.setCrosshairPosition(
                                   details.localPosition,
                                 );
+                                if (controller.candles.isNotEmpty) {
+                                  final converter = CoordinateConverter(
+                                    viewport: controller.viewport,
+                                    totalCandles: controller.candles.length,
+                                  );
+                                  _lastInspectedCandleIndex =
+                                      converter.xToIndex(details.localPosition.dx);
+                                }
                               }
                             },
                             onLongPressMoveUpdate: (details) {
@@ -1292,9 +1384,27 @@ class _TradingChartState extends State<TradingChart> {
                                 controller.setCrosshairPosition(
                                   details.localPosition,
                                 );
+                                if (controller.candles.isNotEmpty) {
+                                  final converter = CoordinateConverter(
+                                    viewport: controller.viewport,
+                                    totalCandles: controller.candles.length,
+                                  );
+                                  final index = converter
+                                      .xToIndex(details.localPosition.dx);
+                                  if (index >= 0 &&
+                                      index < controller.candles.length &&
+                                      index != _lastInspectedCandleIndex) {
+                                    _lastInspectedCandleIndex = index;
+                                    HapticFeedback.selectionClick();
+                                  }
+                                }
                               }
                             },
                             onLongPressEnd: (_) {
+                              setState(() {
+                                _isInspecting = false;
+                                _lastInspectedCandleIndex = null;
+                              });
                               controller.setCrosshairPosition(null);
                             },
                             child: RepaintBoundary(
@@ -1470,6 +1580,33 @@ class _TradingChartState extends State<TradingChart> {
                                   ),
                                 ],
                               ),
+                            ),
+                          ),
+                        ),
+
+                      // Floating "Jump to Real-Time" (Recenter) Pill when scrolled back in history
+                      Positioned(
+                        right: _priceAxisWidth + 12,
+                        bottom: _timeAxisHeight + 10,
+                        child: _buildJumpToRealtimeButton(
+                          controller,
+                          theme,
+                          controller.isDarkTheme,
+                        ),
+                      ),
+
+                      // Mobile Long-press Inspection Banner (at top of canvas)
+                      if (_isMobile &&
+                          _isInspecting &&
+                          controller.hoveredCandle != null)
+                        Positioned(
+                          top: 10,
+                          left: 12,
+                          right: _priceAxisWidth + 12,
+                          child: Center(
+                            child: _buildMobileInspectionCard(
+                              controller,
+                              controller.isDarkTheme,
                             ),
                           ),
                         ),
@@ -2206,6 +2343,7 @@ class _TradingChartState extends State<TradingChart> {
       ],
     ).then((choice) {
       if (choice == null || !mounted) return;
+      HapticFeedback.lightImpact();
 
       widget.onContextMenuAction?.call(choice, localPosition, clickedPrice);
 
@@ -2411,11 +2549,18 @@ class _TradingChartState extends State<TradingChart> {
                                 controller.priceAtY(newY).toStringAsFixed(2),
                               );
                               if (newPrice != _draggingCurrentPrice) {
+                                if (_lastHapticDragPrice == null ||
+                                    (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                  _lastHapticDragPrice = newPrice;
+                                  HapticFeedback.selectionClick();
+                                }
                                 _draggingCurrentPrice = newPrice;
                                 controller.updateOrderPrice(order.id, newPrice);
                               }
                             },
                             onVerticalDragEnd: (_) {
+                              HapticFeedback.lightImpact();
+                              _lastHapticDragPrice = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2428,6 +2573,7 @@ class _TradingChartState extends State<TradingChart> {
                               widget.onOrderModified?.call(updated);
                             },
                             onVerticalDragCancel: () {
+                              _lastHapticDragPrice = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2451,6 +2597,7 @@ class _TradingChartState extends State<TradingChart> {
                         key: Key('cancel_order_${order.id}'),
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
+                          HapticFeedback.lightImpact();
                           controller.cancelOrder(order.id);
                           widget.onOrderCancelled?.call(order.id);
                         },
@@ -2528,6 +2675,11 @@ class _TradingChartState extends State<TradingChart> {
                                 controller.priceAtY(newY).toStringAsFixed(2),
                               );
                               if (newPrice != _draggingCurrentPrice) {
+                                if (_lastHapticDragPrice == null ||
+                                    (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                  _lastHapticDragPrice = newPrice;
+                                  HapticFeedback.selectionClick();
+                                }
                                 _draggingCurrentPrice = newPrice;
                                 controller.updateOrderBrackets(
                                   order.id,
@@ -2536,6 +2688,8 @@ class _TradingChartState extends State<TradingChart> {
                               }
                             },
                             onVerticalDragEnd: (_) {
+                              HapticFeedback.lightImpact();
+                              _lastHapticDragPrice = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2548,6 +2702,7 @@ class _TradingChartState extends State<TradingChart> {
                               widget.onOrderModified?.call(updated);
                             },
                             onVerticalDragCancel: () {
+                              _lastHapticDragPrice = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2571,6 +2726,7 @@ class _TradingChartState extends State<TradingChart> {
                         key: Key('cancel_tp_${order.id}'),
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
+                          HapticFeedback.lightImpact();
                           controller.updateOrderBrackets(
                             order.id,
                             clearTakeProfit: true,
@@ -2659,6 +2815,11 @@ class _TradingChartState extends State<TradingChart> {
                                 controller.priceAtY(newY).toStringAsFixed(2),
                               );
                               if (newPrice != _draggingCurrentPrice) {
+                                if (_lastHapticDragPrice == null ||
+                                    (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                  _lastHapticDragPrice = newPrice;
+                                  HapticFeedback.selectionClick();
+                                }
                                 _draggingCurrentPrice = newPrice;
                                 controller.updateOrderBrackets(
                                   order.id,
@@ -2667,6 +2828,8 @@ class _TradingChartState extends State<TradingChart> {
                               }
                             },
                             onVerticalDragEnd: (_) {
+                              HapticFeedback.lightImpact();
+                              _lastHapticDragPrice = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2679,6 +2842,7 @@ class _TradingChartState extends State<TradingChart> {
                               widget.onOrderModified?.call(updated);
                             },
                             onVerticalDragCancel: () {
+                              _lastHapticDragPrice = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2702,6 +2866,7 @@ class _TradingChartState extends State<TradingChart> {
                         key: Key('cancel_sl_${order.id}'),
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
+                          HapticFeedback.lightImpact();
                           controller.updateOrderBrackets(
                             order.id,
                             clearStopLoss: true,
@@ -2822,6 +2987,11 @@ class _TradingChartState extends State<TradingChart> {
                             controller.priceAtY(newY).toStringAsFixed(2),
                           );
                           if (newPrice != _draggingCurrentPrice) {
+                            if (_lastHapticDragPrice == null ||
+                                (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                              _lastHapticDragPrice = newPrice;
+                              HapticFeedback.selectionClick();
+                            }
                             _draggingCurrentPrice = newPrice;
                             controller.updateAlert(
                               alert.copyWith(price: newPrice),
@@ -2829,6 +2999,8 @@ class _TradingChartState extends State<TradingChart> {
                           }
                         },
                         onVerticalDragEnd: (_) {
+                          HapticFeedback.lightImpact();
+                          _lastHapticDragPrice = null;
                           setState(() {
                             _draggingOrderId = null;
                             _draggingKind = null;
@@ -2836,6 +3008,7 @@ class _TradingChartState extends State<TradingChart> {
                           });
                         },
                         onVerticalDragCancel: () {
+                          _lastHapticDragPrice = null;
                           setState(() {
                             _draggingOrderId = null;
                             _draggingKind = null;
@@ -2872,6 +3045,7 @@ class _TradingChartState extends State<TradingChart> {
                     key: Key('cancel_alert_${alert.id}'),
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
+                      HapticFeedback.lightImpact();
                       controller.removeAlert(alert.id);
                     },
                     child: Padding(
@@ -3269,6 +3443,153 @@ class _TradingChartState extends State<TradingChart> {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 24, minHeight: 28),
               onPressed: () => controller.selectDrawing(null),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJumpToRealtimeButton(
+    TradingChartController controller,
+    ChartTheme theme,
+    bool isDark,
+  ) {
+    final isScrolledAway = controller.viewport.scrollOffset > 50.0;
+
+    return AnimatedOpacity(
+      opacity: isScrolledAway ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 200),
+      child: AnimatedScale(
+        scale: isScrolledAway ? 1.0 : 0.8,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(
+          ignoring: !isScrolledAway,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('btn_jump_to_realtime'),
+              onTap: () => _animateScrollTo(0.0),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xEE1E222D)
+                      : const Color(0xEEFFFFFF),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF2A2E39)
+                        : const Color(0xFFE0E3EB),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00E676),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x6600E676),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Real-time',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF131722),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Icon(
+                      Icons.keyboard_double_arrow_right,
+                      size: 13,
+                      color: Color(0xFF2962FF),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileInspectionCard(
+    TradingChartController controller,
+    bool isDark,
+  ) {
+    final candle = controller.hoveredCandle;
+    if (candle == null) return const SizedBox.shrink();
+    final isBullish = candle.isBullish;
+    final color =
+        isBullish ? const Color(0xFF089981) : const Color(0xFFF23645);
+    final diff = candle.close - candle.open;
+    final pct = candle.open > 0 ? (diff / candle.open) * 100 : 0.0;
+    final sign = diff >= 0 ? '+' : '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xEE1E222D) : const Color(0xEEFFFFFF),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A2E39) : const Color(0xFFE0E3EB),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'O: ${candle.open.toStringAsFixed(1)} H: ${candle.high.toStringAsFixed(1)} L: ${candle.low.toStringAsFixed(1)} C: ${candle.close.toStringAsFixed(1)}',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFFD1D4DC) : const Color(0xFF131722),
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '$sign${diff.toStringAsFixed(1)} ($sign${pct.toStringAsFixed(1)}%)',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontFamily: 'monospace',
+              ),
             ),
           ],
         ),
