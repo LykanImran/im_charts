@@ -557,23 +557,43 @@ class _TradingChartState extends State<TradingChart>
                     _lastTrackpadScale = 1.0;
                   },
                   onPointerSignal: (pointerSignal) {
-                    // Desktop / Web mouse wheel & trackpad scroll zoom
+                    // ── PointerScaleEvent: native macOS trackpad pinch signal ──
+                    if (pointerSignal is PointerScaleEvent) {
+                      final pos = pointerSignal.localPosition;
+                      // scale > 1.0 = spread (zoom in), < 1.0 = pinch (zoom out)
+                      final scaleFactor = pointerSignal.scale.clamp(0.5, 2.0);
+                      if (pos.dx >= priceAxisLeft) {
+                        if (scaleFactor > 1.0) {
+                          controller.zoomInPrice();
+                        } else {
+                          controller.zoomOutPrice();
+                        }
+                      } else {
+                        controller.onZoom(scaleFactor, pos);
+                      }
+                      return;
+                    }
+
+                    // ── PointerScrollEvent: mouse wheel & trackpad scroll ──
                     if (pointerSignal is PointerScrollEvent) {
                       final pos = pointerSignal.localPosition;
                       final dx = pointerSignal.scrollDelta.dx;
                       final dy = pointerSignal.scrollDelta.dy;
                       final isShift = HardwareKeyboard.instance.isShiftPressed;
+                      // On Flutter Web, macOS trackpad pinch arrives as wheel+ctrlKey at the
+                      // DOM level, but HardwareKeyboard.instance does NOT see this synthetic
+                      // ctrlKey (it only tracks physical keys). We use isWebWheelCtrlKey()
+                      // to read the DOM-level ctrlKey flag tracked by our JS listener.
                       final isCtrlOrMeta =
                           HardwareKeyboard.instance.isControlPressed ||
-                          HardwareKeyboard.instance.isMetaPressed;
+                          HardwareKeyboard.instance.isMetaPressed ||
+                          (kIsWeb && isWebWheelCtrlKey());
 
-                      // 1. Explicit Trackpad Pinch (in browsers, pinch is sent as wheel with ctrlKey)
-                      // or Ctrl/Cmd + Mouse Wheel zoom:
+                      // 1. Ctrl/Cmd + scroll OR browser-synthesised pinch-as-ctrl-wheel:
+                      //    dy < 0 -> spread (zoom in)  |  dy > 0 -> pinch (zoom out)
                       if (isCtrlOrMeta) {
-                        // dy < 0 -> fingers spread outward -> zoom in (widen candles)
-                        // dy > 0 -> fingers pinch inward -> zoom out (narrow candles)
                         final zoomFactor =
-                            math.exp(-dy * 0.02).clamp(0.6, 1.6);
+                            math.exp(-dy * 0.03).clamp(0.5, 2.0);
                         if (pos.dx >= priceAxisLeft) {
                           if (zoomFactor > 1.0) {
                             controller.zoomInPrice();
@@ -603,17 +623,20 @@ class _TradingChartState extends State<TradingChart>
                           controller.zoomOut();
                         }
                       } else {
-                        // Over main chart canvas:
+                        // Main chart canvas:
                         if (isShift) {
                           // Shift + scroll -> pan horizontally
                           controller.onPan(-dy != 0 ? -dy : -dx);
                         } else if (dx.abs() > dy.abs() && dx.abs() > 0.5) {
-                          // Horizontal 2-finger trackpad swipe -> pan
+                          // Horizontal 2-finger swipe on trackpad -> pan
                           controller.onPan(-dx);
                         } else if (dy.abs() > 0.0) {
-                          // Standard mouse wheel scroll -> horizontal candle zoom centered at pointer
+                          // Standard mouse wheel / vertical trackpad scroll
+                          // -> horizontal candle zoom centred at pointer
+                          // Sensitivity 0.015 gives TradingView-like feel on both
+                          // mouse (large dy steps) and trackpad (small dy steps).
                           final zoomFactor =
-                              math.exp(-dy * 0.002).clamp(0.7, 1.4);
+                              math.exp(-dy * 0.015).clamp(0.6, 1.5);
                           controller.onZoom(zoomFactor, pos);
                         }
                       }
