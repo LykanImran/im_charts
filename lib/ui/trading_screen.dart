@@ -177,49 +177,45 @@ class _TradingScreenState extends State<TradingScreen> {
 
                   // Main Chart Canvas with Left Drawing Toolbar and Overlay Header (TradingView architecture)
                   Expanded(
-                    child: Row(
+                    child: Stack(
                       children: [
-                        // Left-docked interactive Drawing Toolbar
-                        if (widget.showDrawingToolbar)
-                          ChartDrawingToolbar(controller: _controller),
-
-                        // Main High-Performance Canvas & Floating Telemetry Header
-                        Expanded(
-                          child: ClipRect(
-                            child: Stack(
-                              children: [
-                                // The High-Performance Canvas Chart spans 100% of the available area
-                                Positioned.fill(
-                                  child: TradingChart(
-                                    controller: _controller,
-                                    repaintBoundaryKey: _chartRepaintKey,
-                                    enableChartTrading:
-                                        widget.enableChartTrading,
-                                    showWatermark: widget.showWatermark,
-                                    showCountdownTimer:
-                                        widget.showCountdownTimer,
-                                    brandName: widget.brandName,
-                                    orderMenuBuilder: widget.orderMenuBuilder,
-                                    onOrderPlaced: widget.onOrderPlaced,
-                                    onOrderModified: widget.onOrderModified,
-                                    onOrderCancelled: widget.onOrderCancelled,
-                                    onPositionClosed: widget.onPositionClosed,
-                                  ),
-                                ),
-
-                                // Overlay Symbol & Telemetry Header floating at top-left
-                                if (widget.showHeader)
-                                  Positioned(
-                                    top: 0,
-                                    left: 0,
-                                    right:
-                                        65, // Leaves the price axis unobscured
-                                    child: ChartHeader(controller: _controller),
-                                  ),
-                              ],
-                            ),
+                        // The High-Performance Canvas Chart spans 100% of the available area
+                        Positioned.fill(
+                          child: TradingChart(
+                            controller: _controller,
+                            repaintBoundaryKey: _chartRepaintKey,
+                            enableChartTrading:
+                                widget.enableChartTrading,
+                            showWatermark: widget.showWatermark,
+                            showCountdownTimer:
+                                widget.showCountdownTimer,
+                            brandName: widget.brandName,
+                            orderMenuBuilder: widget.orderMenuBuilder,
+                            onOrderPlaced: widget.onOrderPlaced,
+                            onOrderModified: widget.onOrderModified,
+                            onOrderCancelled: widget.onOrderCancelled,
+                            onPositionClosed: widget.onPositionClosed,
                           ),
                         ),
+
+                        // Overlay Symbol & Telemetry Header floating at top-left
+                        if (widget.showHeader)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right:
+                                65, // Leaves the price axis unobscured
+                            child: ChartHeader(controller: _controller),
+                          ),
+
+                        // Left-docked interactive Drawing Toolbar stacked on top
+                        if (widget.showDrawingToolbar)
+                          Positioned(
+                            top: 0,
+                            bottom: 0,
+                            left: 0,
+                            child: ChartDrawingToolbar(controller: _controller),
+                          ),
                       ],
                     ),
                   ),

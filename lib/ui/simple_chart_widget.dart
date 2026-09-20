@@ -340,13 +340,18 @@ class _ImChartState extends State<ImChart> {
                   repaintBoundaryKey: repaintKey,
                 ),
               Expanded(
-                child: Row(
+                child: Stack(
                   children: [
-                    if (widget.showDrawingToolbar)
-                      ChartDrawingToolbar(controller: controller),
-                    Expanded(
+                    Positioned.fill(
                       child: ClipRect(child: chartCore),
                     ),
+                    if (widget.showDrawingToolbar)
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        child: ChartDrawingToolbar(controller: controller),
+                      ),
                   ],
                 ),
               ),

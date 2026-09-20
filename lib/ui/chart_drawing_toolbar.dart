@@ -70,77 +70,81 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
         final disabledActionColor =
             isDark ? const Color(0xFF4A4E59) : const Color(0xFFB2B5BE);
 
-        final isMobile =
-            (MediaQuery.maybeOf(context)?.size.width ?? 1000.0) < 600.0;
-        final collapsedWidth = isMobile ? 6.0 : 10.0;
-
         if (_isCollapsed ?? false) {
-          return Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.centerLeft,
-            children: [
-              // Ultra-slim collapsed edge strip saving horizontal screen space
-              Container(
-                width: collapsedWidth,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  border: Border(
-                    right: BorderSide(color: borderColor, width: 1),
+          return SizedBox(
+            width: 24,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.centerLeft,
+              children: [
+                // Thin blue vertical line showing collapsed toolbar
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  child: Container(
+                    width: 1.5,
+                    color: const Color(0xFF2962FF),
                   ),
                 ),
-              ),
 
-              // Ergonomic Thumb Button to expand
-              Positioned(
-                left: 0,
-                child: Tooltip(
-                  message: 'Expand Drawing Tools',
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      key: const Key('expand_drawing_toolbar_button'),
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() => _isCollapsed = false);
-                      },
-                      borderRadius: const BorderRadius.horizontal(
-                        right: Radius.circular(16),
-                      ),
-                      child: Container(
-                        width: 28,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: bgColor,
-                          borderRadius: const BorderRadius.horizontal(
-                            right: Radius.circular(16),
-                          ),
-                          border: Border(
-                            top: BorderSide(color: borderColor, width: 1),
-                            right: BorderSide(color: borderColor, width: 1),
-                            bottom: BorderSide(color: borderColor, width: 1),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: isDark ? 0.45 : 0.12,
+                // Thumb Button: circular widget on the blue line
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  child: Center(
+                    child: Tooltip(
+                      message: 'Open Drawing Toolbar',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          key: const Key('expand_drawing_toolbar_button'),
+                          customBorder: const CircleBorder(),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() => _isCollapsed = false);
+                          },
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF2962FF),
+                                  Color(0xFF1546D2),
+                                ],
                               ),
-                              blurRadius: 6,
-                              offset: const Offset(2, 1),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                width: 1.0,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2962FF)
+                                      .withValues(alpha: 0.5),
+                                  blurRadius: 4.0,
+                                  offset: const Offset(1, 1),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.chevron_right,
-                          size: 16,
-                          color: inactiveIconColor,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.chevron_right,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         }
 
@@ -414,3 +418,5 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
     );
   }
 }
+
+

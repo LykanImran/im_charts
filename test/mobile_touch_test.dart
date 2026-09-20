@@ -634,9 +634,9 @@ void main() {
       expect(find.byKey(const Key('expand_drawing_toolbar_button')), findsOneWidget);
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
 
-      // Verify ultra-slim container size is 6.0 px width
+      // Verify thin line container size is 1.5 px width
       final containerFinder = find.byWidgetPredicate(
-        (w) => w is Container && w.constraints?.maxWidth == 6.0,
+        (w) => w is Container && w.constraints?.maxWidth == 1.5,
       );
       expect(containerFinder, findsOneWidget);
 
