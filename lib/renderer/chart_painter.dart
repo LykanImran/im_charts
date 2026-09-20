@@ -58,6 +58,7 @@ class ChartPainter extends CustomPainter {
   final String exchange;
   final double verticalScale;
   final double verticalPan;
+  final double priceAxisWidth;
 
   final GridRenderer _gridRenderer;
   final CandleRenderer _candleRenderer;
@@ -101,6 +102,7 @@ class ChartPainter extends CustomPainter {
     this.exchange = 'NSE',
     this.verticalScale = 1.0,
     this.verticalPan = 0.0,
+    this.priceAxisWidth = 65.0,
   })  : _gridRenderer = GridRenderer(theme),
         _candleRenderer = CandleRenderer(theme),
         _volumeRenderer = VolumeRenderer(theme),
@@ -134,6 +136,7 @@ class ChartPainter extends CustomPainter {
     // 2. Setup multi-pane layout
     final layout = ChartPaneLayout(
       totalSize: size,
+      priceAxisWidth: priceAxisWidth,
       subPanes: activeSubPanes.length,
     );
 
@@ -366,11 +369,14 @@ class ChartPainter extends CustomPainter {
     }
 
     // 11. Draw Price Axis (Y) & Time Axis (X)
+    final mainDivisions =
+        (layout.mainPaneBounds.height / 55.0).round().clamp(3, 8);
     _axisRenderer.drawPriceAxis(
       canvas: canvas,
       axisBounds: layout.priceAxisBounds,
       paneBounds: layout.mainPaneBounds,
       priceRange: priceRange,
+      verticalDivisions: mainDivisions,
     );
 
     _axisRenderer.drawTimeAxis(
@@ -381,6 +387,7 @@ class ChartPainter extends CustomPainter {
       converter: converter,
       viewport: viewport,
       timeframe: timeframe,
+      priceAxisWidth: priceAxisWidth,
     );
 
     // 12. Draw Interactive Crosshair & Tooltips

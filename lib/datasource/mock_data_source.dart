@@ -44,60 +44,54 @@ class MockTradingDataSource implements ChartDataSource {
     required String symbol,
     required Timeframe timeframe,
     int count = 500,
+    DateTime? before,
   }) async {
     final candles = <Candle>[];
-    final now = DateTime.now();
-    final alignedNow = timeframe.alignTimestamp(now);
 
     final symbolBasePrice = defaultPrices[symbol] ?? initialPrice;
     initialPrice = symbolBasePrice;
 
-    // Generate historical backwards from now
+    // If 'before' is provided, start from there; otherwise align from now
+    final anchor = before != null
+        ? timeframe.alignTimestamp(before)
+        : timeframe.alignTimestamp(DateTime.now());
+
+    // Generate 'count' candles backwards from anchor
     var price = symbolBasePrice;
     final tempList = <Candle>[];
-
-    var currentTimestamp = alignedNow.subtract(timeframe.duration * count);
+    var currentTimestamp = anchor.subtract(timeframe.duration * count);
 
     for (int i = 0; i < count; i++) {
-      // Geometric Brownian motion step with slight mean reversion
       final drift = 0.00005;
-      final shock = (_random.nextDouble() - 0.49) * 2.0; // [-0.98, 1.02]
+      final shock = (_random.nextDouble() - 0.49) * 2.0;
       final deltaPercent = drift + (volatility * shock);
 
       final open = price;
       final close = price * (1.0 + deltaPercent);
-
-      // Intra-candle high and low
       final maxOC = math.max(open, close);
       final minOC = math.min(open, close);
-
       final highExtension = (_random.nextDouble() * volatility * 1.2) * price;
       final lowExtension = (_random.nextDouble() * volatility * 1.2) * price;
-
       final high = maxOC + highExtension;
       final low = math.max(0.01, minOC - lowExtension);
-
-      // Volume with occasional spikes
       final isSpike = _random.nextDouble() < 0.08;
       final baseVolume = 1500.0 + (_random.nextDouble() * 4000.0);
       final volume = isSpike ? baseVolume * 3.5 : baseVolume;
 
-      tempList.add(
-        Candle(
-          timestamp: currentTimestamp,
-          open: double.parse(open.toStringAsFixed(2)),
-          high: double.parse(high.toStringAsFixed(2)),
-          low: double.parse(low.toStringAsFixed(2)),
-          close: double.parse(close.toStringAsFixed(2)),
-          volume: double.parse(volume.toStringAsFixed(0)),
-        ),
-      );
+      tempList.add(Candle(
+        timestamp: currentTimestamp,
+        open: double.parse(open.toStringAsFixed(2)),
+        high: double.parse(high.toStringAsFixed(2)),
+        low: double.parse(low.toStringAsFixed(2)),
+        close: double.parse(close.toStringAsFixed(2)),
+        volume: double.parse(volume.toStringAsFixed(0)),
+      ));
 
       price = close;
       currentTimestamp = currentTimestamp.add(timeframe.duration);
     }
 
-    _currentPrice = price;
+    if (before == null) _currentPrice = price;
     candles.addAll(tempList);
     return candles;
   }

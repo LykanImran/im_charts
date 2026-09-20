@@ -10,12 +10,16 @@ class IndicatorSeries {
   /// Values aligned 1:1 with candles. Null when insufficient data.
   final List<double?> values;
 
+  /// If true, the renderer draws this line as a dashed pattern.
+  final bool isDashed;
+
   const IndicatorSeries({
     required this.id,
     required this.label,
     required this.color,
     this.strokeWidth = 1.5,
     required this.values,
+    this.isDashed = false,
   });
 }
 

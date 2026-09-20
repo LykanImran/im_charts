@@ -88,8 +88,9 @@ class TradingChart extends StatefulWidget {
 class _TradingChartState extends State<TradingChart>
     with TickerProviderStateMixin {
   bool _isMobile = false;
-  double get _priceAxisWidth => _isMobile ? 52.0 : 65.0;
+  double get _priceAxisWidth => _isMobile ? 44.0 : 65.0;
   double get _timeAxisHeight => _isMobile ? 22.0 : 24.0;
+  double _cachedChartWidth = 400.0; // Updated in LayoutBuilder for use in sub-builders
   final GlobalKey _defaultRepaintKey = GlobalKey();
 
   double _lastScale = 1.0;
@@ -130,8 +131,6 @@ class _TradingChartState extends State<TradingChart>
   String? _draggingOrderId;
   String? _draggingKind; // 'order', 'tp', 'sl', 'alert'
   double? _draggingCurrentPrice;
-  double _dragStartY = 0.0;
-  double _dragAccumulatedDeltaY = 0.0;
 
   void _handleInertiaTick() {
     final current = _inertiaController.value;
@@ -441,7 +440,10 @@ class _TradingChartState extends State<TradingChart>
         final priceAxisLeft = width - _priceAxisWidth;
         final timeAxisTop = height - _timeAxisHeight;
 
-        controller.updateDimensions(width, height);
+        // Cache for use inside sub-builder methods (e.g. drag hitbox width)
+        if (_cachedChartWidth != width) _cachedChartWidth = width;
+
+        controller.updateDimensions(width, height, _priceAxisWidth);
 
         return Focus(
           focusNode: _focusNode,
@@ -1525,6 +1527,7 @@ class _TradingChartState extends State<TradingChart>
                                     exchange: controller.exchange,
                                     verticalScale: controller.verticalScale,
                                     verticalPan: controller.verticalPan,
+                                    priceAxisWidth: _priceAxisWidth,
                                   ),
                                 ),
                               ),
@@ -1544,6 +1547,13 @@ class _TradingChartState extends State<TradingChart>
                             timeAxisTop,
                           ),
                       ],
+
+                      // ── OHLCV Legend Panel (top-left, TradingView-style) ──
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: _buildOHLCVPanel(controller, theme, priceAxisLeft),
+                      ),
 
                       // Interactive Price Alert Badges & Hitboxes (Draggable & Cancel)
                       if (controller.alerts.isNotEmpty) ...[
@@ -1723,6 +1733,39 @@ class _TradingChartState extends State<TradingChart>
                           ),
                         ),
                       ),
+                      // ── Sub-pane Resize Drag Handle ──
+                      if (controller.hasSubPane)
+                        Positioned(
+                          left: 0,
+                          right: _priceAxisWidth,
+                          top: controller.mainPaneHeight - 4,
+                          height: 8,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.resizeUpDown,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onVerticalDragUpdate: (details) {
+                                final totalH = height - _timeAxisHeight;
+                                final newMain = (controller.mainPaneHeight + details.delta.dy)
+                                    .clamp(totalH * 0.4, totalH * 0.85);
+                                final newSubRatio = (totalH - newMain) / totalH;
+                                controller.subPaneRatio = newSubRatio;
+                              },
+                              child: Container(
+                                color: Colors.transparent,
+                                alignment: Alignment.center,
+                                child: Container(
+                                  height: 2,
+                                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                                  decoration: BoxDecoration(
+                                    color: theme.gridColor.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1731,6 +1774,92 @@ class _TradingChartState extends State<TradingChart>
           ),
         );
       },
+    );
+  }
+
+  /// Builds the TradingView-style OHLCV data legend at the top-left of the chart.
+  /// Shows O / H / L / C / Vol and Δ% for the hovered candle (or latest if no crosshair).
+  Widget _buildOHLCVPanel(
+    TradingChartController controller,
+    ChartTheme theme,
+    double priceAxisLeft,
+  ) {
+    final candle = controller.hoveredCandle ?? 
+        (controller.candles.isNotEmpty ? controller.candles.last : null);
+    if (candle == null) return const SizedBox.shrink();
+
+    final isBull = candle.close >= candle.open;
+    final delta = candle.close - candle.open;
+    final pct = candle.open > 0 ? (delta / candle.open) * 100 : 0.0;
+    final candleColor = isBull ? theme.bullishColor : theme.bearishColor;
+    final isDark = theme.isDark;
+    final bg = (isDark ? const Color(0xFF131722) : Colors.white)
+        .withValues(alpha: 0.88);
+    final labelColor = theme.axisTextColor;
+    final valueStyle = TextStyle(
+      color: isDark ? Colors.white : const Color(0xFF131722),
+      fontSize: 10.5,
+      fontFamily: 'monospace',
+      fontWeight: FontWeight.w600,
+    );
+    final labelStyle = TextStyle(
+      color: labelColor,
+      fontSize: 9.5,
+      fontFamily: 'monospace',
+      fontWeight: FontWeight.w500,
+    );
+
+    String fmt(double v) {
+      if (v >= 1e7) return '${(v / 1e7).toStringAsFixed(2)}Cr';
+      if (v >= 1e5) return '${(v / 1e5).toStringAsFixed(2)}L';
+      if (v >= 1e3) return '${(v / 1e3).toStringAsFixed(1)}K';
+      return v.toStringAsFixed(2);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // O H L C
+          _ohlcvItem('O', fmt(candle.open), valueStyle, labelStyle),
+          const SizedBox(width: 10),
+          _ohlcvItem('H', fmt(candle.high), valueStyle, labelStyle),
+          const SizedBox(width: 10),
+          _ohlcvItem('L', fmt(candle.low), valueStyle, labelStyle),
+          const SizedBox(width: 10),
+          _ohlcvItem('C', fmt(candle.close), valueStyle, labelStyle),
+          const SizedBox(width: 10),
+          // Volume
+          _ohlcvItem('V', fmt(candle.volume), valueStyle, labelStyle),
+          const SizedBox(width: 10),
+          // Δ% coloured
+          Text(
+            '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(2)}%)',
+            style: TextStyle(
+              color: candleColor,
+              fontSize: 10.5,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ohlcvItem(String label, String value, TextStyle valueStyle, TextStyle labelStyle) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: labelStyle),
+        const SizedBox(width: 3),
+        Text(value, style: valueStyle),
+      ],
     );
   }
 
@@ -2552,7 +2681,8 @@ class _TradingChartState extends State<TradingChart>
         order.hasStopLoss ? controller.yAtPrice(order.stopLossPrice!) : null;
 
     final isThisOrderDragging = _draggingOrderId == order.id;
-    final touchHeight = _isMobile ? 44.0 : 22.0;
+    // Wider touch zone on mobile for easier dragging — full chart width
+    final touchHeight = _isMobile ? 56.0 : 28.0;
 
     return [
       // 1. Order Badge Interactive Hitbox (Draggable & Cancel)
@@ -2561,7 +2691,8 @@ class _TradingChartState extends State<TradingChart>
           right: _priceAxisWidth + 18,
           top: (orderY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
-            width: 175,
+            // Full-width hitbox so finger doesn't slip off the line
+            width: _isMobile ? _cachedChartWidth - _priceAxisWidth - 18 : 175,
             height: touchHeight,
             child: Align(
               alignment: Alignment.centerRight,
@@ -2606,25 +2737,23 @@ class _TradingChartState extends State<TradingChart>
                           cursor: SystemMouseCursors.resizeUpDown,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onVerticalDragStart: (_) {
+                            onVerticalDragStart: (details) {
                               setState(() {
                                 _draggingOrderId = order.id;
                                 _draggingKind = 'order';
                                 _draggingCurrentPrice = order.price;
-                                _dragStartY = orderY;
-                                _dragAccumulatedDeltaY = 0.0;
                               });
                             },
                             onVerticalDragUpdate: (details) {
-                              _dragAccumulatedDeltaY += details.delta.dy;
-                              final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                              // Direct pointer-Y → price: no accumulation, no jumps
+                              final newY = details.localPosition.dy
                                   .clamp(0.0, timeAxisTop);
                               final newPrice = double.parse(
                                 controller.priceAtY(newY).toStringAsFixed(2),
                               );
                               if (newPrice != _draggingCurrentPrice) {
                                 if (_lastHapticDragPrice == null ||
-                                    (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                    (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
                                   _lastHapticDragPrice = newPrice;
                                   HapticFeedback.selectionClick();
                                 }
@@ -2714,7 +2843,7 @@ class _TradingChartState extends State<TradingChart>
           right: _priceAxisWidth + 18,
           top: (tpY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
-            width: 145,
+            width: _isMobile ? _cachedChartWidth - _priceAxisWidth - 18 : 145,
             height: touchHeight,
             child: Align(
               alignment: Alignment.centerRight,
@@ -2732,25 +2861,22 @@ class _TradingChartState extends State<TradingChart>
                           cursor: SystemMouseCursors.resizeUpDown,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onVerticalDragStart: (_) {
+                            onVerticalDragStart: (details) {
                               setState(() {
                                 _draggingOrderId = order.id;
                                 _draggingKind = 'tp';
                                 _draggingCurrentPrice = order.takeProfitPrice;
-                                _dragStartY = tpY;
-                                _dragAccumulatedDeltaY = 0.0;
                               });
                             },
                             onVerticalDragUpdate: (details) {
-                              _dragAccumulatedDeltaY += details.delta.dy;
-                              final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                              final newY = details.localPosition.dy
                                   .clamp(0.0, timeAxisTop);
                               final newPrice = double.parse(
                                 controller.priceAtY(newY).toStringAsFixed(2),
                               );
                               if (newPrice != _draggingCurrentPrice) {
                                 if (_lastHapticDragPrice == null ||
-                                    (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                    (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
                                   _lastHapticDragPrice = newPrice;
                                   HapticFeedback.selectionClick();
                                 }
@@ -2854,7 +2980,7 @@ class _TradingChartState extends State<TradingChart>
           right: _priceAxisWidth + 18,
           top: (slY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
           child: SizedBox(
-            width: 145,
+            width: _isMobile ? _cachedChartWidth - _priceAxisWidth - 18 : 145,
             height: touchHeight,
             child: Align(
               alignment: Alignment.centerRight,
@@ -2872,25 +2998,22 @@ class _TradingChartState extends State<TradingChart>
                           cursor: SystemMouseCursors.resizeUpDown,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onVerticalDragStart: (_) {
+                            onVerticalDragStart: (details) {
                               setState(() {
                                 _draggingOrderId = order.id;
                                 _draggingKind = 'sl';
                                 _draggingCurrentPrice = order.stopLossPrice;
-                                _dragStartY = slY;
-                                _dragAccumulatedDeltaY = 0.0;
                               });
                             },
                             onVerticalDragUpdate: (details) {
-                              _dragAccumulatedDeltaY += details.delta.dy;
-                              final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                              final newY = details.localPosition.dy
                                   .clamp(0.0, timeAxisTop);
                               final newPrice = double.parse(
                                 controller.priceAtY(newY).toStringAsFixed(2),
                               );
                               if (newPrice != _draggingCurrentPrice) {
                                 if (_lastHapticDragPrice == null ||
-                                    (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                    (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
                                   _lastHapticDragPrice = newPrice;
                                   HapticFeedback.selectionClick();
                                 }
@@ -3002,7 +3125,7 @@ class _TradingChartState extends State<TradingChart>
 
     final isThisAlertDragging =
         _draggingOrderId == alert.id && _draggingKind == 'alert';
-    final touchHeight = _isMobile ? 44.0 : 24.0;
+    final touchHeight = _isMobile ? 56.0 : 28.0;
     final isTriggered = alert.isTriggered;
     final alertColor =
         isTriggered ? const Color(0xFF787B86) : const Color(0xFFFFB300);
@@ -3012,7 +3135,7 @@ class _TradingChartState extends State<TradingChart>
         right: _priceAxisWidth + 18,
         top: (alertY - (touchHeight / 2)).clamp(0.0, timeAxisTop - touchHeight),
         child: SizedBox(
-          width: 150,
+          width: _isMobile ? _cachedChartWidth - _priceAxisWidth - 18 : 150,
           height: touchHeight,
           child: Align(
             alignment: Alignment.centerRight,
@@ -3044,25 +3167,22 @@ class _TradingChartState extends State<TradingChart>
                       child: GestureDetector(
                         key: Key('drag_alert_${alert.id}'),
                         behavior: HitTestBehavior.opaque,
-                        onVerticalDragStart: (_) {
+                        onVerticalDragStart: (details) {
                           setState(() {
                             _draggingOrderId = alert.id;
                             _draggingKind = 'alert';
                             _draggingCurrentPrice = alert.price;
-                            _dragStartY = alertY;
-                            _dragAccumulatedDeltaY = 0.0;
                           });
                         },
                         onVerticalDragUpdate: (details) {
-                          _dragAccumulatedDeltaY += details.delta.dy;
-                          final newY = (_dragStartY + _dragAccumulatedDeltaY)
+                          final newY = details.localPosition.dy
                               .clamp(0.0, timeAxisTop);
                           final newPrice = double.parse(
                             controller.priceAtY(newY).toStringAsFixed(2),
                           );
                           if (newPrice != _draggingCurrentPrice) {
                             if (_lastHapticDragPrice == null ||
-                                (newPrice - _lastHapticDragPrice!).abs() >= 1.0) {
+                                (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
                               _lastHapticDragPrice = newPrice;
                               HapticFeedback.selectionClick();
                             }
@@ -3304,7 +3424,7 @@ class _TradingChartState extends State<TradingChart>
     double timeAxisTop,
   ) {
     final posY = controller.yAtPrice(position.entryPrice);
-    final touchHeight = _isMobile ? 44.0 : 24.0;
+    final touchHeight = _isMobile ? 56.0 : 28.0;
 
     return [
       if (posY >= 0 && posY <= timeAxisTop)

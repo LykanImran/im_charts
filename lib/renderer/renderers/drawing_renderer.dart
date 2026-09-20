@@ -31,6 +31,9 @@ class DrawingRenderer {
         case DrawingTool.trendline:
           _drawTrendline(canvas, bounds, drawing, priceRange, converter);
           break;
+        case DrawingTool.extendedTrendline:
+          _drawExtendedTrendline(canvas, bounds, drawing, priceRange, converter);
+          break;
         case DrawingTool.horizontalLine:
           _drawHorizontalLine(canvas, bounds, drawing, priceRange);
           break;
@@ -45,6 +48,15 @@ class DrawingRenderer {
           break;
         case DrawingTool.fibonacci:
           _drawFibonacci(canvas, bounds, drawing, priceRange, converter);
+          break;
+        case DrawingTool.parallelChannel:
+          _drawParallelChannel(canvas, bounds, drawing, priceRange, converter);
+          break;
+        case DrawingTool.arrow:
+          _drawArrow(canvas, bounds, drawing, priceRange, converter);
+          break;
+        case DrawingTool.textLabel:
+          _drawTextLabel(canvas, bounds, drawing, priceRange, converter);
           break;
         case DrawingTool.longPosition:
           _drawPositionBox(
@@ -718,6 +730,204 @@ class DrawingRenderer {
     if (drawing.isSelected || drawing.id == 'preview') {
       _drawHandle(canvas, Offset(x1, y1), boxColor);
       _drawHandle(canvas, Offset(x2, y2), boxColor);
+    }
+  }
+
+  // ── New Drawing Tool Renderers (Phase 6) ──
+
+  /// Extended Trendline — projects the line through both ends to chart edges.
+  void _drawExtendedTrendline(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (drawing.points.length < 2) return;
+    final p1 = drawing.points[0];
+    final p2 = drawing.points[1];
+    final x1 = converter.indexToX(p1.candleIndex);
+    final x2 = converter.indexToX(p2.candleIndex);
+    final y1 = CoordinateConverter.priceToY(p1.price, bounds, priceRange);
+    final y2 = CoordinateConverter.priceToY(p2.price, bounds, priceRange);
+
+    // Project to left and right bounds
+    final dx = x2 - x1;
+    final dy = y2 - y1;
+    Offset leftPt, rightPt;
+    if (dx.abs() < 0.001) {
+      leftPt = Offset(x1, bounds.top);
+      rightPt = Offset(x1, bounds.bottom);
+    } else {
+      final tLeft = (bounds.left - x1) / dx;
+      final tRight = (bounds.right - x1) / dx;
+      leftPt = Offset(bounds.left, y1 + tLeft * dy);
+      rightPt = Offset(bounds.right, y1 + tRight * dy);
+    }
+    final paint = Paint()
+      ..color = drawing.color
+      ..strokeWidth = drawing.strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(leftPt, rightPt, paint);
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x1, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y2), drawing.color);
+    }
+  }
+
+  /// Parallel Channel — 3-point drawing: two parallel trendlines.
+  void _drawParallelChannel(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (drawing.points.length < 2) return;
+    final p1 = drawing.points[0];
+    final p2 = drawing.points[1];
+    final p3 = drawing.points.length >= 3 ? drawing.points[2] : null;
+
+    final x1 = converter.indexToX(p1.candleIndex);
+    final y1 = CoordinateConverter.priceToY(p1.price, bounds, priceRange);
+    final x2 = converter.indexToX(p2.candleIndex);
+    final y2 = CoordinateConverter.priceToY(p2.price, bounds, priceRange);
+
+    final paint = Paint()
+      ..color = drawing.color
+      ..strokeWidth = drawing.strokeWidth
+      ..style = PaintingStyle.stroke;
+    final fillPaint = Paint()
+      ..color = drawing.color.withValues(alpha: 0.07)
+      ..style = PaintingStyle.fill;
+
+    // Main trendline
+    canvas.drawLine(Offset(x1, y1), Offset(x2, y2), paint);
+
+    // Parallel offset trendline using p3 if available
+    if (p3 != null) {
+      final y3 = CoordinateConverter.priceToY(p3.price, bounds, priceRange);
+      // Offset in y from the midpoint of the first line
+      final midY = (y1 + y2) / 2;
+      final offset = y3 - midY;
+      final ox1 = Offset(x1, y1 + offset);
+      final ox2 = Offset(x2, y2 + offset);
+      canvas.drawLine(ox1, ox2, paint);
+      // Fill between lines
+      final path = Path()
+        ..moveTo(x1, y1)
+        ..lineTo(x2, y2)
+        ..lineTo(ox2.dx, ox2.dy)
+        ..lineTo(ox1.dx, ox1.dy)
+        ..close();
+      canvas.drawPath(path, fillPaint);
+      if (drawing.isSelected || drawing.id == 'preview') {
+        _drawHandle(canvas, Offset(x1, y1), drawing.color);
+        _drawHandle(canvas, Offset(x2, y2), drawing.color);
+        _drawHandle(canvas, Offset(x1, y1 + offset), drawing.color);
+      }
+    } else if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x1, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y2), drawing.color);
+    }
+  }
+
+  /// Arrow — a trendline with an arrowhead at the end point.
+  void _drawArrow(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (drawing.points.length < 2) return;
+    final p1 = drawing.points[0];
+    final p2 = drawing.points[1];
+    final x1 = converter.indexToX(p1.candleIndex);
+    final y1 = CoordinateConverter.priceToY(p1.price, bounds, priceRange);
+    final x2 = converter.indexToX(p2.candleIndex);
+    final y2 = CoordinateConverter.priceToY(p2.price, bounds, priceRange);
+
+    final paint = Paint()
+      ..color = drawing.color
+      ..strokeWidth = drawing.strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(x1, y1), Offset(x2, y2), paint);
+
+    // Arrowhead
+    final angle = math.atan2(y2 - y1, x2 - x1);
+    const headLen = 12.0;
+    const headAngle = 0.45; // radians
+    final fillPaint = Paint()
+      ..color = drawing.color
+      ..style = PaintingStyle.fill;
+    final head = Path()
+      ..moveTo(x2, y2)
+      ..lineTo(
+          x2 - headLen * math.cos(angle - headAngle),
+          y2 - headLen * math.sin(angle - headAngle))
+      ..lineTo(
+          x2 - headLen * math.cos(angle + headAngle),
+          y2 - headLen * math.sin(angle + headAngle))
+      ..close();
+    canvas.drawPath(head, fillPaint);
+
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x1, y1), drawing.color);
+      _drawHandle(canvas, Offset(x2, y2), drawing.color);
+    }
+  }
+
+  /// Text Label — draws user text at a pinned chart coordinate.
+  void _drawTextLabel(
+    Canvas canvas,
+    Rect bounds,
+    ChartDrawing drawing,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (drawing.points.isEmpty) return;
+    final p = drawing.points[0];
+    final x = converter.indexToX(p.candleIndex);
+    final y = CoordinateConverter.priceToY(p.price, bounds, priceRange);
+    if (y < bounds.top || y > bounds.bottom) return;
+
+    final text = drawing.label.isNotEmpty ? drawing.label : 'Label';
+    final textSpan = TextSpan(
+      text: text,
+      style: TextStyle(
+        color: drawing.color,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        background: Paint()..color = drawing.color.withValues(alpha: 0.12),
+      ),
+    );
+    final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
+      ..layout();
+    // Background pill
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(x - 4, y - tp.height / 2 - 4, tp.width + 8, tp.height + 8),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(
+      rect,
+      Paint()
+        ..color = drawing.color.withValues(alpha: 0.15)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      rect,
+      Paint()
+        ..color = drawing.color.withValues(alpha: 0.5)
+        ..strokeWidth = 1
+        ..style = PaintingStyle.stroke,
+    );
+    tp.paint(canvas, Offset(x, y - tp.height / 2));
+
+    if (drawing.isSelected || drawing.id == 'preview') {
+      _drawHandle(canvas, Offset(x, y), drawing.color);
     }
   }
 }

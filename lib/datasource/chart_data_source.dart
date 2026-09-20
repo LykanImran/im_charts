@@ -7,10 +7,12 @@ import '../core/models/timeframe.dart';
 /// to any specific broker or provider API.
 abstract class ChartDataSource {
   /// Fetches historical OHLCV bars for the specified [symbol] and [timeframe].
+  /// Optionally pass [before] to fetch candles older than that timestamp (for pagination).
   Future<List<Candle>> getHistoricalData({
     required String symbol,
     required Timeframe timeframe,
     int count = 500,
+    DateTime? before,
   });
 
   /// Real-time stream of live trades/ticks for the given [symbol].

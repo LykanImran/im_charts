@@ -25,6 +25,16 @@ import 'indicators/supertrend.dart';
 import 'indicators/volume_profile.dart';
 import 'dart:convert';
 
+/// Y-axis price scale display mode.
+enum PriceScaleMode {
+  /// Linear scale: equal vertical distance = equal price difference.
+  normal,
+  /// Logarithmic scale: equal vertical distance = equal % change. Best for long-term charts.
+  log,
+  /// Percentage mode: Y-axis labels show % change from first visible candle's open.
+  percent,
+}
+
 /// Top-level controller managing chart state, gestures, viewport, indicators, and live data stream.
 class TradingChartController extends ChangeNotifier {
   String _symbol;
@@ -57,6 +67,7 @@ class TradingChartController extends ChangeNotifier {
   ChartSyncGroup? _syncGroup;
   bool _isDisposed = false;
   bool _isReceivingSync = false;
+  bool _isLoadingMore = false; // Guard for lazy historical loading
 
   ChartSaveState _saveState = ChartSaveState.saved;
   Timer? _autoSaveTimer;
@@ -98,6 +109,12 @@ class TradingChartController extends ChangeNotifier {
 
   // Interactive Drawing State
   final List<ChartDrawing> _drawings = [];
+
+  // Log / Percentage price scale mode
+  PriceScaleMode _priceScaleMode = PriceScaleMode.normal;
+
+  // Resizable sub-pane ratio (main:sub split, 0.25 = 25% sub)
+  double _subPaneRatio = 0.25;
   DrawingTool _activeDrawingTool = DrawingTool.pointer;
   ChartDrawing? _previewDrawing;
   void Function(ChartDrawing drawing)? onDrawingAdded;
@@ -317,15 +334,50 @@ class TradingChartController extends ChangeNotifier {
   double get mainPaneHeight {
     final totalHeight = _viewport.viewportHeight;
     final availableHeight = (totalHeight - 24.0).clamp(10.0, totalHeight);
-    if (_subPaneResult != null) {
-      return availableHeight * (1.0 - 0.25);
+    final hasSubPane = _subPaneResult != null || _subPaneResults.isNotEmpty;
+    if (hasSubPane) {
+      final totalSubRatio = (_subPaneRatio * _subPaneResults.length.clamp(1, 4)).clamp(0.15, 0.55);
+      return availableHeight * (1.0 - totalSubRatio);
     }
     return availableHeight;
   }
 
+  // ── Price Scale Mode (Normal / Log / Percent) ──
+
+  /// Current price scale mode: normal, log, or percent.
+  PriceScaleMode get priceScaleMode => _priceScaleMode;
+
+  /// Cycles the price scale mode: Normal → Log → Percent → Normal.
+  void cyclePriceScaleMode() {
+    _priceScaleMode = PriceScaleMode
+        .values[(_priceScaleMode.index + 1) % PriceScaleMode.values.length];
+    notifyListeners();
+  }
+
+  // ── Resizable Sub-Pane ──
+
+  /// Sub-pane height ratio (0.0–0.5). Default 0.25 = 25%.
+  double get subPaneRatio => _subPaneRatio;
+  set subPaneRatio(double ratio) {
+    _subPaneRatio = ratio.clamp(0.10, 0.50);
+    notifyListeners();
+  }
+
+  double _priceAxisWidth = 65.0;
+  double get priceAxisWidth => _priceAxisWidth;
+  set priceAxisWidth(double value) {
+    if (_priceAxisWidth != value) {
+      _priceAxisWidth = value;
+      notifyListeners();
+    }
+  }
+
+  /// True when at least one sub-pane indicator (e.g. RSI, MACD) is active.
+  bool get hasSubPane => _subPaneResults.isNotEmpty || _subPaneResult != null;
+
   /// Converts screen Y coordinate inside main pane to financial price.
   double priceAtY(double y) {
-    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(
+    final chartWidth = (_viewport.viewportWidth - _priceAxisWidth).clamp(
       10.0,
       double.infinity,
     );
@@ -335,7 +387,7 @@ class TradingChartController extends ChangeNotifier {
 
   /// Converts financial price to screen Y coordinate inside main pane.
   double yAtPrice(double price) {
-    final chartWidth = (_viewport.viewportWidth - 65.0).clamp(
+    final chartWidth = (_viewport.viewportWidth - _priceAxisWidth).clamp(
       10.0,
       double.infinity,
     );
@@ -1009,7 +1061,10 @@ class TradingChartController extends ChangeNotifier {
   }
 
   /// Updates viewport canvas dimensions (called by LayoutBuilder in UI).
-  void updateDimensions(double width, double height) {
+  void updateDimensions(double width, double height, [double? priceAxisWidth]) {
+    if (priceAxisWidth != null && _priceAxisWidth != priceAxisWidth) {
+      _priceAxisWidth = priceAxisWidth;
+    }
     if (_viewport.viewportWidth != width ||
         _viewport.viewportHeight != height) {
       _viewport = _viewport.copyWith(
@@ -1112,6 +1167,46 @@ class TradingChartController extends ChangeNotifier {
 
     _viewport = _viewport.copyWith(scrollOffset: newOffset);
     notifyListeners();
+
+    // Lazy load: when within 80% of max scroll (near chart start), load more history
+    if (!_isLoadingMore && newOffset > maxScroll * 0.80 && candles.isNotEmpty) {
+      _loadMoreHistory();
+    }
+  }
+
+  /// Loads an additional page of historical candles before the current oldest candle
+  /// and prepends them, adjusting the scroll offset to maintain the visual position.
+  Future<void> _loadMoreHistory() async {
+    if (_isLoadingMore || _isDisposed) return;
+    _isLoadingMore = true;
+    try {
+      final oldest = candles.first.timestamp;
+      final more = await dataSource.getHistoricalData(
+        symbol: _symbol,
+        timeframe: _timeframe,
+        count: 500,
+        before: oldest,
+      );
+      if (_isDisposed || more.isEmpty) return;
+      // Filter out duplicates (any candle at or after 'oldest')
+      final newCandles = more
+          .where((c) => c.timestamp.isBefore(oldest))
+          .toList();
+      if (newCandles.isEmpty) return;
+      // Prepend and adjust scroll so the user's view stays stable
+      final prependCount = newCandles.length;
+      final candleWidth = _viewport.candleTotalWidth;
+      _candleBuilder.prepend(newCandles);
+      _recalculateIndicators();
+      _viewport = _viewport.copyWith(
+        scrollOffset: _viewport.scrollOffset + (prependCount * candleWidth),
+      );
+      notifyListeners();
+    } catch (_) {
+      // Silently fail — network errors shouldn't crash the chart
+    } finally {
+      _isLoadingMore = false;
+    }
   }
 
   /// Handles synchronized horizontal pan from [ChartSyncGroup].

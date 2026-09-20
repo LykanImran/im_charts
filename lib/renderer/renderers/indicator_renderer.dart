@@ -182,15 +182,56 @@ class IndicatorRenderer extends BaseRenderer {
     required PriceRange priceRange,
     required CoordinateConverter converter,
   }) {
-    final path = Path();
-    bool hasStarted = false;
-
     final linePaint = Paint()
       ..color = series.color
       ..strokeWidth = series.strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+
+    if (series.isDashed) {
+      // Dashed line: collect all (x,y) points, then draw dash segments
+      final points = <Offset>[];
+      for (int i = visible.start; i <= visible.end; i++) {
+        if (i < 0 || i >= series.values.length) continue;
+        final val = series.values[i];
+        if (val == null) continue;
+        final x = converter.indexToX(i);
+        final y = CoordinateConverter.priceToY(val, bounds, priceRange);
+        points.add(Offset(x, y));
+      }
+      const dashLen = 6.0;
+      const gapLen = 4.0;
+      bool drawing = true;
+      double carry = 0.0;
+      for (int i = 0; i < points.length - 1; i++) {
+        final p1 = points[i];
+        final p2 = points[i + 1];
+        final dx = p2.dx - p1.dx;
+        final dy = p2.dy - p1.dy;
+        // Simple dash over segment using lerp
+        double traveled = -carry;
+        while (traveled < (p2.dx - p1.dx).abs().clamp(1.0, double.infinity)) {
+          final segDist = (p2.dx - p1.dx).abs().clamp(1.0, double.infinity);
+          final t1 = (traveled / segDist).clamp(0.0, 1.0);
+          final t2 = ((traveled + (drawing ? dashLen : gapLen)) / segDist).clamp(0.0, 1.0);
+          if (drawing) {
+            canvas.drawLine(
+              Offset(p1.dx + dx * t1, p1.dy + dy * t1),
+              Offset(p1.dx + dx * t2, p1.dy + dy * t2),
+              linePaint,
+            );
+          }
+          traveled += drawing ? dashLen : gapLen;
+          drawing = !drawing;
+        }
+        carry = traveled - (p2.dx - p1.dx).abs().clamp(1.0, double.infinity);
+      }
+      return;
+    }
+
+    final path = Path();
+    bool hasStarted = false;
 
     for (int i = visible.start; i <= visible.end; i++) {
       if (i < 0 || i >= series.values.length) continue;

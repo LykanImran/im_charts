@@ -37,14 +37,32 @@ class AxisRenderer extends BaseRenderer {
       final y = CoordinateConverter.priceToY(p, paneBounds, priceRange);
       if (y >= paneBounds.top + 10 && y <= paneBounds.bottom - 10) {
         final textSpan = TextSpan(
-          text: p.toStringAsFixed(2),
+          text: _formatPrice(p, step),
           style: theme.axisTextStyle,
         );
         final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)
           ..layout();
 
-        tp.paint(canvas, Offset(axisBounds.left + 6.0, y - (tp.height / 2.0)));
+        final textX = (axisBounds.right - tp.width - 4.0).clamp(
+          axisBounds.left + 2.0,
+          axisBounds.right,
+        );
+        tp.paint(canvas, Offset(textX, y - (tp.height / 2.0)));
       }
+    }
+  }
+
+  String _formatPrice(double price, double step) {
+    if (step >= 1.0) {
+      return price.toStringAsFixed(0);
+    } else if (step >= 0.1) {
+      return price.toStringAsFixed(1);
+    } else if (step >= 0.01) {
+      return price.toStringAsFixed(2);
+    } else if (step >= 0.001) {
+      return price.toStringAsFixed(3);
+    } else {
+      return price.toStringAsFixed(4);
     }
   }
 
@@ -58,12 +76,13 @@ class AxisRenderer extends BaseRenderer {
     required ChartViewport viewport,
     required Timeframe timeframe,
     double minLabelSpacing = 85.0,
+    double priceAxisWidth = 65.0,
   }) {
     // Draw horizontal divider line
     canvas.drawLine(
       Offset(timeBounds.left, timeBounds.top),
       Offset(
-        timeBounds.right + 65.0,
+        timeBounds.right + priceAxisWidth,
         timeBounds.top,
       ), // extend into price axis area
       Paint()

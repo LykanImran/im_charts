@@ -74,4 +74,11 @@ class CandleBuilder {
     _candles.clear();
     _candles.addAll(candles);
   }
+
+  /// Prepends older [candles] to the front of the list (for lazy historical pagination).
+  /// Candles must be sorted oldest-first and must all be older than the current first candle.
+  void prepend(List<Candle> candles) {
+    if (candles.isEmpty) return;
+    _candles.insertAll(0, candles);
+  }
 }

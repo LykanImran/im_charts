@@ -3,18 +3,23 @@ import '../core/models/candle_style.dart';
 import '../core/models/timeframe.dart';
 import '../core/utils/chart_exporter.dart';
 import '../engine/chart_controller.dart';
+import '../engine/indicators/adx.dart';
 import '../engine/indicators/atr.dart';
 import '../engine/indicators/bollinger_bands.dart';
 import '../engine/indicators/cci.dart';
 import '../engine/indicators/chandelier_exit.dart';
 import '../engine/indicators/ema.dart';
+import '../engine/indicators/hma.dart';
 import '../engine/indicators/ichimoku.dart';
 import '../engine/indicators/macd.dart';
+import '../engine/indicators/obv.dart';
 import '../engine/indicators/parabolic_sar.dart';
+import '../engine/indicators/pivot_points.dart';
 import '../engine/indicators/rsi.dart';
 import '../engine/indicators/stochastic.dart';
 import '../engine/indicators/vwap.dart';
 import '../engine/indicators/williams_r.dart';
+import '../engine/indicators/wma.dart';
 import 'chart_save_status_badge.dart';
 import 'chart_settings_modal.dart';
 import 'chart_toast.dart';
@@ -175,6 +180,48 @@ class _ChartToolbarState extends State<ChartToolbar>
 
                     // 4. INDICATORS DROPDOWN
                     _buildIndicatorsDropdown(controller, theme, isDark),
+
+                    _buildDivider(theme),
+
+                    // 4b. PRICE SCALE MODE TOGGLE (Normal / Log / %)
+                    Tooltip(
+                      message: () {
+                        switch (controller.priceScaleMode) {
+                          case PriceScaleMode.normal: return 'Price Scale: Linear — tap for Log';
+                          case PriceScaleMode.log:    return 'Price Scale: Log — tap for %';
+                          case PriceScaleMode.percent: return 'Price Scale: % — tap for Linear';
+                        }
+                      }(),
+                      child: GestureDetector(
+                        onTap: controller.cyclePriceScaleMode,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: controller.priceScaleMode != PriceScaleMode.normal
+                                ? const Color(0xFF2962FF).withValues(alpha: 0.15)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(5),
+                            border: controller.priceScaleMode != PriceScaleMode.normal
+                                ? Border.all(color: const Color(0xFF2962FF).withValues(alpha: 0.4), width: 1)
+                                : null,
+                          ),
+                          child: Text(
+                            controller.priceScaleMode == PriceScaleMode.log
+                                ? 'Log'
+                                : controller.priceScaleMode == PriceScaleMode.percent
+                                    ? '%'
+                                    : 'Lin',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: controller.priceScaleMode != PriceScaleMode.normal
+                                  ? const Color(0xFF2962FF)
+                                  : theme.axisTextColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
                     _buildDivider(theme),
 
@@ -783,6 +830,48 @@ class _ChartToolbarState extends State<ChartToolbar>
             color: const Color(0xFF00B0FF),
             isActive: controller.isIndicatorActive('CCI_20'),
             onTap: () => controller.toggleIndicator(CCIIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+
+          // ── New Indicators (Phase 7) ──
+          _buildIndicatorMenuItem(
+            label: 'WMA 20 (Weighted MA)',
+            color: const Color(0xFF7E57C2),
+            isActive: controller.isIndicatorActive('WMA_20'),
+            onTap: () => controller.toggleIndicator(WMAIndicator(period: 20)),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'HMA 20 (Hull MA — Low Lag)',
+            color: const Color(0xFF26C6DA),
+            isActive: controller.isIndicatorActive('HMA_20'),
+            onTap: () => controller.toggleIndicator(HMAIndicator(period: 20)),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'ADX 14 (Trend Strength)',
+            color: const Color(0xFFFFB300),
+            isActive: controller.isIndicatorActive('ADX_14'),
+            onTap: () => controller.toggleIndicator(ADXIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'OBV (On-Balance Volume)',
+            color: const Color(0xFF42A5F5),
+            isActive: controller.isIndicatorActive('OBV'),
+            onTap: () => controller.toggleIndicator(OBVIndicator()),
+            theme: theme,
+            isDark: isDark,
+          ),
+          _buildIndicatorMenuItem(
+            label: 'Pivot Points (Classic)',
+            color: const Color(0xFFFFFFFF),
+            isActive: controller.isIndicatorActive('PIVOT'),
+            onTap: () => controller.toggleIndicator(PivotPointsIndicator()),
             theme: theme,
             isDark: isDark,
           ),

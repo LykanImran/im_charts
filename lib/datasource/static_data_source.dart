@@ -46,12 +46,17 @@ class StaticChartDataSource implements ChartDataSource {
     required String symbol,
     required Timeframe timeframe,
     int count = 500,
+    DateTime? before,
   }) async {
     if (_candles.isEmpty) return [];
-    if (_candles.length <= count) {
-      return List.unmodifiable(_candles);
+    final eligible = before != null
+        ? _candles.where((c) => c.timestamp.isBefore(before)).toList()
+        : _candles;
+    if (eligible.isEmpty) return [];
+    if (eligible.length <= count) {
+      return List.unmodifiable(eligible);
     }
-    return List.unmodifiable(_candles.sublist(_candles.length - count));
+    return List.unmodifiable(eligible.sublist(eligible.length - count));
   }
 
   @override

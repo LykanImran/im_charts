@@ -58,6 +58,12 @@ export 'engine/indicators/supertrend.dart';
 export 'engine/indicators/volume_profile.dart';
 export 'engine/indicators/vwap.dart';
 export 'engine/indicators/williams_r.dart';
+// New indicators (Phase 7)
+export 'engine/indicators/wma.dart';
+export 'engine/indicators/hma.dart';
+export 'engine/indicators/adx.dart';
+export 'engine/indicators/obv.dart';
+export 'engine/indicators/pivot_points.dart';
 
 // Renderer & Panes
 export 'renderer/chart_painter.dart';

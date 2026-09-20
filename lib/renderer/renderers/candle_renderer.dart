@@ -90,6 +90,12 @@ class CandleRenderer extends BaseRenderer {
           candleWidth,
         );
         break;
+      case CandleStyle.baseline:
+        _drawBaseline(canvas, bounds, candles, visible, priceRange, converter);
+        break;
+      case CandleStyle.stepLine:
+        _drawStepLine(canvas, bounds, candles, visible, priceRange, converter);
+        break;
     }
   }
 
@@ -368,5 +374,110 @@ class CandleRenderer extends BaseRenderer {
         barPaint,
       );
     }
+  }
+
+  /// Baseline chart: line chart with fill above / below a mid-price reference.
+  /// Green fill above baseline, red fill below baseline.
+  void _drawBaseline(
+    Canvas canvas,
+    Rect bounds,
+    List<Candle> candles,
+    VisibleIndices visible,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (visible.count <= 0) return;
+    // Use first visible candle's open as the baseline reference
+    final refIdx = visible.start.clamp(0, candles.length - 1);
+    final baseline = candles[refIdx].open;
+    final baseY = CoordinateConverter.priceToY(baseline, bounds, priceRange);
+
+    final aboveFill = Paint()
+      ..color = theme.bullishColor.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+    final belowFill = Paint()
+      ..color = theme.bearishColor.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+    final linePaint = Paint()
+      ..color = lineChartPaint.color
+      ..strokeWidth = 1.8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Collect (x, y) for the close line
+    final pts = <Offset>[];
+    for (int i = visible.start; i <= visible.end; i++) {
+      if (i < 0 || i >= candles.length) continue;
+      final x = converter.indexToX(i);
+      final y = CoordinateConverter.priceToY(candles[i].close, bounds, priceRange);
+      pts.add(Offset(x, y));
+    }
+    if (pts.length < 2) return;
+
+    // Draw fills — split at baseline crossing
+    final abovePath = Path();
+    final belowPath = Path();
+    abovePath.moveTo(pts.first.dx, baseY);
+    belowPath.moveTo(pts.first.dx, baseY);
+    for (final p in pts) {
+      abovePath.lineTo(p.dx, math.min(p.dy, baseY));
+      belowPath.lineTo(p.dx, math.max(p.dy, baseY));
+    }
+    abovePath.lineTo(pts.last.dx, baseY);
+    belowPath.lineTo(pts.last.dx, baseY);
+    abovePath.close();
+    belowPath.close();
+    canvas.drawPath(abovePath, aboveFill);
+    canvas.drawPath(belowPath, belowFill);
+
+    // Draw baseline reference line
+    final blPaint = Paint()
+      ..color = theme.gridColor
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(Offset(pts.first.dx, baseY), Offset(pts.last.dx, baseY), blPaint);
+
+    // Draw close line on top
+    final closePath = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (int i = 1; i < pts.length; i++) {
+      closePath.lineTo(pts[i].dx, pts[i].dy);
+    }
+    canvas.drawPath(closePath, linePaint);
+  }
+
+  /// Step Line chart: each close extends horizontally to next candle then jumps.
+  void _drawStepLine(
+    Canvas canvas,
+    Rect bounds,
+    List<Candle> candles,
+    VisibleIndices visible,
+    PriceRange priceRange,
+    CoordinateConverter converter,
+  ) {
+    if (visible.count <= 0) return;
+    final path = Path();
+    bool started = false;
+    double prevY = 0;
+    final paint = Paint()
+      ..color = lineChartPaint.color
+      ..strokeWidth = 1.8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt;
+
+    for (int i = visible.start; i <= visible.end; i++) {
+      if (i < 0 || i >= candles.length) continue;
+      final x = converter.indexToX(i);
+      final y = CoordinateConverter.priceToY(candles[i].close, bounds, priceRange);
+      if (!started) {
+        path.moveTo(x, y);
+        started = true;
+      } else {
+        // Horizontal segment at previous y, then jump to new y
+        path.lineTo(x, prevY);
+        path.lineTo(x, y);
+      }
+      prevY = y;
+    }
+    if (started) canvas.drawPath(path, paint);
   }
 }

@@ -602,5 +602,91 @@ void main() {
       await tester.pumpAndSettle();
       controller.dispose();
     });
+
+    testWidgets(
+        'Mobile toolbar collapses to ultra-slim 6px width with ergonomic thumb button',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(380, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 380,
+              height: 700,
+              child: ChartDrawingToolbar(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Thumb button is rendered
+      expect(find.byKey(const Key('expand_drawing_toolbar_button')), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+
+      // Verify ultra-slim container size is 6.0 px width
+      final containerFinder = find.byWidgetPredicate(
+        (w) => w is Container && w.constraints?.maxWidth == 6.0,
+      );
+      expect(containerFinder, findsOneWidget);
+
+      // Tap thumb button to expand
+      await tester.tap(find.byKey(const Key('expand_drawing_toolbar_button')));
+      await tester.pumpAndSettle();
+
+      // Verify expanded toolbar renders 44px width and chevron_left
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+
+      // Tap collapse button to return to ultra-slim state
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('expand_drawing_toolbar_button')), findsOneWidget);
+      controller.dispose();
+    });
+
+    testWidgets(
+        'TradingChart configures 44.0 priceAxisWidth on mobile screen width',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(380, 700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 380,
+              height: 700,
+              child: TradingChart(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify controller received the space-saving 44.0 price axis width
+      expect(controller.priceAxisWidth, 44.0);
+
+      controller.dispose();
+    });
   });
 }
+

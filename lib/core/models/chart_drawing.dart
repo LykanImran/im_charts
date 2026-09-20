@@ -7,11 +7,15 @@ import 'price_range.dart';
 enum DrawingTool {
   pointer,
   trendline,
+  extendedTrendline,
   horizontalLine,
   horizontalRay,
   verticalLine,
   rectangle,
   fibonacci,
+  parallelChannel,
+  arrow,
+  textLabel,
   longPosition,
   shortPosition,
   ruler,
@@ -24,6 +28,8 @@ extension DrawingToolExtension on DrawingTool {
         return 'Cursor';
       case DrawingTool.trendline:
         return 'Trendline';
+      case DrawingTool.extendedTrendline:
+        return 'Extended Trendline';
       case DrawingTool.horizontalLine:
         return 'Horizontal Line';
       case DrawingTool.horizontalRay:
@@ -34,6 +40,12 @@ extension DrawingToolExtension on DrawingTool {
         return 'Rectangle';
       case DrawingTool.fibonacci:
         return 'Fibonacci Retracement';
+      case DrawingTool.parallelChannel:
+        return 'Parallel Channel';
+      case DrawingTool.arrow:
+        return 'Arrow';
+      case DrawingTool.textLabel:
+        return 'Text Label';
       case DrawingTool.longPosition:
         return 'Long Position';
       case DrawingTool.shortPosition:
@@ -49,6 +61,8 @@ extension DrawingToolExtension on DrawingTool {
         return Icons.near_me_outlined;
       case DrawingTool.trendline:
         return Icons.trending_up;
+      case DrawingTool.extendedTrendline:
+        return Icons.swap_horiz;
       case DrawingTool.horizontalLine:
         return Icons.horizontal_rule;
       case DrawingTool.horizontalRay:
@@ -59,6 +73,12 @@ extension DrawingToolExtension on DrawingTool {
         return Icons.crop_square_outlined;
       case DrawingTool.fibonacci:
         return Icons.stacked_bar_chart;
+      case DrawingTool.parallelChannel:
+        return Icons.linear_scale;
+      case DrawingTool.arrow:
+        return Icons.arrow_forward;
+      case DrawingTool.textLabel:
+        return Icons.text_fields;
       case DrawingTool.longPosition:
         return Icons.arrow_outward;
       case DrawingTool.shortPosition:
@@ -78,12 +98,17 @@ extension DrawingToolExtension on DrawingTool {
       case DrawingTool.verticalLine:
       case DrawingTool.longPosition:
       case DrawingTool.shortPosition:
+      case DrawingTool.textLabel:
         return 1;
       case DrawingTool.trendline:
+      case DrawingTool.extendedTrendline:
       case DrawingTool.rectangle:
       case DrawingTool.fibonacci:
       case DrawingTool.ruler:
+      case DrawingTool.arrow:
         return 2;
+      case DrawingTool.parallelChannel:
+        return 3;
     }
   }
 }
@@ -141,6 +166,8 @@ class ChartDrawing {
   final bool isLocked;
   final bool isSelected;
   final Map<String, dynamic> properties;
+  /// Text content for [DrawingTool.textLabel] drawings.
+  final String label;
 
   const ChartDrawing({
     required this.id,
@@ -151,6 +178,7 @@ class ChartDrawing {
     this.isLocked = false,
     this.isSelected = false,
     this.properties = const {},
+    this.label = '',
   });
 
   ChartDrawing copyWith({
@@ -162,6 +190,7 @@ class ChartDrawing {
     bool? isLocked,
     bool? isSelected,
     Map<String, dynamic>? properties,
+    String? label,
   }) {
     return ChartDrawing(
       id: id ?? this.id,
@@ -172,6 +201,7 @@ class ChartDrawing {
       isLocked: isLocked ?? this.isLocked,
       isSelected: isSelected ?? this.isSelected,
       properties: properties ?? this.properties,
+      label: label ?? this.label,
     );
   }
 
@@ -184,6 +214,7 @@ class ChartDrawing {
         'isLocked': isLocked,
         'isSelected': isSelected,
         'properties': properties,
+        if (label.isNotEmpty) 'label': label,
       };
 
   factory ChartDrawing.fromJson(Map<String, dynamic> json) {
@@ -206,6 +237,7 @@ class ChartDrawing {
       properties: json['properties'] != null
           ? Map<String, dynamic>.from(json['properties'] as Map)
           : const {},
+      label: json['label'] as String? ?? '',
     );
   }
 
@@ -240,6 +272,8 @@ class ChartDrawing {
         return const [];
 
       case DrawingTool.trendline:
+      case DrawingTool.extendedTrendline:
+      case DrawingTool.arrow:
       case DrawingTool.ruler:
         if (points.length < 2) {
           final x = converter.indexToX(points[0].candleIndex);
@@ -388,6 +422,24 @@ class ChartDrawing {
           Offset(entryX, entryY),
           Offset(rightX, entryY),
         ];
+
+      case DrawingTool.parallelChannel:
+        if (points.length < 2) return const [];
+        final px1 = converter.indexToX(points[0].candleIndex);
+        final py1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final px2 = converter.indexToX(points[1].candleIndex);
+        final py2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        if (points.length >= 3) {
+          final py3 = CoordinateConverter.priceToY(points[2].price, bounds, priceRange);
+          return [Offset(px1, py1), Offset(px2, py2), Offset(px1, py3)];
+        }
+        return [Offset(px1, py1), Offset(px2, py2)];
+
+      case DrawingTool.textLabel:
+        if (points.isEmpty) return const [];
+        final lx = converter.indexToX(points[0].candleIndex);
+        final ly = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        return [Offset(lx, ly)];
     }
   }
 
@@ -433,10 +485,14 @@ class ChartDrawing {
         }
 
       case DrawingTool.trendline:
+      case DrawingTool.extendedTrendline:
       case DrawingTool.ruler:
       case DrawingTool.fibonacci:
+      case DrawingTool.parallelChannel:
+      case DrawingTool.arrow:
         return SystemMouseCursors.grab;
 
+      case DrawingTool.textLabel:
       case DrawingTool.pointer:
         return SystemMouseCursors.basic;
     }
@@ -603,6 +659,38 @@ class ChartDrawing {
         final maxY = math.max(targetY, stopY);
         final totalRect = Rect.fromLTRB(entryX, minY, rightX, maxY);
         return totalRect.inflate(threshold).contains(pos);
+
+      case DrawingTool.extendedTrendline:
+      case DrawingTool.arrow:
+        // Same as trendline — hits the segment
+        if (points.length < 2) return false;
+        final ax1 = converter.indexToX(points[0].candleIndex);
+        final ay1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final ax2 = converter.indexToX(points[1].candleIndex);
+        final ay2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        return distanceToSegment(pos, Offset(ax1, ay1), Offset(ax2, ay2)) <= threshold;
+
+      case DrawingTool.parallelChannel:
+        if (points.length < 2) return false;
+        final cx1 = converter.indexToX(points[0].candleIndex);
+        final cy1 = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        final cx2 = converter.indexToX(points[1].candleIndex);
+        final cy2 = CoordinateConverter.priceToY(points[1].price, bounds, priceRange);
+        if (distanceToSegment(pos, Offset(cx1, cy1), Offset(cx2, cy2)) <= threshold) return true;
+        if (points.length >= 3) {
+          final cy3 = CoordinateConverter.priceToY(points[2].price, bounds, priceRange);
+          final midY = (cy1 + cy2) / 2;
+          final offset = cy3 - midY;
+          return distanceToSegment(
+              pos, Offset(cx1, cy1 + offset), Offset(cx2, cy2 + offset)) <= threshold;
+        }
+        return false;
+
+      case DrawingTool.textLabel:
+        if (points.isEmpty) return false;
+        final lx = converter.indexToX(points[0].candleIndex);
+        final ly = CoordinateConverter.priceToY(points[0].price, bounds, priceRange);
+        return (Offset(lx, ly) - pos).distance <= threshold * 2.5;
     }
   }
 }

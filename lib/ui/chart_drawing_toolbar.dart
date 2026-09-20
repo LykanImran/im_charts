@@ -70,28 +70,77 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
         final disabledActionColor =
             isDark ? const Color(0xFF4A4E59) : const Color(0xFFB2B5BE);
 
+        final isMobile =
+            (MediaQuery.maybeOf(context)?.size.width ?? 1000.0) < 600.0;
+        final collapsedWidth = isMobile ? 6.0 : 10.0;
+
         if (_isCollapsed ?? false) {
-          return Container(
-            width: 18,
-            decoration: BoxDecoration(
-              color: bgColor,
-              border: Border(
-                right: BorderSide(color: borderColor, width: 1),
-              ),
-            ),
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                setState(() => _isCollapsed = false);
-              },
-              child: Center(
-                child: Icon(
-                  Icons.chevron_right,
-                  size: 14,
-                  color: inactiveIconColor,
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerLeft,
+            children: [
+              // Ultra-slim collapsed edge strip saving horizontal screen space
+              Container(
+                width: collapsedWidth,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  border: Border(
+                    right: BorderSide(color: borderColor, width: 1),
+                  ),
                 ),
               ),
-            ),
+
+              // Ergonomic Thumb Button to expand
+              Positioned(
+                left: 0,
+                child: Tooltip(
+                  message: 'Expand Drawing Tools',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      key: const Key('expand_drawing_toolbar_button'),
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() => _isCollapsed = false);
+                      },
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(16),
+                      ),
+                      child: Container(
+                        width: 28,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: const BorderRadius.horizontal(
+                            right: Radius.circular(16),
+                          ),
+                          border: Border(
+                            top: BorderSide(color: borderColor, width: 1),
+                            right: BorderSide(color: borderColor, width: 1),
+                            bottom: BorderSide(color: borderColor, width: 1),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.45 : 0.12,
+                              ),
+                              blurRadius: 6,
+                              offset: const Offset(2, 1),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: inactiveIconColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         }
 
@@ -107,165 +156,186 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
             children: [
               const SizedBox(height: 8),
 
-              // Drawing Tool Buttons
-              for (final tool in _tools) ...[
-                _buildToolButton(
-                  tool: tool,
-                  isActive: activeTool == tool,
-                  isDark: isDark,
-                  onTap: () {
-                    if (activeTool == tool) {
-                      widget.controller.activeDrawingTool = DrawingTool.pointer;
-                    } else {
-                      widget.controller.activeDrawingTool = tool;
-                    }
-                  },
-                ),
-                const SizedBox(height: 4),
-              ],
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Drawing Tool Buttons
+                      for (final tool in _tools) ...[
+                        _buildToolButton(
+                          tool: tool,
+                          isActive: activeTool == tool,
+                          isDark: isDark,
+                          onTap: () {
+                            if (activeTool == tool) {
+                              widget.controller.activeDrawingTool =
+                                  DrawingTool.pointer;
+                            } else {
+                              widget.controller.activeDrawingTool = tool;
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                      ],
 
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                child: Divider(color: borderColor, height: 1),
-              ),
-
-              // Magnet Mode Toggle
-              Tooltip(
-                message: widget.controller.magnetMode
-                    ? 'Magnet Mode: ON (Snap to OHLC)'
-                    : 'Magnet Mode: OFF (Snap to OHLC)',
-                waitDuration: const Duration(milliseconds: 400),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  child: InkWell(
-                    key: const Key('magnet_mode_button'),
-                    onTap: widget.controller.toggleMagnetMode,
-                    borderRadius: BorderRadius.circular(6),
-                    hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.15),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: widget.controller.magnetMode
-                            ? const Color(0xFFFFB300).withValues(alpha: 0.2)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(6),
-                        border: widget.controller.magnetMode
-                            ? Border.all(
-                                color: const Color(0xFFFFB300), width: 1)
-                            : null,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 4.0,
+                        ),
+                        child: Divider(color: borderColor, height: 1),
                       ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.gps_fixed,
-                        size: 18,
-                        color: widget.controller.magnetMode
-                            ? const Color(0xFFFFB300)
-                            : inactiveIconColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
 
-              // Undo Button
-              Tooltip(
-                message: 'Undo (Ctrl+Z)',
-                waitDuration: const Duration(milliseconds: 400),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  child: InkWell(
-                    key: const Key('undo_drawing_button'),
-                    onTap: widget.controller.canUndo
-                        ? widget.controller.undo
-                        : null,
-                    borderRadius: BorderRadius.circular(6),
-                    hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.15),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.undo,
-                        size: 18,
-                        color: widget.controller.canUndo
-                            ? activeActionColor
-                            : disabledActionColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // Redo Button
-              Tooltip(
-                message: 'Redo (Ctrl+Y)',
-                waitDuration: const Duration(milliseconds: 400),
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  child: InkWell(
-                    key: const Key('redo_drawing_button'),
-                    onTap: widget.controller.canRedo
-                        ? widget.controller.redo
-                        : null,
-                    borderRadius: BorderRadius.circular(6),
-                    hoverColor: const Color(0xFF2962FF).withValues(alpha: 0.15),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.redo,
-                        size: 18,
-                        color: widget.controller.canRedo
-                            ? activeActionColor
-                            : disabledActionColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // Clear All Drawings Button
-              if (hasDrawings)
-                Tooltip(
-                  message:
-                      'Clear Drawings (${widget.controller.drawings.length})',
-                  waitDuration: const Duration(milliseconds: 400),
-                  child: Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    child: InkWell(
-                      key: const Key('clear_drawings_button'),
-                      onTap: widget.controller.clearDrawings,
-                      borderRadius: BorderRadius.circular(6),
-                      hoverColor: const Color(
-                        0xFFFF3B30,
-                      ).withValues(alpha: 0.15),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.delete_outline,
-                          size: 18,
-                          color: Color(0xFFFF3B30),
+                      // Magnet Mode Toggle
+                      Tooltip(
+                        message: widget.controller.magnetMode
+                            ? 'Magnet Mode: ON (Snap to OHLC)'
+                            : 'Magnet Mode: OFF (Snap to OHLC)',
+                        waitDuration: const Duration(milliseconds: 400),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          child: InkWell(
+                            key: const Key('magnet_mode_button'),
+                            onTap: widget.controller.toggleMagnetMode,
+                            borderRadius: BorderRadius.circular(6),
+                            hoverColor: const Color(
+                              0xFF2962FF,
+                            ).withValues(alpha: 0.15),
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: widget.controller.magnetMode
+                                    ? const Color(
+                                        0xFFFFB300,
+                                      ).withValues(alpha: 0.2)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: widget.controller.magnetMode
+                                    ? Border.all(
+                                        color: const Color(0xFFFFB300),
+                                        width: 1,
+                                      )
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.gps_fixed,
+                                size: 18,
+                                color: widget.controller.magnetMode
+                                    ? const Color(0xFFFFB300)
+                                    : inactiveIconColor,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+
+                      // Undo Button
+                      Tooltip(
+                        message: 'Undo (Ctrl+Z)',
+                        waitDuration: const Duration(milliseconds: 400),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          child: InkWell(
+                            key: const Key('undo_drawing_button'),
+                            onTap: widget.controller.canUndo
+                                ? widget.controller.undo
+                                : null,
+                            borderRadius: BorderRadius.circular(6),
+                            hoverColor: const Color(
+                              0xFF2962FF,
+                            ).withValues(alpha: 0.15),
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.undo,
+                                size: 18,
+                                color: widget.controller.canUndo
+                                    ? activeActionColor
+                                    : disabledActionColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Redo Button
+                      Tooltip(
+                        message: 'Redo (Ctrl+Y)',
+                        waitDuration: const Duration(milliseconds: 400),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          child: InkWell(
+                            key: const Key('redo_drawing_button'),
+                            onTap: widget.controller.canRedo
+                                ? widget.controller.redo
+                                : null,
+                            borderRadius: BorderRadius.circular(6),
+                            hoverColor: const Color(
+                              0xFF2962FF,
+                            ).withValues(alpha: 0.15),
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.redo,
+                                size: 18,
+                                color: widget.controller.canRedo
+                                    ? activeActionColor
+                                    : disabledActionColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Clear All Drawings Button
+                      if (hasDrawings)
+                        Tooltip(
+                          message:
+                              'Clear Drawings (${widget.controller.drawings.length})',
+                          waitDuration: const Duration(milliseconds: 400),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            child: InkWell(
+                              key: const Key('clear_drawings_button'),
+                              onTap: widget.controller.clearDrawings,
+                              borderRadius: BorderRadius.circular(6),
+                              hoverColor: const Color(
+                                0xFFFF3B30,
+                              ).withValues(alpha: 0.15),
+                              child: Container(
+                                width: 34,
+                                height: 34,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: Color(0xFFFF3B30),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                    ],
                   ),
                 ),
+              ),
 
-              const Spacer(),
-
-              // Collapse Button
+              // Collapse Button with comfortable thumb hit target
               if (widget.isCollapsible)
                 Tooltip(
                   message: 'Hide Drawing Toolbar',
@@ -274,10 +344,10 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
                       HapticFeedback.lightImpact();
                       setState(() => _isCollapsed = true);
                     },
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      width: 32,
-                      height: 32,
+                      width: 34,
+                      height: 34,
                       alignment: Alignment.center,
                       child: Icon(
                         Icons.chevron_left,
