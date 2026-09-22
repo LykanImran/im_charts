@@ -30,6 +30,14 @@
             "type": "dart",
             "program": "tool/deploy_web.dart",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "🚀 Deploy on pub.dev",
+            "request": "launch",
+            "type": "dart",
+            "program": "tool/deploy_pub.dart",
+            "cwd": "${workspaceFolder}",
+            "console": "terminal"
         }
     ]
 }

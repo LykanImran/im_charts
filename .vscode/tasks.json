@@ -16,6 +16,22 @@
                 "focus": true,
                 "panel": "shared"
             }
+        },
+        {
+            "label": "🚀 Deploy on pub.dev",
+            "type": "shell",
+            "command": "./tool/deploy_pub.sh",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
         }
     ]
 }
