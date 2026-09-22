@@ -376,8 +376,9 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    final hoverColor =
-        isActive ? const Color(0xFF2962FF) : (isDark ? const Color(0xFF2A2E39) : const Color(0xFFF0F3FA));
+    final hoverColor = isActive
+        ? const Color(0xFF2962FF)
+        : (isDark ? const Color(0xFF2A2E39) : const Color(0xFFF0F3FA));
     final defaultIconColor =
         isDark ? const Color(0xFFB2B5BE) : const Color(0xFF50535E);
 
@@ -418,5 +419,3 @@ class _ChartDrawingToolbarState extends State<ChartDrawingToolbar> {
     );
   }
 }
-
-

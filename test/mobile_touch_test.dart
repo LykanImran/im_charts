@@ -192,6 +192,60 @@ void main() {
       controller.dispose();
     });
 
+    testWidgets(
+        'Order drag handle starts dragging from current position without jumping to top',
+        (WidgetTester tester) async {
+      final controller = TradingChartController(
+        symbol: 'NIFTY 50',
+        exchange: 'NSE',
+        dataSource: MockTradingDataSource(),
+      );
+      await controller.initialize();
+
+      final currentPrice = controller.currentCandle?.close ?? 24500.0;
+      final order = ChartOrder(
+        id: 'order_drag_test',
+        symbol: 'NIFTY 50',
+        side: OrderSide.buy,
+        type: OrderType.limit,
+        price: currentPrice,
+        quantity: 50,
+      );
+      controller.placeOrder(order);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: TradingChart(
+                controller: controller,
+                enableChartTrading: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final dragHandleFinder =
+          find.byKey(const Key('drag_order_order_drag_test'));
+      expect(dragHandleFinder, findsOneWidget);
+
+      final initialPrice = controller.orders.first.price;
+
+      // Drag order vertically downwards by 50px (lower price)
+      await tester.drag(dragHandleFinder, const Offset(0, 50));
+      await tester.pumpAndSettle();
+
+      // Price should have decreased smoothly (higher Y on chart = lower price)
+      expect(controller.orders.first.price, lessThan(initialPrice));
+      expect(controller.orders.first.price, greaterThan(initialPrice * 0.8));
+
+      controller.dispose();
+    });
+
     testWidgets('Toolbar search button adapts responsively on mobile',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(400, 700);

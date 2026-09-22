@@ -124,6 +124,10 @@ class _TradingChartState extends State<TradingChart>
   int? _draggingHandleIndex;
   String? _draggingDrawingId;
 
+  // Accumulates sub-candle pixel remainder during drawingMove drags to avoid
+  // integer-quantization jumps (the drawing lags then snaps by 1 candle).
+  double _drawingDragCandleRemainder = 0.0;
+
   // Track hover position for dynamic cursor resolution
   Offset? _hoverPosition;
 
@@ -131,6 +135,18 @@ class _TradingChartState extends State<TradingChart>
   String? _draggingOrderId;
   String? _draggingKind; // 'order', 'tp', 'sl', 'alert'
   double? _draggingCurrentPrice;
+  double? _dragGrabOffsetY;
+
+  double? _globalToChartY(BuildContext context, Offset globalPosition) {
+    final chartKey = widget.repaintBoundaryKey ?? _defaultRepaintKey;
+    final renderBox =
+        (chartKey.currentContext?.findRenderObject() as RenderBox?) ??
+            (context.findRenderObject() as RenderBox?);
+    if (renderBox != null && renderBox.hasSize) {
+      return renderBox.globalToLocal(globalPosition).dy;
+    }
+    return null;
+  }
 
   void _handleInertiaTick() {
     final current = _inertiaController.value;
@@ -832,6 +848,9 @@ class _TradingChartState extends State<TradingChart>
                                 controller.setCrosshairPosition(null);
                               }
 
+                              // Reset sub-candle accumulator for fresh gesture
+                              _drawingDragCandleRemainder = 0.0;
+
                               final start = details.localFocalPoint;
                               _lastFocalPoint = start;
                               _lastScale = 1.0;
@@ -906,17 +925,12 @@ class _TradingChartState extends State<TradingChart>
                                   final sel = controller.selectedDrawing;
                                   if (sel != null && !sel.isLocked) {
                                     final handle = sel.hitTestHandle(
-                                          start,
-                                          bounds,
-                                          priceRange,
-                                          converter,
-                                        ) ??
-                                        sel.hitTestHandle(
-                                          _lastTapDownPosition,
-                                          bounds,
-                                          priceRange,
-                                          converter,
-                                        );
+                                      start,
+                                      bounds,
+                                      priceRange,
+                                      converter,
+                                      threshold: _isMobile ? 20.0 : 12.0,
+                                    );
                                     if (handle != null) {
                                       controller.recordDrawingSnapshot();
                                       _draggingHandleIndex = handle;
@@ -940,17 +954,11 @@ class _TradingChartState extends State<TradingChart>
                                   for (final d
                                       in controller.drawings.reversed) {
                                     if (d.hitTest(
-                                          start,
-                                          bounds,
-                                          priceRange,
-                                          converter,
-                                        ) ||
-                                        d.hitTest(
-                                          _lastTapDownPosition,
-                                          bounds,
-                                          priceRange,
-                                          converter,
-                                        )) {
+                                      start,
+                                      bounds,
+                                      priceRange,
+                                      converter,
+                                    )) {
                                       hitDrawing = d;
                                       break;
                                     }
@@ -1264,33 +1272,39 @@ class _TradingChartState extends State<TradingChart>
                                 case _ChartDragMode.drawingMove:
                                   if (_draggingDrawingId != null &&
                                       controller.candles.isNotEmpty) {
-                                    final converter = CoordinateConverter(
-                                      viewport: controller.viewport,
-                                      totalCandles: controller.candles.length,
-                                    );
-                                    final prevIndex = converter.xToIndex(
-                                      _lastFocalPoint.dx,
-                                    );
-                                    final currIndex = converter.xToIndex(
-                                      details.localFocalPoint.dx,
-                                    );
-                                    final deltaCandles = currIndex - prevIndex;
+                                    // ── Continuous pixel-based candle delta ──
+                                    // Using xToIndex() (integer) for the delta
+                                    // causes quantization jumps: no movement
+                                    // until a full candle boundary is crossed,
+                                    // then it snaps. Instead, accumulate the
+                                    // raw pixel delta divided by candleTotalWidth
+                                    // and only commit whole-candle increments.
+                                    final candleTotalWidth = controller
+                                        .viewport.candleTotalWidth;
+                                    if (candleTotalWidth > 0) {
+                                      _drawingDragCandleRemainder +=
+                                          deltaX / candleTotalWidth;
+                                      final deltaCandles =
+                                          _drawingDragCandleRemainder.truncate();
+                                      _drawingDragCandleRemainder -=
+                                          deltaCandles.toDouble();
 
-                                    final prevPrice = controller.priceAtY(
-                                      _lastFocalPoint.dy,
-                                    );
-                                    final currPrice = controller.priceAtY(
-                                      details.localFocalPoint.dy,
-                                    );
-                                    final deltaPrice = currPrice - prevPrice;
-
-                                    if (deltaCandles != 0 ||
-                                        deltaPrice.abs() > 0.001) {
-                                      controller.translateDrawing(
-                                        _draggingDrawingId!,
-                                        deltaCandles,
-                                        deltaPrice,
+                                      final prevPrice = controller.priceAtY(
+                                        _lastFocalPoint.dy,
                                       );
+                                      final currPrice = controller.priceAtY(
+                                        details.localFocalPoint.dy,
+                                      );
+                                      final deltaPrice = currPrice - prevPrice;
+
+                                      if (deltaCandles != 0 ||
+                                          deltaPrice.abs() > 0.001) {
+                                        controller.translateDrawing(
+                                          _draggingDrawingId!,
+                                          deltaCandles,
+                                          deltaPrice,
+                                        );
+                                      }
                                     }
                                   }
                                   break;
@@ -1415,6 +1429,7 @@ class _TradingChartState extends State<TradingChart>
 
                               _draggingHandleIndex = null;
                               _draggingDrawingId = null;
+                              _drawingDragCandleRemainder = 0.0;
                               _dragMode = _ChartDragMode.none;
                             },
                             onDoubleTap: () {
@@ -2736,34 +2751,49 @@ class _TradingChartState extends State<TradingChart>
                         child: MouseRegion(
                           cursor: SystemMouseCursors.resizeUpDown,
                           child: GestureDetector(
+                            key: Key('drag_order_${order.id}'),
                             behavior: HitTestBehavior.opaque,
                             onVerticalDragStart: (details) {
+                              final chartY =
+                                  _globalToChartY(context, details.globalPosition);
                               setState(() {
                                 _draggingOrderId = order.id;
                                 _draggingKind = 'order';
                                 _draggingCurrentPrice = order.price;
+                                _dragGrabOffsetY =
+                                    chartY != null ? (chartY - orderY) : 0.0;
                               });
                             },
                             onVerticalDragUpdate: (details) {
-                              // Direct pointer-Y → price: no accumulation, no jumps
-                              final newY = details.localPosition.dy
-                                  .clamp(0.0, timeAxisTop);
-                              final newPrice = double.parse(
-                                controller.priceAtY(newY).toStringAsFixed(2),
-                              );
-                              if (newPrice != _draggingCurrentPrice) {
-                                if (_lastHapticDragPrice == null ||
-                                    (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
-                                  _lastHapticDragPrice = newPrice;
-                                  HapticFeedback.selectionClick();
+                              final chartY =
+                                  _globalToChartY(context, details.globalPosition);
+                              if (chartY != null) {
+                                final adjustedY = (chartY -
+                                        (_dragGrabOffsetY ?? 0.0))
+                                    .clamp(0.0, timeAxisTop);
+                                final newPrice = double.parse(
+                                  controller
+                                      .priceAtY(adjustedY)
+                                      .toStringAsFixed(2),
+                                );
+                                if (newPrice != _draggingCurrentPrice) {
+                                  if (_lastHapticDragPrice == null ||
+                                      (newPrice - _lastHapticDragPrice!)
+                                              .abs() >=
+                                          0.5) {
+                                    _lastHapticDragPrice = newPrice;
+                                    HapticFeedback.selectionClick();
+                                  }
+                                  _draggingCurrentPrice = newPrice;
+                                  controller.updateOrderPrice(
+                                      order.id, newPrice);
                                 }
-                                _draggingCurrentPrice = newPrice;
-                                controller.updateOrderPrice(order.id, newPrice);
                               }
                             },
                             onVerticalDragEnd: (_) {
                               HapticFeedback.lightImpact();
                               _lastHapticDragPrice = null;
+                              _dragGrabOffsetY = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2777,6 +2807,7 @@ class _TradingChartState extends State<TradingChart>
                             },
                             onVerticalDragCancel: () {
                               _lastHapticDragPrice = null;
+                              _dragGrabOffsetY = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2860,36 +2891,51 @@ class _TradingChartState extends State<TradingChart>
                         child: MouseRegion(
                           cursor: SystemMouseCursors.resizeUpDown,
                           child: GestureDetector(
+                            key: Key('drag_tp_${order.id}'),
                             behavior: HitTestBehavior.opaque,
                             onVerticalDragStart: (details) {
+                              final chartY =
+                                  _globalToChartY(context, details.globalPosition);
                               setState(() {
                                 _draggingOrderId = order.id;
                                 _draggingKind = 'tp';
                                 _draggingCurrentPrice = order.takeProfitPrice;
+                                _dragGrabOffsetY =
+                                    chartY != null ? (chartY - tpY) : 0.0;
                               });
                             },
                             onVerticalDragUpdate: (details) {
-                              final newY = details.localPosition.dy
-                                  .clamp(0.0, timeAxisTop);
-                              final newPrice = double.parse(
-                                controller.priceAtY(newY).toStringAsFixed(2),
-                              );
-                              if (newPrice != _draggingCurrentPrice) {
-                                if (_lastHapticDragPrice == null ||
-                                    (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
-                                  _lastHapticDragPrice = newPrice;
-                                  HapticFeedback.selectionClick();
-                                }
-                                _draggingCurrentPrice = newPrice;
-                                controller.updateOrderBrackets(
-                                  order.id,
-                                  takeProfitPrice: newPrice,
+                              final chartY =
+                                  _globalToChartY(context, details.globalPosition);
+                              if (chartY != null) {
+                                final adjustedY = (chartY -
+                                        (_dragGrabOffsetY ?? 0.0))
+                                    .clamp(0.0, timeAxisTop);
+                                final newPrice = double.parse(
+                                  controller
+                                      .priceAtY(adjustedY)
+                                      .toStringAsFixed(2),
                                 );
+                                if (newPrice != _draggingCurrentPrice) {
+                                  if (_lastHapticDragPrice == null ||
+                                      (newPrice - _lastHapticDragPrice!)
+                                              .abs() >=
+                                          0.5) {
+                                    _lastHapticDragPrice = newPrice;
+                                    HapticFeedback.selectionClick();
+                                  }
+                                  _draggingCurrentPrice = newPrice;
+                                  controller.updateOrderBrackets(
+                                    order.id,
+                                    takeProfitPrice: newPrice,
+                                  );
+                                }
                               }
                             },
                             onVerticalDragEnd: (_) {
                               HapticFeedback.lightImpact();
                               _lastHapticDragPrice = null;
+                              _dragGrabOffsetY = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2903,6 +2949,7 @@ class _TradingChartState extends State<TradingChart>
                             },
                             onVerticalDragCancel: () {
                               _lastHapticDragPrice = null;
+                              _dragGrabOffsetY = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -2997,36 +3044,51 @@ class _TradingChartState extends State<TradingChart>
                         child: MouseRegion(
                           cursor: SystemMouseCursors.resizeUpDown,
                           child: GestureDetector(
+                            key: Key('drag_sl_${order.id}'),
                             behavior: HitTestBehavior.opaque,
                             onVerticalDragStart: (details) {
+                              final chartY =
+                                  _globalToChartY(context, details.globalPosition);
                               setState(() {
                                 _draggingOrderId = order.id;
                                 _draggingKind = 'sl';
                                 _draggingCurrentPrice = order.stopLossPrice;
+                                _dragGrabOffsetY =
+                                    chartY != null ? (chartY - slY) : 0.0;
                               });
                             },
                             onVerticalDragUpdate: (details) {
-                              final newY = details.localPosition.dy
-                                  .clamp(0.0, timeAxisTop);
-                              final newPrice = double.parse(
-                                controller.priceAtY(newY).toStringAsFixed(2),
-                              );
-                              if (newPrice != _draggingCurrentPrice) {
-                                if (_lastHapticDragPrice == null ||
-                                    (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
-                                  _lastHapticDragPrice = newPrice;
-                                  HapticFeedback.selectionClick();
-                                }
-                                _draggingCurrentPrice = newPrice;
-                                controller.updateOrderBrackets(
-                                  order.id,
-                                  stopLossPrice: newPrice,
+                              final chartY =
+                                  _globalToChartY(context, details.globalPosition);
+                              if (chartY != null) {
+                                final adjustedY = (chartY -
+                                        (_dragGrabOffsetY ?? 0.0))
+                                    .clamp(0.0, timeAxisTop);
+                                final newPrice = double.parse(
+                                  controller
+                                      .priceAtY(adjustedY)
+                                      .toStringAsFixed(2),
                                 );
+                                if (newPrice != _draggingCurrentPrice) {
+                                  if (_lastHapticDragPrice == null ||
+                                      (newPrice - _lastHapticDragPrice!)
+                                              .abs() >=
+                                          0.5) {
+                                    _lastHapticDragPrice = newPrice;
+                                    HapticFeedback.selectionClick();
+                                  }
+                                  _draggingCurrentPrice = newPrice;
+                                  controller.updateOrderBrackets(
+                                    order.id,
+                                    stopLossPrice: newPrice,
+                                  );
+                                }
                               }
                             },
                             onVerticalDragEnd: (_) {
                               HapticFeedback.lightImpact();
                               _lastHapticDragPrice = null;
+                              _dragGrabOffsetY = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -3040,6 +3102,7 @@ class _TradingChartState extends State<TradingChart>
                             },
                             onVerticalDragCancel: () {
                               _lastHapticDragPrice = null;
+                              _dragGrabOffsetY = null;
                               setState(() {
                                 _draggingOrderId = null;
                                 _draggingKind = null;
@@ -3168,33 +3231,47 @@ class _TradingChartState extends State<TradingChart>
                         key: Key('drag_alert_${alert.id}'),
                         behavior: HitTestBehavior.opaque,
                         onVerticalDragStart: (details) {
+                          final chartY =
+                              _globalToChartY(context, details.globalPosition);
                           setState(() {
                             _draggingOrderId = alert.id;
                             _draggingKind = 'alert';
                             _draggingCurrentPrice = alert.price;
+                            _dragGrabOffsetY =
+                                chartY != null ? (chartY - alertY) : 0.0;
                           });
                         },
                         onVerticalDragUpdate: (details) {
-                          final newY = details.localPosition.dy
-                              .clamp(0.0, timeAxisTop);
-                          final newPrice = double.parse(
-                            controller.priceAtY(newY).toStringAsFixed(2),
-                          );
-                          if (newPrice != _draggingCurrentPrice) {
-                            if (_lastHapticDragPrice == null ||
-                                (newPrice - _lastHapticDragPrice!).abs() >= 0.5) {
-                              _lastHapticDragPrice = newPrice;
-                              HapticFeedback.selectionClick();
-                            }
-                            _draggingCurrentPrice = newPrice;
-                            controller.updateAlert(
-                              alert.copyWith(price: newPrice),
+                          final chartY =
+                              _globalToChartY(context, details.globalPosition);
+                          if (chartY != null) {
+                            final adjustedY = (chartY -
+                                    (_dragGrabOffsetY ?? 0.0))
+                                .clamp(0.0, timeAxisTop);
+                            final newPrice = double.parse(
+                              controller
+                                  .priceAtY(adjustedY)
+                                  .toStringAsFixed(2),
                             );
+                            if (newPrice != _draggingCurrentPrice) {
+                              if (_lastHapticDragPrice == null ||
+                                  (newPrice - _lastHapticDragPrice!)
+                                          .abs() >=
+                                      0.5) {
+                                _lastHapticDragPrice = newPrice;
+                                HapticFeedback.selectionClick();
+                              }
+                              _draggingCurrentPrice = newPrice;
+                              controller.updateAlert(
+                                alert.copyWith(price: newPrice),
+                              );
+                            }
                           }
                         },
                         onVerticalDragEnd: (_) {
                           HapticFeedback.lightImpact();
                           _lastHapticDragPrice = null;
+                          _dragGrabOffsetY = null;
                           setState(() {
                             _draggingOrderId = null;
                             _draggingKind = null;
@@ -3203,6 +3280,7 @@ class _TradingChartState extends State<TradingChart>
                         },
                         onVerticalDragCancel: () {
                           _lastHapticDragPrice = null;
+                          _dragGrabOffsetY = null;
                           setState(() {
                             _draggingOrderId = null;
                             _draggingKind = null;
