@@ -11,6 +11,24 @@ void main(List<String> args) async {
 
   final rootDir = Directory.current;
 
+  // 0. Pre-flight: Check git working tree
+  final gitStatusResult = await Process.run(
+    'git',
+    ['status', '--porcelain'],
+    workingDirectory: rootDir.path,
+  );
+  if (gitStatusResult.exitCode == 0 &&
+      gitStatusResult.stdout.toString().trim().isNotEmpty) {
+    stderr.writeln('⚠️  Warning: You have uncommitted git changes:');
+    for (final line in gitStatusResult.stdout.toString().trim().split('\n')) {
+      stderr.writeln('    $line');
+    }
+    stderr.writeln(
+      '\n💡 pub.dev dry-run requires a clean git commit. Please commit your changes before deploying.\n',
+    );
+    exit(1);
+  }
+
   // 1. Static Analysis
   stdout.writeln('🔍 [1/4] Running static analysis (flutter analyze)...');
   final analyzeProcess = await Process.start(
