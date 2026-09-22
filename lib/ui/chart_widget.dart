@@ -925,12 +925,19 @@ class _TradingChartState extends State<TradingChart>
                                   final sel = controller.selectedDrawing;
                                   if (sel != null && !sel.isLocked) {
                                     final handle = sel.hitTestHandle(
-                                      start,
-                                      bounds,
-                                      priceRange,
-                                      converter,
-                                      threshold: _isMobile ? 20.0 : 12.0,
-                                    );
+                                          start,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                          threshold: _isMobile ? 20.0 : 12.0,
+                                        ) ??
+                                        sel.hitTestHandle(
+                                          _lastTapDownPosition,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                          threshold: _isMobile ? 20.0 : 12.0,
+                                        );
                                     if (handle != null) {
                                       controller.recordDrawingSnapshot();
                                       _draggingHandleIndex = handle;
@@ -954,11 +961,17 @@ class _TradingChartState extends State<TradingChart>
                                   for (final d
                                       in controller.drawings.reversed) {
                                     if (d.hitTest(
-                                      start,
-                                      bounds,
-                                      priceRange,
-                                      converter,
-                                    )) {
+                                          start,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                        ) ||
+                                        d.hitTest(
+                                          _lastTapDownPosition,
+                                          bounds,
+                                          priceRange,
+                                          converter,
+                                        )) {
                                       hitDrawing = d;
                                       break;
                                     }
